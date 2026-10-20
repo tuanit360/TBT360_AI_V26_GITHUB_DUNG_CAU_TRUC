@@ -1,0 +1,40 @@
+[
+  {
+    "archive": "/mnt/data/004100_MAU_TRUONG_TIEU_HOC_THCS_THPT_AI_DATASET.zip",
+    "files": 87372,
+    "uncompressed_bytes": 273303985,
+    "unsafe_paths": 0,
+    "extensions": {
+      ".svg": 79000,
+      ".md": 4129,
+      ".json": 4117,
+      ".csv": 124,
+      ".jsonl": 2
+    }
+  },
+  {
+    "archive": "/mnt/data/0TBT360_1600_OFFICE_CONCEPTS_WITH_PREVIEWS.zip",
+    "files": 22444,
+    "uncompressed_bytes": 178598423,
+    "unsafe_paths": 0,
+    "extensions": {
+      ".svg": 14429,
+      ".csv": 3203,
+      ".json": 1604,
+      ".md": 1603,
+      ".html": 1502,
+      ".dxf": 100,
+      ".png": 2,
+      ".py": 1
+    }
+  },
+  {
+    "archive": "/mnt/data/0UBND_5Tang_Package_17.zip",
+    "files": 3,
+    "uncompressed_bytes": 8718407,
+    "unsafe_paths": 0,
+    "extensions": {
+      ".png": 3
+    }
+  }
+]
