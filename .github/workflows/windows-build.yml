@@ -64,6 +64,8 @@ jobs:
           $exe = (Resolve-Path 'dist/TBT360_AI/TBT360_AI.exe').Path
           $stdout = Join-Path $env:RUNNER_TEMP 'v78-launch-stdout.log'
           $stderr = Join-Path $env:RUNNER_TEMP 'v78-launch-stderr.log'
+          $env:NO_PROXY = '127.0.0.1,localhost,::1'
+          $env:no_proxy = $env:NO_PROXY
           $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           try {
             $ready = $false
