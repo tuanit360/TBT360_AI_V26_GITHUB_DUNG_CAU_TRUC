@@ -14,6 +14,14 @@ def root_directory():
 def main():
     root = root_directory()
     os.environ['TBT360_HOME'] = str(root)
+    # Gradio's localhost readiness probe must bypass HTTP(S) proxies.
+    # Keep existing exclusions and never enable a public share link.
+    for key in ('NO_PROXY', 'no_proxy'):
+        entries = [value.strip() for value in os.environ.get(key, '').split(',') if value.strip()]
+        for host in ('127.0.0.1', 'localhost', '::1'):
+            if host not in entries:
+                entries.append(host)
+        os.environ[key] = ','.join(entries)
     if '--self-test' in sys.argv:
         from tools.runtime_diagnostics import diagnostic_report
         import json
