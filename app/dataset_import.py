@@ -30,7 +30,9 @@ def import_images(root, files, project_id, caption):
     imported = []
     skipped = []
     for upload in files:
-        path = Path(upload.name if hasattr(upload, 'name') else upload)
+        # Path objects expose .name (basename only); do not discard parent dirs.
+        # Gradio file inputs are string-like paths; file handles expose .name.
+        path = Path(upload if isinstance(upload, (str, Path)) else upload.name)
         try:
             if path.suffix.lower() not in EXTENSIONS or not path.is_file() or path.stat().st_size > MAX_BYTES:
                 raise ValueError('Chỉ nhận JPEG/PNG/WEBP/BMP tối đa 25 MB.')
