@@ -43,6 +43,9 @@ jobs:
         run: |
           if (!(Test-Path 'run_portable.py')) { throw 'V81 launcher missing' }
           if (!(Test-Path 'app/generate.py')) { throw 'V81 Studio UI missing' }
+          if (!(Test-Path 'APP_VERSION.txt')) { throw 'V81 release marker missing' }
+          if ((Get-Content APP_VERSION.txt -Raw) -notmatch 'V81') { throw 'Wrong release version marker' }
+          if ((Get-Content app/generate.py -Raw) -notmatch 'TBT360 AI V81') { throw 'UI still advertises an old version' }
           if (Test-Path 'tbt360_ai/app.py') { throw 'Legacy V26 UI still present' }
           if (Test-Path 'main.py') { throw 'Legacy V26 entry point still present' }
           $launcher = Get-Content 'run_portable.py' -Raw
@@ -94,11 +97,11 @@ jobs:
           if-no-files-found: ignore
       - name: Verify artifact and checksum
         run: |
-          if (!(Test-Path 'TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
+          if (!(Test-Path 'TBT360_AI_V81_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
           python -m tools.verify_portable dist/TBT360_AI
-          Get-FileHash TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
+          Get-FileHash TBT360_AI_V81_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
           name: TBT360_AI_V81_PORTABLE_WINDOWS_X64_CPU
-          path: TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip
+          path: TBT360_AI_V81_PORTABLE_WINDOWS_X64_CPU.zip
           if-no-files-found: error
