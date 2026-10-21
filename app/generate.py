@@ -268,11 +268,90 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
-    gr.Markdown('# TBT360 AI Advanced ML Studio · V68 | Kiến trúc & Nội thất')
+with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V81 · Thiết kế & Huấn luyện trên một màn hình')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
+    with gr.Accordion('NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET (chỉ thao tác tại đây)', open=True):
+        gr.Markdown('**1. Chọn ảnh → 2. Nhập mã công trình và mô tả → 3. Nhấn LƯU ẢNH → 4. XEM ẢNH.** '
+                    'Ảnh được lưu bên cạnh EXE; không tự huấn luyện, không yêu cầu tìm thư mục Windows.')
+        with gr.Row():
+            with gr.Column(scale=1):
+                dataset_zip = gr.File(label='NẠP GÓI ZIP DỮ LIỆU KIẾN TRÚC (tối đa 500 ảnh/lượt)',
+                                      file_count='single', file_types=['.zip'])
+                dataset_upload = gr.File(label='1 · NẠP NHIỀU ẢNH (kéo thả hoặc bấm chọn)',
+                                         file_count='multiple', file_types=['image'])
+                dataset_project = gr.Textbox(label='2 · Mã công trình', value='office_demo_01')
+                dataset_caption = gr.Textbox(label='3 · Nhãn / mô tả của nhóm ảnh',
+                    value='Contemporary office building, architectural facade, realistic proportions',
+                    lines=2)
+                with gr.Row():
+                    dataset_save = gr.Button('LƯU ẢNH VÀ NHÃN NHÁP', variant='primary')
+                    dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
+                    dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
+                dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
+                dataset_v81_bundle = gr.Button('NẠP BỘ DATASET V81 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)', variant='primary')
+                dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
+            with gr.Column(scale=2):
+                dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
+                                             columns=4, height=320, object_fit='contain')
+        def save_dataset(files, project, caption):
+            from app.dataset_import import import_images, preview_project
+            try:
+                result = import_images(ROOT, files, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        def show_dataset(project):
+            from app.dataset_import import preview_project
+            return preview_project(ROOT, project)
+        dataset_save.click(save_dataset,
+                           inputs=[dataset_upload, dataset_project, dataset_caption],
+                           outputs=[dataset_status, dataset_gallery])
+        def save_zip_dataset(archive, project, caption):
+            from app.dataset_zip_import import import_zip_archive
+            from app.dataset_import import preview_project
+            if not archive:
+                return {'error': 'Hãy chọn file ZIP trước'}, []
+            try:
+                result = import_zip_archive(ROOT, archive, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError, RuntimeError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_import_zip.click(save_zip_dataset,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
+        def import_multi_project_v81(archive):
+            from app.dataset_bundle import import_v81_bundle
+            from app.dataset_import import preview_all_projects
+            if not archive:
+                return {'error': 'Hãy chọn ZIP dataset V81 trước'}, []
+            try:
+                result = import_v81_bundle(ROOT, archive)
+                gallery, overview = preview_all_projects(ROOT)
+                result['overview'] = overview
+                return result, gallery
+            except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_v81_bundle.click(import_multi_project_v81,
+                                 inputs=dataset_zip,
+                                 outputs=[dataset_status, dataset_gallery])
+
+        dataset_view.click(show_dataset, inputs=dataset_project,
+                           outputs=[dataset_gallery, dataset_status])
+        def show_all_datasets():
+            from app.dataset_import import preview_all_projects
+            return preview_all_projects(ROOT)
+        dataset_view_all.click(show_all_datasets,
+                               outputs=[dataset_gallery, dataset_status])
+        gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
+                    'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
+                    'Không tự động đưa ảnh mới vào model.')
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
@@ -317,6 +396,20 @@ with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
         with gr.Tab('02 · Trạng thái AI'):
             gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
             gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+            gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+            readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+            def inspect_readiness():
+                from app.cpu_readiness import inspect_local_assets
+                try:
+                    import torch
+                    has_cuda = torch.cuda.is_available()
+                except (ImportError, RuntimeError):
+                    has_cuda = False
+                return inspect_local_assets(ROOT, cuda_available=has_cuda)
+            gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                inspect_readiness, outputs=readiness)
+            gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                        'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
             gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab('03 · Kiểm tra ảnh & dữ liệu'):
             gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')
