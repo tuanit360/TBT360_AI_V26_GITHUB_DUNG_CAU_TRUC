@@ -4,12 +4,18 @@ on:
   push:
     paths:
       - 'tbt360_ai/**'
-      - 'main.py'
+      - 'evaluation/**'
+      - 'tests/**'
+      - 'demo_data/**'
       - 'requirements.txt'
+      - 'main.py'
       - '.github/workflows/windows-build.yml'
 jobs:
   windows:
     runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,21 +25,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+          python -m pip install 'pyinstaller>=6,<7' 
+      - name: Diagnose asset checksums
+        run: python tools/diagnose_asset_hashes.py --root . --output sha256_diagnostics.json
       - name: Unit tests
         run: python -m unittest discover -s tests -v
       - name: Build EXE folder
         run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name TBT360_AI --collect-all torch --collect-all torchvision main.py
       - name: Smoke test executable launch
-        shell: pwsh
         run: |
-          $proc = Start-Process -FilePath 'dist/TBT360_AI/TBT360_AI.exe' -PassThru
+          $exe = 'dist/TBT360_AI/TBT360_AI.exe'
+          if (!(Test-Path $exe)) { throw 'EXE missing' }
+          $proc = Start-Process -FilePath $exe -PassThru
           Start-Sleep -Seconds 12
-          if ($proc.HasExited) { throw "EXE exited unexpectedly with $($proc.ExitCode)" }
+          if ($proc.HasExited) { throw "EXE exited with $($proc.ExitCode)" }
           Stop-Process -Id $proc.Id
-      - name: Zip native app
-        shell: pwsh
-        run: Compress-Archive -Path dist/TBT360_AI -DestinationPath TBT360_AI_WINDOWS_X64.zip
+      - name: ZIP Portable
+        run: Compress-Archive -Path dist/TBT360_AI -DestinationPath TBT360_AI_WINDOWS_X64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: TBT360_AI_WINDOWS_X64
           path: TBT360_AI_WINDOWS_X64.zip
+      - name: Upload SHA diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHA256_DIAGNOSTICS
+          path: sha256_diagnostics.json
+          if-no-files-found: ignore
