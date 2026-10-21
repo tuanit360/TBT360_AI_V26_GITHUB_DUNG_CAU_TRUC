@@ -15,7 +15,7 @@ At the top of the main Gradio page is **NẠP ẢNH HUẤN LUYỆN – IMPORT DA
 Imported data is **not automatically used for training**. Labels must be reviewed and rights, project splits, and data quality assessed first. Current LoRA training requires CUDA with sufficient VRAM; CPU inference can be slow.
 
 ## Supplied architectural datasets
-The user's ZIP/RAR uploads are not silently embedded in the executable or GitHub repository. They are sizeable and may contain SVG/DXF/JSON rather than photographic images. ZIP import currently accepts image formats only; RAR and vector-to-raster conversion are not supported here. A separately prepared 35-image review sample package is provided in the ChatGPT conversation, rather than being misrepresented as part of the GitHub EXE.
+The user's ZIP/RAR uploads are not silently embedded in the executable or GitHub repository. They are sizeable and may contain SVG/DXF/JSON rather than photographic images. ZIP import currently accepts image formats only; RAR and vector-to-raster conversion are not supported here. A separate 168-image raster review overlay was prepared from 7 of the 8 uploaded ZIP/RAR packages in the ChatGPT conversation. The 8th archive contains vector/structured data rather than raster images and is inventoried but not converted. The image overlay is not inside the GitHub EXE; it must be extracted into the portable folder.
 
 ## Version validation
 The visible app heading, CI workflow/job and downloadable artifact must all say **V81**. Running `--self-test` checks imports but not actual image generation; the workflow additionally tests the local Gradio HTTP launch. Full image-generation model weights are not included.
