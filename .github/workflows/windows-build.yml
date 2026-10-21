@@ -1,4 +1,4 @@
-name: TBT360 AI V78 Portable Windows x64
+name: TBT360 AI V81 Portable Windows x64
 on:
   workflow_dispatch:
   push:
@@ -28,7 +28,7 @@ on:
       - 'run_portable.py'
       - 'requirements.txt'
 jobs:
-  windows-v78:
+  windows-v81:
     runs-on: windows-2022
     timeout-minutes: 120
     defaults:
@@ -39,14 +39,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - name: Require the V78 entry point only
+      - name: Require the V81 entry point only
         run: |
-          if (!(Test-Path 'run_portable.py')) { throw 'V78 launcher missing' }
-          if (!(Test-Path 'app/generate.py')) { throw 'V78 Studio UI missing' }
+          if (!(Test-Path 'run_portable.py')) { throw 'V81 launcher missing' }
+          if (!(Test-Path 'app/generate.py')) { throw 'V81 Studio UI missing' }
           if (Test-Path 'tbt360_ai/app.py') { throw 'Legacy V26 UI still present' }
           if (Test-Path 'main.py') { throw 'Legacy V26 entry point still present' }
           $launcher = Get-Content 'run_portable.py' -Raw
-          if ($launcher -notmatch "run_module\('app.generate'") { throw 'Launcher does not start V78 Studio' }
+          if ($launcher -notmatch "run_module\('app.generate'") { throw 'Launcher does not start V81 Studio' }
       - name: Install CPU build dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -54,16 +54,16 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install 'pyinstaller==6.16.0'
           python -m pip check
-      - name: Run V78 regression tests
+      - name: Run V81 regression tests
         run: python -m unittest discover -s tests -v
-      - name: Build and self-test actual V78 Studio
+      - name: Build and self-test actual V81 Studio
         run: python tools/build_release.py --profile cpu
-      - name: Smoke test V78 Gradio launch and HTTP readiness
+      - name: Smoke test V81 Gradio launch and HTTP readiness
         shell: pwsh
         run: |
           $exe = (Resolve-Path 'dist/TBT360_AI/TBT360_AI.exe').Path
-          $stdout = Join-Path $env:RUNNER_TEMP 'v78-launch-stdout.log'
-          $stderr = Join-Path $env:RUNNER_TEMP 'v78-launch-stderr.log'
+          $stdout = Join-Path $env:RUNNER_TEMP 'v81-launch-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'v81-launch-stderr.log'
           $env:NO_PROXY = '127.0.0.1,localhost,::1'
           $env:no_proxy = $env:NO_PROXY
           $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
@@ -72,25 +72,25 @@ jobs:
             for ($i = 0; $i -lt 45; $i++) {
               Start-Sleep -Seconds 2
               $proc.Refresh()
-              if ($proc.HasExited) { throw "V78 EXE exited during launch with code $($proc.ExitCode)" }
+              if ($proc.HasExited) { throw "V81 EXE exited during launch with code $($proc.ExitCode)" }
               try {
                 $response = Invoke-WebRequest -Uri 'http://127.0.0.1:7861/' -UseBasicParsing -TimeoutSec 3
                 if ($response.StatusCode -eq 200 -and $response.Content -match 'gradio') { $ready = $true; break }
               } catch { }
             }
-            if (!$ready) { throw 'V78 Gradio UI did not become ready on http://127.0.0.1:7861/' }
-            Write-Host 'PASS: V78 EXE launched Gradio UI and served HTTP 200'
+            if (!$ready) { throw 'V81 Gradio UI did not become ready on http://127.0.0.1:7861/' }
+            Write-Host 'PASS: V81 EXE launched Gradio UI and served HTTP 200'
           } finally {
             if (!$proc.HasExited) { taskkill /PID $proc.Id /T /F | Out-Null }
             if (Test-Path $stdout) { Get-Content $stdout -Tail 120 }
             if (Test-Path $stderr) { Get-Content $stderr -Tail 120 }
           }
-      - name: Upload V78 launch logs on failure
+      - name: Upload V81 launch logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: V78_RUNTIME_LAUNCH_LOGS
-          path: ${{ runner.temp }}/v78-launch-*.log
+          name: V81_RUNTIME_LAUNCH_LOGS
+          path: ${{ runner.temp }}/v81-launch-*.log
           if-no-files-found: ignore
       - name: Verify artifact and checksum
         run: |
@@ -99,6 +99,6 @@ jobs:
           Get-FileHash TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
-          name: TBT360_AI_V78_PORTABLE_WINDOWS_X64_CPU
+          name: TBT360_AI_V81_PORTABLE_WINDOWS_X64_CPU
           path: TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip
           if-no-files-found: error
