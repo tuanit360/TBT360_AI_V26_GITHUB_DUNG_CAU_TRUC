@@ -44,7 +44,7 @@ def main():
                '--collect-all', 'safetensors', '--collect-all', 'peft',
                '--collect-all', 'torch', '--collect-all', 'torchvision',
                '--collect-all', 'PIL', '--collect-all', 'tokenizers',
-               '--collect-all', 'datasets', '--collect-all', 'tensorboard',
+               # Training-only datasets/tensorboard stay in source, not CPU EXE.
                '--collect-all', 'cv2',
                '--collect-submodules', 'app', '--collect-submodules', 'tools',
                '--collect-submodules', 'learning',
