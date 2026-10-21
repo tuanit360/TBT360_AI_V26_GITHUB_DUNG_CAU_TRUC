@@ -83,3 +83,40 @@ def preview_project(root, project_id):
     return images, {'project_id': project_id, 'images': len(records),
                     'pending_review': sum(row.get('review_status') == 'NEEDS_REVIEW' for row in records),
                     'training_started': False}
+
+
+def preview_all_projects(root, limit=80):
+    """Show installed image examples without asking the user for project IDs."""
+    root = Path(root).resolve() / 'dataset' / 'raw'
+    if not root.is_dir():
+        return [], {'projects': 0, 'images': 0, 'message': 'Chưa có dữ liệu được nạp'}
+    gallery = []
+    project_counts = {}
+    pending = 0
+    for folder in sorted(root.iterdir()):
+        if not folder.is_dir() or folder.is_symlink() or not re.fullmatch(r'[A-Za-z0-9_-]{2,64}', folder.name):
+            continue
+        manifest = folder / 'import_manifest.jsonl'
+        if not manifest.is_file():
+            continue
+        try:
+            records = [json.loads(line) for line in manifest.read_text(encoding='utf-8').splitlines() if line.strip()]
+        except (ValueError, OSError, UnicodeError):
+            continue
+        project_counts[folder.name] = len(records)
+        pending += sum(row.get('review_status') == 'NEEDS_REVIEW' for row in records if isinstance(row, dict))
+        for row in records:
+            if not isinstance(row, dict):
+                continue
+            name = row.get('file_name', '')
+            if not isinstance(name, str) or Path(name).name != name:
+                continue
+            image = folder / name
+            if image.is_file() and not image.is_symlink():
+                gallery.append((str(image), folder.name + ' · ' + str(row.get('caption', ''))[:110]))
+    return gallery[:limit], {
+        'projects': len(project_counts), 'images': sum(project_counts.values()),
+        'pending_review': pending, 'project_counts': project_counts,
+        'shown': min(len(gallery), limit), 'training_started': False,
+        'note': 'Ảnh đã nạp nhưng nhãn vẫn cần xem xét trước huấn luyện.',
+    }
