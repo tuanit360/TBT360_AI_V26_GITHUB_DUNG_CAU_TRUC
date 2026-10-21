@@ -38,6 +38,7 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
                '--console', '--name', 'TBT360_AI',
                '--collect-all', 'gradio', '--collect-all', 'gradio_client',
+               '--collect-all', 'safehttpx',
                '--collect-all', 'diffusers', '--collect-all', 'transformers',
                '--collect-all', 'accelerate', '--collect-all', 'huggingface_hub',
                '--collect-all', 'safetensors', '--collect-all', 'peft',
@@ -68,6 +69,7 @@ def main():
     shutil.copy2(ROOT / 'README_PORTABLE.md', target / 'README_PORTABLE.md')
     shutil.copy2(ROOT / 'README_V69_LEARNING.md', target / 'README_V69_LEARNING.md')
     shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
+    shutil.copy2(ROOT / 'START_V78_DIAGNOSTIC.bat', target / 'START_V78_DIAGNOSTIC.bat')
     shutil.copy2(ROOT / 'VERIFY_SHA256_WINDOWS.ps1', target / 'VERIFY_SHA256_WINDOWS.ps1')
     shutil.copy2(ROOT / 'CHAY_OFFLINE_WINDOWS.bat', target / 'CHAY_OFFLINE_WINDOWS.bat')
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
