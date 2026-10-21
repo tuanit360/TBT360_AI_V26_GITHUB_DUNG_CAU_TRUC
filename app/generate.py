@@ -317,6 +317,20 @@ with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
         with gr.Tab('02 · Trạng thái AI'):
             gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
             gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+            gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+            readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+            def inspect_readiness():
+                from app.cpu_readiness import inspect_local_assets
+                try:
+                    import torch
+                    has_cuda = torch.cuda.is_available()
+                except (ImportError, RuntimeError):
+                    has_cuda = False
+                return inspect_local_assets(ROOT, cuda_available=has_cuda)
+            gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                inspect_readiness, outputs=readiness)
+            gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                        'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
             gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab('03 · Kiểm tra ảnh & dữ liệu'):
             gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')
