@@ -1,6 +1,15 @@
 name: Windows native EXE build
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tbt360_ai/**'
+      - 'evaluation/**'
+      - 'tests/**'
+      - 'demo_data/**'
+      - 'requirements.txt'
+      - 'main.py'
+      - '.github/workflows/windows-build.yml'
   push:
     paths:
       - 'tbt360_ai/**'
@@ -26,6 +35,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install 'pyinstaller>=6,<7' 
+      - name: Install matching torchvision
+        run: |
+          python -m pip install 'torchvision==0.20.1'
+          python -c "import torch, torchvision; print('torch', torch.__version__, 'torchvision', torchvision.__version__)"
       - name: Diagnose asset checksums
         run: python tools/diagnose_asset_hashes.py --root . --output sha256_diagnostics.json
       - name: Unit tests

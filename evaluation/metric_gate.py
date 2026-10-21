@@ -60,7 +60,12 @@ def _load_asset(root, item):
     if not path.is_relative_to(root) or not path.is_file() or path.is_symlink():
         raise ValueError('Unsafe asset path')
     data = path.read_bytes()
-    if hashlib.sha256(data).hexdigest() != item['sha256']:
+    expected = item['sha256']
+    # Git on Windows can transform line endings of JSON fixtures. Accept only
+    # byte-equivalent LF/CRLF variants; other content modifications still fail.
+    normalized = data.replace(b'\r\n', b'\n')
+    variants = (data, normalized, normalized.replace(b'\n', b'\r\n'))
+    if not any(hashlib.sha256(value).hexdigest() == expected for value in variants):
         raise ValueError('Asset SHA256 mismatch')
     return json.loads(data)
 
