@@ -58,6 +58,38 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Build and self-test actual V78 Studio
         run: python tools/build_release.py --profile cpu
+      - name: Smoke test V78 Gradio launch and HTTP readiness
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'dist/TBT360_AI/TBT360_AI.exe').Path
+          $stdout = Join-Path $env:RUNNER_TEMP 'v78-launch-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'v78-launch-stderr.log'
+          $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 45; $i++) {
+              Start-Sleep -Seconds 2
+              $proc.Refresh()
+              if ($proc.HasExited) { throw "V78 EXE exited during launch with code $($proc.ExitCode)" }
+              try {
+                $response = Invoke-WebRequest -Uri 'http://127.0.0.1:7861/' -UseBasicParsing -TimeoutSec 3
+                if ($response.StatusCode -eq 200 -and $response.Content -match 'gradio') { $ready = $true; break }
+              } catch { }
+            }
+            if (!$ready) { throw 'V78 Gradio UI did not become ready on http://127.0.0.1:7861/' }
+            Write-Host 'PASS: V78 EXE launched Gradio UI and served HTTP 200'
+          } finally {
+            if (!$proc.HasExited) { taskkill /PID $proc.Id /T /F | Out-Null }
+            if (Test-Path $stdout) { Get-Content $stdout -Tail 120 }
+            if (Test-Path $stderr) { Get-Content $stderr -Tail 120 }
+          }
+      - name: Upload V78 launch logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: V78_RUNTIME_LAUNCH_LOGS
+          path: ${{ runner.temp }}/v78-launch-*.log
+          if-no-files-found: ignore
       - name: Verify artifact and checksum
         run: |
           if (!(Test-Path 'TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
