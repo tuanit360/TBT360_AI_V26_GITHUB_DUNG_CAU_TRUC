@@ -278,6 +278,8 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                     'Ảnh được lưu bên cạnh EXE; không tự huấn luyện, không yêu cầu tìm thư mục Windows.')
         with gr.Row():
             with gr.Column(scale=1):
+                dataset_zip = gr.File(label='NẠP GÓI ZIP DỮ LIỆU KIẾN TRÚC (tối đa 500 ảnh/lượt)',
+                                      file_count='single', file_types=['.zip'])
                 dataset_upload = gr.File(label='1 · NẠP NHIỀU ẢNH (kéo thả hoặc bấm chọn)',
                                          file_count='multiple', file_types=['image'])
                 dataset_project = gr.Textbox(label='2 · Mã công trình', value='office_demo_01')
@@ -287,6 +289,7 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                 with gr.Row():
                     dataset_save = gr.Button('LƯU ẢNH VÀ NHÃN NHÁP', variant='primary')
                     dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
+                dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
                 dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
             with gr.Column(scale=2):
                 dataset_gallery = gr.Gallery(label='Ảnh trong công trình (tối đa 40 ảnh mới nhất)',
@@ -306,6 +309,21 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
         dataset_save.click(save_dataset,
                            inputs=[dataset_upload, dataset_project, dataset_caption],
                            outputs=[dataset_status, dataset_gallery])
+        def save_zip_dataset(archive, project, caption):
+            from app.dataset_zip_import import import_zip_archive
+            from app.dataset_import import preview_project
+            if not archive:
+                return {'error': 'Hãy chọn file ZIP trước'}, []
+            try:
+                result = import_zip_archive(ROOT, archive, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError, RuntimeError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_import_zip.click(save_zip_dataset,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
         dataset_view.click(show_dataset, inputs=dataset_project,
                            outputs=[dataset_gallery, dataset_status])
         gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
