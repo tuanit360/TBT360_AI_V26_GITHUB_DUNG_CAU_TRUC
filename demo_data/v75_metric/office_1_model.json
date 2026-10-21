@@ -1,0 +1,53 @@
+{
+  "units": "m",
+  "verification": "geometry_validated_demo_only",
+  "source": "authored synthetic geometry for software behavior tests, not a surveyed or engineered building",
+  "entities": [
+    {
+      "id": "wall_A",
+      "type": "wall",
+      "bbox_m": [
+        0,
+        0,
+        8,
+        0.25
+      ],
+      "level_m": 0
+    },
+    {
+      "id": "wall_B",
+      "type": "wall",
+      "bbox_m": [
+        0,
+        0,
+        0.25,
+        6
+      ],
+      "level_m": 0
+    },
+    {
+      "id": "door_A",
+      "type": "door",
+      "host_id": "wall_A",
+      "bbox_m": [
+        2,
+        0,
+        3,
+        0.25
+      ],
+      "level_m": 0
+    },
+    {
+      "id": "window_A",
+      "type": "window",
+      "host_id": "wall_A",
+      "bbox_m": [
+        5,
+        0,
+        6.5,
+        0.25
+      ],
+      "level_m": 0
+    }
+  ]
+}

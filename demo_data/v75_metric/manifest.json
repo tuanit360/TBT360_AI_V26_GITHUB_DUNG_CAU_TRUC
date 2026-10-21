@@ -1,0 +1,35 @@
+{
+  "schema_version": "tbt360-v75-metric-bim-evidence-v1",
+  "train_project_ids": [
+    "office_train_1"
+  ],
+  "validation_project_ids": [
+    "office_1",
+    "office_2"
+  ],
+  "cases": [
+    {
+      "project_id": "office_1",
+      "predicted_bim": {
+        "path": "office_1_model.json",
+        "sha256": "8c45f0ab63ac725a1004e03295f0ea404e83d253b7274526fe40b0c3758e87bb"
+      },
+      "independent_annotation": {
+        "path": "office_1_annotation.json",
+        "sha256": "2e3181a83eecfa1f2a95422aaada93f9217aa8cd8123926d06dd5cebca5002a0"
+      }
+    },
+    {
+      "project_id": "office_2",
+      "predicted_bim": {
+        "path": "office_2_model.json",
+        "sha256": "07d6c65142dfadbb29bf1c0980ea6e77f003e89665f10bb751757d3fe38b792b"
+      },
+      "independent_annotation": {
+        "path": "office_2_annotation.json",
+        "sha256": "20ebf5d91f44bd5284f99777a75b48ef09b5f3524c665e5466afd79777273f10"
+      }
+    }
+  ],
+  "data_provenance": "Synthetic deterministic QA only; annotations are separately authored but derived for test fixtures, not real independent survey."
+}

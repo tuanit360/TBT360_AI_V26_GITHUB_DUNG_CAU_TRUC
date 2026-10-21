@@ -1,0 +1,24 @@
+{
+  "units": "m",
+  "verification": "synthetic_ground_truth_only",
+  "entities": [
+    {
+      "type": "wall",
+      "bbox_m": [
+        1,
+        7.5,
+        3,
+        8
+      ]
+    },
+    {
+      "type": "wall",
+      "bbox_m": [
+        5,
+        2,
+        5.5,
+        4.5
+      ]
+    }
+  ]
+}

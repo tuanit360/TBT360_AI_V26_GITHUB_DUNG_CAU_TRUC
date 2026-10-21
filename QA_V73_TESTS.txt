@@ -1,0 +1,50 @@
+test_image_dimensions (test_advanced_ml.AdvancedTest.test_image_dimensions) ... ok
+test_parameters (test_advanced_ml.AdvancedTest.test_parameters) ... ok
+test_checkpoint_overfit (test_continual_learning.LearningTests.test_checkpoint_overfit) ... ok
+test_duplicate_image_blocks (test_continual_learning.LearningTests.test_duplicate_image_blocks) ... ok
+test_geometry_checks (test_continual_learning.LearningTests.test_geometry_checks) ... ok
+test_group_splits (test_continual_learning.LearningTests.test_group_splits) ... ok
+test_opt_in_feedback (test_continual_learning.LearningTests.test_opt_in_feedback) ... ok
+test_same_seed_required (test_continual_learning.LearningTests.test_same_seed_required) ... ok
+test_determinism (test_quality_diagnostics.QualityDiagnosticsTests.test_determinism) ... ok
+test_does_not_modify_source (test_quality_diagnostics.QualityDiagnosticsTests.test_does_not_modify_source) ... ok
+test_low_resolution_warning (test_quality_diagnostics.QualityDiagnosticsTests.test_low_resolution_warning) ... ok
+test_white_image_flags (test_quality_diagnostics.QualityDiagnosticsTests.test_white_image_flags) ... ok
+test_hashes_detect_missing (test_release_packaging.PackagingTests.test_hashes_detect_missing) ... ok
+test_hashes_detect_mutation (test_release_packaging.PackagingTests.test_hashes_detect_mutation) ... ok
+test_presets_and_export (test_studio_contract.StudioContract.test_presets_and_export) ... ok
+test_python_parses (test_studio_contract.StudioContract.test_python_parses) ... ok
+test_bundle (test_v70_evidence.V70EvidenceTests.test_bundle) ... ok
+test_checkpoint_gate_and_rollback_proposal (test_v70_evidence.V70EvidenceTests.test_checkpoint_gate_and_rollback_proposal) ... ok
+test_degradation_blocks (test_v70_evidence.V70EvidenceTests.test_degradation_blocks) ... ok
+test_incomplete_comparison_blocks (test_v70_evidence.V70EvidenceTests.test_incomplete_comparison_blocks) ... ok
+test_missing_canonical_link_blocked (test_v70_evidence.V70EvidenceTests.test_missing_canonical_link_blocked) ... ok
+test_tampered_bytes_blocked (test_v70_evidence.V70EvidenceTests.test_tampered_bytes_blocked) ... ok
+test_good_grouped_split (test_v71_data_quality.V71TrainingDataTests.test_good_grouped_split) ... ok
+test_missing_training_permission_fails_closed (test_v71_data_quality.V71TrainingDataTests.test_missing_training_permission_fails_closed) ... ok
+test_near_duplicate_blocks (test_v71_data_quality.V71TrainingDataTests.test_near_duplicate_blocks) ... ok
+test_path_escape_blocks (test_v71_data_quality.V71TrainingDataTests.test_path_escape_blocks) ... ok
+test_tamper_fails_closed (test_v71_data_quality.V71TrainingDataTests.test_tamper_fails_closed) ... ok
+test_modified_train_caption_is_blocked (test_v72_gated_training.CertifiedTrainingTests.test_modified_train_caption_is_blocked) ... ok
+test_modified_train_image_is_blocked (test_v72_gated_training.CertifiedTrainingTests.test_modified_train_image_is_blocked) ... ok
+test_no_consent_blocks_staging (test_v72_gated_training.CertifiedTrainingTests.test_no_consent_blocks_staging) ... ok
+test_refuse_existing_dataset_overwrite (test_v72_gated_training.CertifiedTrainingTests.test_refuse_existing_dataset_overwrite) ... ok
+test_stage_train_validation_isolation (test_v72_gated_training.CertifiedTrainingTests.test_stage_train_validation_isolation) ... ok
+test_unapproved_extra_image_is_blocked (test_v72_gated_training.CertifiedTrainingTests.test_unapproved_extra_image_is_blocked) ... ok
+test_bad_mask_rejected (test_v73_paired_gate.PairedGateTests.test_bad_mask_rejected) ... /mnt/data/TBT360_AI_V73_EVIDENCE_GATE_FULL_SOURCE/evaluation/paired_gate.py:37: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+  pixels = list(source.convert('L').getdata())
+ok
+test_checksum_tampering_rejected (test_v73_paired_gate.PairedGateTests.test_checksum_tampering_rejected) ... ok
+test_downgrade_keeps_baseline (test_v73_paired_gate.PairedGateTests.test_downgrade_keeps_baseline) ... ok
+test_improvement_only_proposes_review (test_v73_paired_gate.PairedGateTests.test_improvement_only_proposes_review) ... ok
+test_missing_project_rejected (test_v73_paired_gate.PairedGateTests.test_missing_project_rejected) ... ok
+test_project_leakage_rejected (test_v73_paired_gate.PairedGateTests.test_project_leakage_rejected) ... ok
+test_seed_mismatch_rejected (test_v73_paired_gate.PairedGateTests.test_seed_mismatch_rejected) ... ok
+test_unsafe_asset_path_rejected (test_v73_paired_gate.PairedGateTests.test_unsafe_asset_path_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 41 tests in 2.418s
+
+OK
+PASS dataset audit positive and duplicate negative
+STATIC PASS

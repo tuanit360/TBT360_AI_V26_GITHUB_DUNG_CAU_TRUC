@@ -1,0 +1,5 @@
+[
+  {"checkpoint": "DEMO_only_step_100", "train_score": 0.94, "validation_score": 0.55},
+  {"checkpoint": "DEMO_only_step_200", "train_score": 0.80, "validation_score": 0.78},
+  {"checkpoint": "DEMO_only_step_300", "train_score": 0.84, "validation_score": 0.74}
+]

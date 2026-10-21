@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "entities": 4,
+  "issues": [],
+  "scope": "Bounded footprint/unit/identity/opening-host checks only, not IFC roundtrip or structural verification"
+}

@@ -1,0 +1,130 @@
+{
+  "model_type": "trained_pixel_softmax_baseline",
+  "not_a_bim_detector": true,
+  "splits": {
+    "train": [
+      "synthetic_office_0",
+      "synthetic_office_1"
+    ],
+    "validation": [
+      "synthetic_office_2"
+    ],
+    "test": [
+      "synthetic_office_3"
+    ]
+  },
+  "metrics": {
+    "train": {
+      "per_class": {
+        "background": {
+          "iou": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 6916
+        },
+        "wall": {
+          "iou": 0.825688,
+          "precision": 0.841121,
+          "recall": 0.978261,
+          "support": 736
+        },
+        "door": {
+          "iou": 0.319672,
+          "precision": 0.735849,
+          "recall": 0.361111,
+          "support": 216
+        },
+        "window": {
+          "iou": 0.919192,
+          "precision": 0.98913,
+          "recall": 0.928571,
+          "support": 196
+        },
+        "column": {
+          "iou": 0.984615,
+          "precision": 0.984615,
+          "recall": 1.0,
+          "support": 128
+        }
+      },
+      "micro_iou": 0.959809,
+      "pixel_accuracy": 0.979492
+    },
+    "validation": {
+      "per_class": {
+        "background": {
+          "iou": 0.999711,
+          "precision": 1.0,
+          "recall": 0.999711,
+          "support": 3464
+        },
+        "wall": {
+          "iou": 0.817552,
+          "precision": 0.832941,
+          "recall": 0.977901,
+          "support": 362
+        },
+        "door": {
+          "iou": 0.303279,
+          "precision": 0.72549,
+          "recall": 0.342593,
+          "support": 108
+        },
+        "window": {
+          "iou": 0.928571,
+          "precision": 1.0,
+          "recall": 0.928571,
+          "support": 98
+        },
+        "column": {
+          "iou": 0.969697,
+          "precision": 0.969697,
+          "recall": 1.0,
+          "support": 64
+        }
+      },
+      "micro_iou": 0.958403,
+      "pixel_accuracy": 0.97876
+    },
+    "test": {
+      "per_class": {
+        "background": {
+          "iou": 0.999714,
+          "precision": 1.0,
+          "recall": 0.999714,
+          "support": 3500
+        },
+        "wall": {
+          "iou": 0.779412,
+          "precision": 0.795,
+          "recall": 0.97546,
+          "support": 326
+        },
+        "door": {
+          "iou": 0.213115,
+          "precision": 0.65,
+          "recall": 0.240741,
+          "support": 108
+        },
+        "window": {
+          "iou": 0.928571,
+          "precision": 1.0,
+          "recall": 0.928571,
+          "support": 98
+        },
+        "column": {
+          "iou": 0.969697,
+          "precision": 0.969697,
+          "recall": 1.0,
+          "support": 64
+        }
+      },
+      "micro_iou": 0.953267,
+      "pixel_accuracy": 0.976074
+    }
+  },
+  "checkpoint_sha256": "399e39ae00397592ac631ebcfbc360a1109dfa475b5a657f0745a5b837b958b3",
+  "checkpoint": "/mnt/data/TBT360_AI_V77_TRAINABLE_VISION_FULL_SOURCE/demo_data/v77_results/synthetic_demo_weights.npz",
+  "epochs": 120,
+  "seed": 17
+}

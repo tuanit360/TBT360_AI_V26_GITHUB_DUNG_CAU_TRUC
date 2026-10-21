@@ -1,0 +1,41 @@
+{
+  "dataset_type": "synthetic_logic_demo_not_real_architecture",
+  "samples": [
+    {
+      "project_id": "synthetic_office_0",
+      "split": "train",
+      "image": "office_0.png",
+      "mask": "office_0_mask.png",
+      "image_sha256": "36978c0fc2e4f5821c0c91fc801cc9744ef1df6384a432e77dddb2729fa0f9e1",
+      "label_status": "annotated",
+      "usage_allowed": true
+    },
+    {
+      "project_id": "synthetic_office_1",
+      "split": "train",
+      "image": "office_1.png",
+      "mask": "office_1_mask.png",
+      "image_sha256": "885c705205f0dfd2eee2b3a563851152acff95bc2794fd2bc5630d83f244d8f8",
+      "label_status": "annotated",
+      "usage_allowed": true
+    },
+    {
+      "project_id": "synthetic_office_2",
+      "split": "validation",
+      "image": "office_2.png",
+      "mask": "office_2_mask.png",
+      "image_sha256": "381b6ff6a02b2ad8bd9fb80bed617aa46ed0619da6f0ccbfd6af7dd6cb238633",
+      "label_status": "annotated",
+      "usage_allowed": true
+    },
+    {
+      "project_id": "synthetic_office_3",
+      "split": "test",
+      "image": "office_3.png",
+      "mask": "office_3_mask.png",
+      "image_sha256": "bfa5f5aa04b281acadf0e091f301ca5ab5bd8c6bf1de2cc2f77098a7127e21ae",
+      "label_status": "annotated",
+      "usage_allowed": true
+    }
+  ]
+}

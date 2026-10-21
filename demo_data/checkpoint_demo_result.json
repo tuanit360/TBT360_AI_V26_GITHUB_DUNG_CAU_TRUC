@@ -1,0 +1,12 @@
+{
+  "selected": "DEMO_only_step_200",
+  "rejected": [
+    {
+      "checkpoint": "DEMO_only_step_100",
+      "reason": "overfit flag",
+      "gap": 0.39
+    }
+  ],
+  "policy": "Maximize held-out validation score, disqualify excessive train/validation gap",
+  "warning": "Scores must be from actual evaluation; no synthetic scores may certify weights"
+}
