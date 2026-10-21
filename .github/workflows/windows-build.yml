@@ -35,8 +35,8 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Require the V78 entry point only
@@ -87,7 +87,7 @@ jobs:
           }
       - name: Upload V78 launch logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: V78_RUNTIME_LAUNCH_LOGS
           path: ${{ runner.temp }}/v78-launch-*.log
@@ -97,7 +97,7 @@ jobs:
           if (!(Test-Path 'TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
           python -m tools.verify_portable dist/TBT360_AI
           Get-FileHash TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: TBT360_AI_V78_PORTABLE_WINDOWS_X64_CPU
           path: TBT360_AI_PORTABLE_WINDOWS_X64_CPU.zip
