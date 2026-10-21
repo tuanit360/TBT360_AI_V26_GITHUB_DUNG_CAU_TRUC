@@ -9,7 +9,7 @@ Do not reuse old V26/V78 folders to avoid mixing DLLs, data and scripts.
 ## One-screen training data intake
 Use `NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET` at the top of the screen to select multiple images or a ZIP of images; select/enter the project ID and draft caption, then press **LƯU ẢNH** or **NẠP ẢNH TỪ ZIP**. The built-in gallery shows the saved images.
 
-To preload the user-supplied curated dataset, extract the separate `TBT360_AI_V81_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` **into the same folder as EXE**. It contains `dataset/raw/<project>/` and manifest files. These assets are not embedded in the EXE / GitHub source because of size and provenance.
+To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V81 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V81_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
 Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
 
 ## Runtime and model limitations
