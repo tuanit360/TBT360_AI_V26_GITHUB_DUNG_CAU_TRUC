@@ -1,3 +1,2 @@
-TBT360 AI V81 – One-screen Import Dataset
-Source baseline: V78 contextual vision + V79 CPU readiness + V80 image importer + V81 ZIP importer and cleanup
-AI training is not implied by importing assets.
+TBT360 AI V82 – Smart Dataset Import
+Baseline: V78 + V79 + V80 + V81; no automatic LoRA training claimed.
