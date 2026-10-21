@@ -38,6 +38,7 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
                '--console', '--name', 'TBT360_AI',
                '--collect-all', 'gradio', '--collect-all', 'gradio_client',
+               '--collect-all', 'safehttpx',
                '--collect-all', 'diffusers', '--collect-all', 'transformers',
                '--collect-all', 'accelerate', '--collect-all', 'huggingface_hub',
                '--collect-all', 'safetensors', '--collect-all', 'peft',
