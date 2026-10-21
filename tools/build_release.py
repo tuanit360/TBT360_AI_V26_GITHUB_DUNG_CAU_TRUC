@@ -67,6 +67,7 @@ def main():
             else:
                 print(f'[WARN] {model_name} missing model_index.json; offline model not included')
     shutil.copy2(ROOT / 'README_PORTABLE.md', target / 'README_PORTABLE.md')
+    shutil.copy2(ROOT / 'APP_VERSION.txt', target / 'APP_VERSION.txt')
     shutil.copy2(ROOT / 'README_V69_LEARNING.md', target / 'README_V69_LEARNING.md')
     shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
     shutil.copy2(ROOT / 'START_V78_DIAGNOSTIC.bat', target / 'START_V78_DIAGNOSTIC.bat')
@@ -80,7 +81,7 @@ def main():
     sha_lines = [f"{meta['sha256']}  {name}" for name, meta in manifest['files'].items()]
     sha_lines.append(f"{file_hash(target / 'manifest.json')}  manifest.json")
     (target / 'SHA256SUMS.txt').write_text('\n'.join(sha_lines) + '\n', encoding='utf-8')
-    archive = ROOT / f'TBT360_AI_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
+    archive = ROOT / f'TBT360_AI_V81_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as dst:
         for path in sorted(target.rglob('*')):
             if path.is_file():
