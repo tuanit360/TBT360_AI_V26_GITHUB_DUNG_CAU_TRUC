@@ -289,10 +289,11 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                 with gr.Row():
                     dataset_save = gr.Button('LƯU ẢNH VÀ NHÃN NHÁP', variant='primary')
                     dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
+                    dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
                 dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
                 dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
             with gr.Column(scale=2):
-                dataset_gallery = gr.Gallery(label='Ảnh trong công trình (tối đa 40 ảnh mới nhất)',
+                dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
                                              columns=4, height=320, object_fit='contain')
         def save_dataset(files, project, caption):
             from app.dataset_import import import_images, preview_project
@@ -326,6 +327,11 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                                  outputs=[dataset_status, dataset_gallery])
         dataset_view.click(show_dataset, inputs=dataset_project,
                            outputs=[dataset_gallery, dataset_status])
+        def show_all_datasets():
+            from app.dataset_import import preview_all_projects
+            return preview_all_projects(ROOT)
+        dataset_view_all.click(show_all_datasets,
+                               outputs=[dataset_gallery, dataset_status])
         gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
                     'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
                     'Không tự động đưa ảnh mới vào model.')
