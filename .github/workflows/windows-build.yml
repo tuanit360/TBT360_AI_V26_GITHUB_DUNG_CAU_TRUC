@@ -1,6 +1,15 @@
 name: Windows native EXE build
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tbt360_ai/**'
+      - 'evaluation/**'
+      - 'tests/**'
+      - 'demo_data/**'
+      - 'requirements.txt'
+      - 'main.py'
+      - '.github/workflows/windows-build.yml'
   push:
     paths:
       - 'tbt360_ai/**'
