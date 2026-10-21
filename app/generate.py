@@ -291,6 +291,7 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                     dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
                     dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
                 dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
+                dataset_v81_bundle = gr.Button('NẠP BỘ DATASET V81 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)', variant='primary')
                 dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
             with gr.Column(scale=2):
                 dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
@@ -325,6 +326,22 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
         dataset_import_zip.click(save_zip_dataset,
                                  inputs=[dataset_zip, dataset_project, dataset_caption],
                                  outputs=[dataset_status, dataset_gallery])
+        def import_multi_project_v81(archive):
+            from app.dataset_bundle import import_v81_bundle
+            from app.dataset_import import preview_all_projects
+            if not archive:
+                return {'error': 'Hãy chọn ZIP dataset V81 trước'}, []
+            try:
+                result = import_v81_bundle(ROOT, archive)
+                gallery, overview = preview_all_projects(ROOT)
+                result['overview'] = overview
+                return result, gallery
+            except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_v81_bundle.click(import_multi_project_v81,
+                                 inputs=dataset_zip,
+                                 outputs=[dataset_status, dataset_gallery])
+
         dataset_view.click(show_dataset, inputs=dataset_project,
                            outputs=[dataset_gallery, dataset_status])
         def show_all_datasets():
