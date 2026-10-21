@@ -268,8 +268,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V81 · Thiết kế & Huấn luyện trên một màn hình')
+with gr.Blocks(title='TBT360 AI Studio V82 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V82 · Thiết kế & Chuẩn bị dữ liệu trên một màn hình')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -291,7 +291,7 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
                     dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
                     dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
                 dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
-                dataset_v81_bundle = gr.Button('NẠP BỘ DATASET V81 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)', variant='primary')
+                dataset_v81_bundle = gr.Button('NẠP ZIP TỰ ĐỘNG – KHÔNG CẦN TÌM MANIFEST', variant='primary')
                 dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
             with gr.Column(scale=2):
                 dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
@@ -326,20 +326,24 @@ with gr.Blocks(title='TBT360 AI Studio V81 · Training & Architecture') as ui:
         dataset_import_zip.click(save_zip_dataset,
                                  inputs=[dataset_zip, dataset_project, dataset_caption],
                                  outputs=[dataset_status, dataset_gallery])
-        def import_multi_project_v81(archive):
-            from app.dataset_bundle import import_v81_bundle
+        def import_smart_archive(archive, project, caption):
+            from app.dataset_auto_import import import_any_zip
             from app.dataset_import import preview_all_projects
             if not archive:
-                return {'error': 'Hãy chọn ZIP dataset V81 trước'}, []
+                return {'error': 'Chọn file ZIP có ảnh trước khi nhấn Nạp'}, []
             try:
-                result = import_v81_bundle(ROOT, archive)
+                result = import_any_zip(ROOT, archive, project, caption)
                 gallery, overview = preview_all_projects(ROOT)
                 result['overview'] = overview
                 return result, gallery
             except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
-                return {'error': str(exc), 'training_started': False}, []
-        dataset_v81_bundle.click(import_multi_project_v81,
-                                 inputs=dataset_zip,
+                return {
+                    'error': str(exc),
+                    'suggestion': 'Chọn đúng ZIP ảnh; RAR/SVG/DXF không hỗ trợ nạp như ảnh. Không cần mở dataset trong Windows.',
+                    'training_started': False,
+                }, []
+        dataset_v81_bundle.click(import_smart_archive,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
                                  outputs=[dataset_status, dataset_gallery])
 
         dataset_view.click(show_dataset, inputs=dataset_project,
