@@ -14,7 +14,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 SUPPORTED = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
-MAX_ENTRIES = 20000
+MAX_ENTRIES = 100000
 MAX_IMAGES = 500
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_BYTES = 800 * 1024 * 1024
@@ -36,6 +36,8 @@ def import_zip_archive(root, archive, project, caption, maximum=MAX_IMAGES):
         if len(entries) > MAX_ENTRIES:
             raise ValueError('ZIP chứa quá nhiều file; vui lòng chia thành các gói nhỏ hơn')
         candidates = [entry for entry in entries if not entry.is_dir() and entry.filename.lower().endswith(SUPPORTED)]
+        if not candidates:
+            raise ValueError('ZIP không chứa ảnh PNG/JPG/WEBP/BMP. Các file SVG/DXF/JSON cần bộ chuyển đổi và nhãn riêng.')
         if sum(entry.file_size for entry in candidates) > MAX_TOTAL_BYTES:
             raise ValueError('Tổng ảnh ZIP vượt 800 MB; chia dữ liệu thành nhiều lượt')
         for entry in candidates[:maximum]:
