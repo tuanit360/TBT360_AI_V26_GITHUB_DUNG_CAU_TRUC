@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V216 · WORKSPACE')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V226 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V226 · WORKSPACE')
     gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn chức năng bên dưới.')
     from app.local_workspace import setup_runtime_log
     setup_runtime_log(ROOT)
@@ -294,6 +294,21 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                             gallery=gr.Gallery(label='Các phương án kiến trúc',columns=2,height=630,object_fit='contain')
                             export=gr.File(label='Tải ZIP ảnh, seed và cấu hình')
                             status=gr.Textbox(label='Trạng thái / thông báo',lines=3,interactive=False)
+                    gr.Markdown('**Bắt đầu:** Nạp ảnh → Chọn cấu hình → Tạo phương án → Xem kết quả. Nếu thiếu checkpoint, phần mềm phải báo thiếu thay vì xuất ảnh giả.')
+                    readiness_button = gr.Button('KIỂM TRA GPU / MODEL TRƯỚC KHI TẠO')
+                    readiness_result = gr.JSON(label='Khả năng chạy AI thực tế')
+                    def show_readiness():
+                        from app.cpu_readiness import inspect_local_assets
+                        try:
+                            import torch
+                            cuda = torch.cuda.is_available()
+                        except (ImportError, RuntimeError):
+                            cuda = False
+                        result = inspect_local_assets(ROOT, cuda_available=cuda)
+                        result['trained_architecture_vlm_bundled'] = False
+                        result['photo_to_full_bim_model_bundled'] = False
+                        return result
+                    readiness_button.click(show_readiness, outputs=readiness_result)
                     preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
                     start.click(create,
                         inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
@@ -310,6 +325,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                             scheme_height = gr.Number(value=3.2, label='Cao mỗi tầng (m)')
                             scheme_floors = gr.Number(value=3, precision=0, label='Số tầng')
                         scheme_button = gr.Button('TẠO PHƯƠNG ÁN VỎ BIM / MẶT BẰNG / MẶT ĐỨNG', variant='primary')
+                        sample_button = gr.Button('DÙNG DỰ ÁN MẪU / TẠO BIM CONCEPT 2 TẦNG')
+                        gr.Markdown('**Dự án mẫu:** hình học canonical tường/sàn/mái/cửa theo kích thước có sẵn, không phải AI suy luận từ ảnh.')
                         scheme_archive = gr.File(label='ZIP gồm BIM canonical JSON + 2 bản vẽ SVG')
                         scheme_report = gr.JSON(label='Thông tin mô hình vỏ sơ bộ')
                         def export_schematic(project, width, depth, height, floors):
@@ -365,6 +382,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                             except (ValueError, OSError) as exc:
                                 record_operation(ROOT, 'concept_export', 'failed')
                                 raise gr.Error(str(exc)) from exc
+                        def generate_native_sample():
+                            return export_schematic('OFFICE_001_DEMO', 12.0, 9.0, 3.2, 2)
+                        sample_button.click(generate_native_sample, outputs=[scheme_archive, scheme_report])
                         scheme_button.click(export_schematic,
                                             inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
                                             outputs=[scheme_archive, scheme_report])
