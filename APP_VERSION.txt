@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V261 — BIMAI360
+Sửa lỗi mô hình nhiều tầng có sàn/mái/cửa không tạo được hình chiếu; giảm nhiễu ảnh biên bằng Gaussian/Median; tự khóa thao tác ảnh nâng cao nếu CUDA không hoạt động. Báo cáo concept không phải dữ liệu BIM do AI học từ ảnh.
