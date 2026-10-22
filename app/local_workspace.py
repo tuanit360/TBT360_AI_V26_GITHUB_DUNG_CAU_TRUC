@@ -30,7 +30,7 @@ def record_operation(root, action, status='started'):
         'check_model', 'export_file', 'vlm_inference', 'training_preflight'
     }:
         raise ValueError('Unsupported operation name')
-    if status not in {'started', 'completed', 'failed'}:
+    if status not in {'started', 'completed', 'failed', 'blocked_missing_model'}:
         raise ValueError('Unsupported operation status')
     path = setup_runtime_log(root)
     timestamp = datetime.now(timezone.utc).isoformat()
