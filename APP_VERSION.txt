@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V126 — BIMAI360
-Batch V122–V126: user-dimensioned canonical shell; four elevations and two section diagrams, consistency tests, Portable build. No claim of learned BIM or IFC.
+BIM AI Kiến Trúc 360 V131 — BIMAI360
+Batch V127–V131: canonical shell metric DXF plan export, 2D views, validation and regression. No IFC or AI-trained BIM inference claims.
