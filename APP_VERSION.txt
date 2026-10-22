@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V186 — BIMAI360
+Batch V182–V186: actual door/window voids in hosted canonical walls, non-overlap validation, real GLB cutout geometry and regression. No image-inferred building or IFC export.
