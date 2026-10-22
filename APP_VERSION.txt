@@ -1,0 +1,3 @@
+BIM AI Kiến Trúc 360 V96 – Five-stage BIM Data Integrity Hardening
+V92–V96: host relations, finite geometry, saved handoff verification, regression and consolidated packaging.
+No claim of trained LoRA, geometry-verified IFC, or full BIM export.
