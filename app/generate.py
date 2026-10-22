@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V151 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V151 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V156 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V156 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -682,6 +682,29 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V151 · Training & Architecture') 
                                      approved_height, approved_floors, vlm_approved],
                              outputs=[approval_output, approval_report])
 
+    with gr.Accordion('BIMAI360 · ĐỐI CHIẾU NHIỀU GÓC NHÌN AI', open=False):
+        gr.Markdown('Đối chiếu các tệp JSON VLM đã suy luận thực cho **cùng công trình**. '
+                    'Báo xung đột số tầng / mái / mặt đứng; không tự sửa BIM khi AI bất đồng.')
+        multimodal_files = gr.File(label='Chọn nhiều JSON kết quả VLM',
+                                   file_types=['.json'], file_count='multiple')
+        compare_button = gr.Button('KIỂM TRA XUNG ĐỘT KIẾN TRÚC')
+        compare_report = gr.JSON(label='Độ nhất quán và bằng chứng từng góc nhìn')
+        def inspect_multiview(files):
+            from app.architecture_multiview import reconcile_architecture_observations
+            try:
+                if not files or len(files) > 12:
+                    raise ValueError('Chọn từ 1 đến 12 kết quả JSON')
+                observations = []
+                for file in files:
+                    path = Path(file if isinstance(file, (str, Path)) else file.name)
+                    if path.stat().st_size > 1000000:
+                        raise ValueError('Tệp JSON quá lớn')
+                    observations.append(json.loads(path.read_text(encoding='utf-8')))
+                return reconcile_architecture_observations(observations)
+            except (ValueError, KeyError, OSError, UnicodeError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        compare_button.click(inspect_multiview, inputs=multimodal_files,
+                             outputs=compare_report)
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
