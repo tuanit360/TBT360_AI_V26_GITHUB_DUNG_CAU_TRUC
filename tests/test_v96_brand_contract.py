@@ -16,5 +16,6 @@ class BIMAI360BrandContractTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/windows-build.yml').read_text(encoding='utf-8')
         for file in (builder, workflow):
             self.assertIn('BIMAI360.exe', file)
-            self.assertIn('BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU', file)
+        self.assertIn("BIMAI360_V96_PORTABLE_WINDOWS_X64_{args.profile.upper()}", builder)
+        self.assertIn('BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU', workflow)
         self.assertIn('BIMAI360_HOME', (ROOT / 'run_portable.py').read_text(encoding='utf-8'))
