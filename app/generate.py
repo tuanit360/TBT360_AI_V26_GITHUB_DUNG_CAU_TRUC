@@ -268,8 +268,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V84 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V84 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='TBT360 AI Studio V85 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V85 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -464,6 +464,32 @@ with gr.Blocks(title='TBT360 AI Studio V84 · Training & Architecture') as ui:
         structure_export.click(save_structure,
                                inputs=[structure_input, edge_threshold, structure_seed],
                                outputs=[structure_file, structure_status])
+    with gr.Accordion('V85 · SO SÁNH CHẤT LƯỢNG ẢNH TRƯỚC / SAU', open=False):
+        gr.Markdown('So sánh hai ảnh và xuất kết quả kèm checksum. '
+                    '**Chênh lệch pixel không phải điểm đẹp, độ chính xác BIM hoặc bằng chứng LoRA tốt hơn.**')
+        with gr.Row():
+            before_img = gr.Image(label='Ảnh tham chiếu', type='pil')
+            after_img = gr.Image(label='Ảnh kết quả', type='pil')
+        comparison_seed = gr.Number(value=42, precision=0, label='Seed sử dụng (nhập theo lượt tạo)')
+        compare_button = gr.Button('SO SÁNH VÀ XUẤT BÁO CÁO', variant='primary')
+        compare_preview = gr.Image(label='Ảnh trước / sau', interactive=False)
+        compare_report = gr.JSON(label='Độ lệch pixel/cạnh và giới hạn đánh giá')
+        compare_file = gr.File(label='ZIP kết quả QA')
+        def compare_and_export(reference, result, seed):
+            from app.architecture_quality_compare import export_comparison
+            folder = OUTPUT / ('compare_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                preview, report = export_comparison(reference, result, folder, seed)
+                archive = str(folder) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
+                    for item in sorted(folder.iterdir()):
+                        out.write(item, item.name)
+                return preview, report, archive
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        compare_button.click(compare_and_export,
+                             inputs=[before_img, after_img, comparison_seed],
+                             outputs=[compare_preview, compare_report, compare_file])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
