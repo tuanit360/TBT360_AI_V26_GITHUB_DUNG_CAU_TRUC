@@ -1,0 +1,71 @@
+name: BIMAI360 Real GPU LoRA Training
+on:
+  workflow_dispatch:
+    inputs:
+      run_name:
+        description: 'Unique run ID (letters, numbers, underscore, hyphen)'
+        type: string
+        default: 'architecture_gpu_trial'
+        required: true
+      steps:
+        description: 'Trainer steps (50..5000)'
+        type: number
+        default: 300
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: bimai360-training-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  train-real-gpu:
+    # Install and authorize a self-hosted GPU runner with this dedicated label.
+    # Standard hosted Windows CPU runners cannot train this checkpoint.
+    runs-on: [self-hosted, linux, x64, bimai360-gpu]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify CUDA and certified dataset
+        run: |
+          python - <<'PY'
+          import os, re, torch
+          name = os.environ['RUN_NAME']
+          steps = int(os.environ['STEPS'])
+          if not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', name) or not 50 <= steps <= 5000:
+              raise SystemExit('Invalid training run name/steps')
+          if not torch.cuda.is_available():
+              raise SystemExit('No CUDA GPU. Training not started.')
+          from training.gated_dataset import verify
+          verify('dataset/v72_certified')
+          print('CUDA GPU: ', torch.cuda.get_device_name(0))
+          PY
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+          STEPS: ${{ inputs.steps }}
+      - name: Train genuine LoRA checkpoint
+        run: python -m training.run_lora --name "$RUN_NAME" --steps "$STEPS"
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+          STEPS: ${{ inputs.steps }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      - name: Independently validate generated safetensors
+        run: python -m training.verify_real_checkpoint --path "loras/$RUN_NAME"
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+      - name: Upload checkpoint and provenance if complete
+        uses: actions/upload-artifact@v4
+        with:
+          name: bimai360-real-lora-${{ inputs.run_name }}
+          path: loras/${{ inputs.run_name }}/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload failure logs only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bimai360-training-diagnostics-${{ inputs.run_name }}
+          path: |
+            loras/${{ inputs.run_name }}/training_status.json
+            loras/${{ inputs.run_name }}/training_console.log
+          if-no-files-found: ignore
+          retention-days: 7

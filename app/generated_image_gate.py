@@ -1,0 +1,35 @@
+"""Release-blocking quality gate for black or corrupt generated images.
+
+Does not invent an AI success result. It rejects unusable outputs and
+records evidence for diagnostics, rather than displaying black cards.
+"""
+from PIL import Image, ImageStat
+
+
+def validate_generated_image(image, prepared_input=None):
+    if not isinstance(image, Image.Image):
+        raise ValueError('AI returned no usable image')
+    rgb = image.convert('RGB')
+    if rgb.width < 128 or rgb.height < 128:
+        raise ValueError('AI image dimensions are too small')
+    stat = ImageStat.Stat(rgb)
+    mean_brightness = sum(stat.mean) / 3.0
+    dynamic_range = max(channel[1] for channel in stat.extrema) - min(
+        channel[0] for channel in stat.extrema)
+    if mean_brightness < 12 or dynamic_range < 6:
+        raise ValueError(
+            'AI output is nearly black or visually blank. '
+            'Check VAE, model weights, numerical precision and CUDA driver; '
+            'the result was rejected rather than delivered as a valid design.')
+    if prepared_input is not None:
+        reference = prepared_input.convert('RGB')
+        if reference.size != rgb.size:
+            raise ValueError('Model output size does not match prepared input')
+    return {
+        'width': rgb.width,
+        'height': rgb.height,
+        'mean_brightness': round(mean_brightness, 3),
+        'dynamic_range': dynamic_range,
+        'black_output_rejected': False,
+        'visual_design_verified': False,
+    }
