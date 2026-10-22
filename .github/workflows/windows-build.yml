@@ -1,4 +1,4 @@
-name: TBT360 AI V96 Portable Windows x64
+name: BIM AI Kiến Trúc 360 V96 Portable Windows x64
 on:
   workflow_dispatch:
   push:
@@ -47,7 +47,7 @@ jobs:
           if (!(Test-Path 'app/generate.py')) { throw 'V96 Studio UI missing' }
           if (!(Test-Path 'APP_VERSION.txt')) { throw 'V96 release marker missing' }
           if ((Get-Content APP_VERSION.txt -Raw) -notmatch 'V96') { throw 'Wrong release version marker' }
-          if ((Get-Content app/generate.py -Raw) -notmatch 'TBT360 AI V96') { throw 'UI still advertises an old version' }
+          if ((Get-Content app/generate.py -Raw) -notmatch 'BIM AI Kiến Trúc 360 V96') { throw 'UI still advertises an old version' }
           if (Test-Path 'tbt360_ai/app.py') { throw 'Legacy V26 UI still present' }
           if (Test-Path 'main.py') { throw 'Legacy V26 entry point still present' }
           $launcher = Get-Content 'run_portable.py' -Raw
@@ -66,7 +66,7 @@ jobs:
       - name: Smoke test V96 Gradio launch and HTTP readiness
         shell: pwsh
         run: |
-          $exe = (Resolve-Path 'dist/TBT360_AI/TBT360_AI.exe').Path
+          $exe = (Resolve-Path 'dist/BIMAI360/BIMAI360.exe').Path
           $stdout = Join-Path $env:RUNNER_TEMP 'v96-launch-stdout.log'
           $stderr = Join-Path $env:RUNNER_TEMP 'v96-launch-stderr.log'
           $env:NO_PROXY = '127.0.0.1,localhost,::1'
@@ -99,11 +99,11 @@ jobs:
           if-no-files-found: ignore
       - name: Verify artifact and checksum
         run: |
-          if (!(Test-Path 'TBT360_AI_V96_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
-          python -m tools.verify_portable dist/TBT360_AI
-          Get-FileHash TBT360_AI_V96_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
+          if (!(Test-Path 'BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
+          python -m tools.verify_portable dist/BIMAI360
+          Get-FileHash BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
-          name: TBT360_AI_V96_PORTABLE_WINDOWS_X64_CPU
-          path: TBT360_AI_V96_PORTABLE_WINDOWS_X64_CPU.zip
+          name: BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU
+          path: BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU.zip
           if-no-files-found: error
