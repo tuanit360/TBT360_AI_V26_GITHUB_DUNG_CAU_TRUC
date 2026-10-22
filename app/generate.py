@@ -322,14 +322,37 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         import logging
                         record_operation(ROOT, 'generate', 'started')
                         try:
+                            if os.environ.get('TBT360_OFFLINE') == '1':
+                                from app.cpu_readiness import inspect_local_assets
+                                readiness = inspect_local_assets(ROOT)
+                                if not readiness['model_valid_index']:
+                                    record_operation(ROOT, 'generate', 'blocked_missing_model')
+                                    return (
+                                        [],
+                                        None,
+                                        'CHƯA THỂ SINH ẢNH: Thiếu checkpoint SD1.5 '
+                                        'cục bộ hợp lệ. Mở 05 · ĐÀO TẠO → '
+                                        'Môi trường AI hoặc bấm KIỂM TRA GPU / '
+                                        'MODEL TRƯỚC KHI TẠO. Cài checkpoint '
+                                        'Diffusers hợp lệ vào models/sd15 rồi '
+                                        'thử lại. Ảnh tham chiếu không phải '
+                                        'ảnh AI đầu ra.',
+                                    )
                             result = create(*arguments, progress=progress)
                             record_operation(ROOT, 'generate', 'completed')
                             return result
                         except Exception as exc:
                             record_operation(ROOT, 'generate', 'failed')
-                            logging.getLogger('bimai360').error(
-                                'Lỗi sinh ảnh (%s)', type(exc).__name__)
-                            return [], None, 'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: ' + explain_generation_failure(exc)
+                            logging.getLogger('bimai360').exception(
+                                'Sinh ảnh thất bại tại callback; loại lỗi: %s',
+                                type(exc).__name__,
+                            )
+                            return (
+                                [],
+                                None,
+                                'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: '
+                                + explain_generation_failure(exc),
+                            )
                     start.click(create_with_feedback,
                         inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
                             style,guidance,scale,sharpness],
