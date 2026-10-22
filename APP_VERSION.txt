@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V246 — BIMAI360
+Kiểm tra vòng đời bàn giao: kiểm tra hình học canonical, xuất rồi mở lại JSON, GLB, DXF và SVG, so khớp ID, kiểm tra SHA256 từng tệp. Không công bố thiết kế kỹ thuật hay IFC đã xác minh.
