@@ -1,0 +1,3 @@
+BIM AI Kiến Trúc 360 V116 — BIMAI360
+Batch V112–V116: image provenance/role observation, same-project multiview deduplication, explicit ML confidence gap, regression and portable package.
+No VLM inference/trained weights, IFC or BIM synthesis claimed.
