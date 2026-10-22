@@ -26,8 +26,8 @@ def infer_architecture(image, model_path, project_id):
     from app.architecture_observation import inspect_architecture
     observation = inspect_architecture(image, project_id)
     path = Path(model_path).expanduser().resolve()
-    if not path.is_dir() or not (path / 'config.json').is_file():
-        raise ValueError('Cần thư mục checkpoint VLM local hợp lệ chứa config.json')
+    from app.vlm_checkpoint_preflight import inspect_local_vlm_checkpoint
+    checkpoint_preflight = inspect_local_vlm_checkpoint(path)
     try:
         import torch
         from transformers import AutoProcessor, AutoModelForVision2Seq
@@ -53,6 +53,7 @@ def infer_architecture(image, model_path, project_id):
     observation['structured_observations'] = structured
     observation['vlm'] = {
         'model_directory': path.name,
+        'checkpoint_preflight': checkpoint_preflight,
         'prompt': PROMPT,
         'observations_text': decoded,
         'inference_completed': True,
