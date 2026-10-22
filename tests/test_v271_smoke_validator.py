@@ -71,21 +71,34 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
             verify_delivery(report, make_archive())
 
     def test_missing_glb_geometry_is_rejected(self):
+        archive = make_archive({'schematic_walls.glb': b'no'})
+        report = dict(self.report, kiem_tra_mo_lai=json.loads(
+            zipfile.ZipFile(io.BytesIO(archive)).read('KIEM_TRA_MO_LAI.json')
+        ))
         with self.assertRaisesRegex(AssertionError, 'GLB'):
-            verify_delivery(self.report, make_archive({'schematic_walls.glb': b'no'}))
+            verify_delivery(report, archive)
 
     def test_missing_dxf_end_marker_is_rejected(self):
+        archive = make_archive({'schematic_plan.dxf': b'incomplete'})
+        report = dict(self.report, kiem_tra_mo_lai=json.loads(
+            zipfile.ZipFile(io.BytesIO(archive)).read('KIEM_TRA_MO_LAI.json')
+        ))
         with self.assertRaisesRegex(AssertionError, 'DXF'):
-            verify_delivery(self.report, make_archive({'schematic_plan.dxf': b'incomplete'}))
+            verify_delivery(report, archive)
 
     def test_tampered_reopen_hash_is_rejected(self):
-        altered = make_archive({'schematic_plan.dxf': b'0\\nEOF\\n'})
+        old_audit = json.dumps(self.report['kiem_tra_mo_lai']).encode()
+        altered = make_archive({
+            'schematic_plan.dxf': b'0\\nEOF\\n',
+            'KIEM_TRA_MO_LAI.json': old_audit,
+        })
         with self.assertRaisesRegex(AssertionError, 'checksum mismatch'):
             verify_delivery(self.report, altered)
 
     def test_empty_audit_is_rejected(self):
+        report = dict(self.report, kiem_tra_mo_lai={})
         with self.assertRaisesRegex(AssertionError, 'audit'):
-            verify_delivery(self.report, make_archive({'KIEM_TRA_MO_LAI.json': b'{}'}))
+            verify_delivery(report, make_archive({'KIEM_TRA_MO_LAI.json': b'{}'}))
 
     def test_unverified_ifc_is_rejected(self):
         report = dict(self.report, ifc_export_ready=True)
