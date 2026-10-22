@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V136 — BIMAI360
+Batch V132–V136: canonical two-zone conceptual floorplate and partition, SVG/JSON handoff, regression, Windows Portable. Not ML-inferred layout or IFC.
