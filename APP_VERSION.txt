@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V131 — BIMAI360
-Batch V127–V131: canonical shell metric DXF plan export, 2D views, validation and regression. No IFC or AI-trained BIM inference claims.
+BIM AI Kiến Trúc 360 V136 — BIMAI360
+Batch V132–V136: canonical two-zone conceptual floorplate and partition, SVG/JSON handoff, regression, Windows Portable. Not ML-inferred layout or IFC.
