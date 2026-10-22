@@ -195,11 +195,15 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                     num_inference_steps=int(steps),generator=generator).images[0]
                 fname=f'architecture_option_{index+1:02d}_seed_{current_seed}.png'
                 result = postprocess_image(result, scale, sharpness)
+                from app.generated_image_gate import validate_generated_image
+                quality_evidence = validate_generated_image(
+                    result, prepared_input=source if int(scale) == 1 else None)
                 result.save(run_dir/fname, optimize=True)
-                generated.append((result,f'Phương án {index+1} · seed {current_seed}'))
+                generated.append((str(run_dir/fname), f'Phương án {index+1} · seed {current_seed}'))
                 diag = image_diagnostics(result)
                 manifest['images'].append({'file':fname,'seed':current_seed,
-                    'diagnostics':diag,'review_flags':diagnostic_notes(diag)})
+                    'diagnostics':diag,'visual_output_gate':quality_evidence,
+                    'review_flags':diagnostic_notes(diag)})
                 del result
                 # Avoid forcing GPU synchronization/cache flush after every image.
                 # Offload and pipeline lifetime are managed by Diffusers.
