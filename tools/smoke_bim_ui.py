@@ -4,6 +4,8 @@ Calls the same named event as the user's TẠO BIM button and checks a
 downloadable result. Stdlib-only: runs beside the frozen executable.
 """
 import json
+import io
+import zipfile
 import sys
 import time
 import urllib.error
@@ -51,7 +53,28 @@ def run_smoke():
         download.get('path') or download.get('name')
     ):
         raise AssertionError('BIM button returned no downloadable ZIP: ' + str(download)[:300])
-    print('PASS: real Gradio BIM button produced 3-floor report and downloadable ZIP')
+    # Gradio file outputs expose a local server URL. Retrieve the ZIP and
+    # examine its contents instead of accepting a filename as proof.
+    download_url = download.get('url')
+    if not isinstance(download_url, str) or not download_url.startswith('/'):
+        raise AssertionError('No relative local file URL in Gradio ZIP output')
+    with urllib.request.urlopen(BASE + download_url, timeout=60) as response:
+        archive_bytes = response.read()
+    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as package:
+        expected = {
+            'canonical_bim_handoff.json', 'schematic_walls.glb',
+            'schematic_plan.dxf', 'plan.svg', 'front_elevation.svg',
+            'KIEM_TRA_HINH_HOC.json', 'KIEM_TRA_MO_LAI.json',
+        }
+        missing = expected.difference(package.namelist())
+        if missing:
+            raise AssertionError('ZIP lacks BIM files: ' + ', '.join(sorted(missing)))
+        model = json.loads(package.read('canonical_bim_handoff.json'))
+        if len(model['levels']) != 3:
+            raise AssertionError('ZIP BIM model does not have three levels')
+        if package.read('schematic_walls.glb')[:4] != b'glTF':
+            raise AssertionError('ZIP lacks actual GLB binary geometry')
+    print('PASS: real frozen Gradio BIM button returned ZIP with canonical model, GLB and QA')
 
 
 if __name__ == '__main__':
