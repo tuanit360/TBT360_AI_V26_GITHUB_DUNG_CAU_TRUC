@@ -1,2 +1,3 @@
-BIM AI Kiến Trúc 360 V111 — BIMAI360
-Batch V107–V111: canonical BIM atomic Save/Reopen with SHA256, Undo/Redo lifecycle tests and Windows Portable packaging. IFC and trained LoRA are not claimed.
+BIM AI Kiến Trúc 360 V116 — BIMAI360
+Batch V112–V116: image provenance/role observation, same-project multiview deduplication, explicit ML confidence gap, regression and portable package.
+No VLM inference/trained weights, IFC or BIM synthesis claimed.
