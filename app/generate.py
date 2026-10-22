@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V131 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V131 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V136 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V136 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -585,6 +585,42 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V131 · Training & Architecture') 
         scheme_button.click(export_schematic,
                             inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
                             outputs=[scheme_archive, scheme_report])
+    with gr.Accordion('BIMAI360 · PHÂN KHU CÔNG NĂNG SƠ BỘ', open=False):
+        gr.Markdown('Chia vỏ nhà chữ nhật thành hai khu linh hoạt theo tỷ lệ 55/45, '
+                    'dùng cùng dữ liệu canonical để xuất sơ đồ. **Không phải AI suy ra từ ảnh** '
+                    'và chưa có cửa, giao thông, MEP hoặc kiểm chứng tiêu chuẩn.')
+        with gr.Row():
+            zone_project = gr.Textbox(value='office_136', label='Mã công trình')
+            zone_width = gr.Number(value=12, label='Ngang (m)')
+            zone_depth = gr.Number(value=8, label='Sâu (m)')
+            zone_height = gr.Number(value=3.2, label='Cao tầng (m)')
+        zone_button = gr.Button('TẠO HAI KHU CÔNG NĂNG / XUẤT BIM JSON + SVG')
+        zone_file = gr.File(label='ZIP phương án phân khu')
+        zone_report = gr.JSON(label='Trạng thái kiểm chứng')
+        def export_zoning(project, width, depth, height):
+            from app.schematic_zoning import add_two_zone_sketch, zoning_svg
+            from app.bim_transaction import canonical_checksum
+            try:
+                data = add_two_zone_sketch(project, width, depth, height)
+                target = OUTPUT / ('zoning_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+                target.mkdir()
+                (target / 'canonical_bim_handoff.json').write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+                (target / 'zoning_plan.svg').write_text(zoning_svg(data), encoding='utf-8')
+                archive_path = str(target) + '.zip'
+                with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    for path in sorted(target.iterdir()):
+                        archive.write(path, path.name)
+                return archive_path, {'zones': 2, 'wall_count': 5,
+                                      'canonical_checksum': canonical_checksum(data),
+                                      'source': 'user_dimensions_simple_55_45_split',
+                                      'image_to_bim_ml_performed': False,
+                                      'code_compliance_verified': False,
+                                      'ifc_export_ready': False}
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        zone_button.click(export_zoning, inputs=[zone_project, zone_width, zone_depth, zone_height],
+                          outputs=[zone_file, zone_report])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
