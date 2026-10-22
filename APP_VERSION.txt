@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V176 — BIMAI360
-V172–V176: per-level conceptual slab geometry, canonical ID nodes in GLB, 3D roundtrip tests, Windows Portable. Dimensions user supplied; no photo-derived BIM or IFC claimed.
+BIM AI Kiến Trúc 360 V181 — BIMAI360
+Batch V177–V181: canonical gable roof with real pitched 3D geometry in GLB, source IDs and roundtrip tests. User-dimensioned concept only, not photogrammetric BIM or IFC.
