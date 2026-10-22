@@ -984,7 +984,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                         inspect_readiness, outputs=readiness)
                     gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
                                 'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
-                        gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
+                    gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab("06 · TÀI KHOẢN"):
             with gr.Tabs():
                 with gr.Tab("Truy cập cục bộ"):
