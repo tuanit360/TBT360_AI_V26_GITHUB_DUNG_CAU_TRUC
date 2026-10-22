@@ -342,6 +342,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 from app.cpu_readiness import inspect_local_assets
                                 model_check = inspect_local_assets(ROOT)
                                 if not model_check['model_valid_index']:
+                                    record_operation(ROOT, 'generate', 'blocked_missing_model')
                                     return (
                                         [],
                                         None,
