@@ -30,18 +30,23 @@ class V186WallOpeningTests(unittest.TestCase):
 
     def test_real_glb_opening_roundtrip(self):
         import trimesh
-        model = add_gable_roof(add_schematic_slabs(self.base))
-        model = add_wall_opening(model, 'W01_01', 'DOOR_01', 2, 0, 1, 2.1)
+        shell = add_gable_roof(add_schematic_slabs(self.base))
+        opened = add_wall_opening(shell, 'W01_01', 'DOOR_01', 2, 0, 1, 2.1)
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'building.glb'
-            export_building_glb(model, path)
-            reopened = trimesh.load(path, force='scene')
-            self.assertTrue(path.read_bytes().startswith(b'glTF'))
-            self.assertGreater(len(reopened.geometry), 0)
-            # GLB exporters can rename both geometry keys and scene nodes.
-            # Verify the hole geometrically, not through unstable exporter labels.
-            def point_inside_part(point, bounds):
-                return all(bounds[0][i] < point[i] < bounds[1][i] for i in range(3))
-            door_void = [2.5, 0.0, 1.0]
-            self.assertFalse(any(point_inside_part(door_void, part.bounds)
-                                 for part in reopened.dump()))
+            before_path = Path(folder) / 'before.glb'
+            after_path = Path(folder) / 'after.glb'
+            export_building_glb(shell, before_path)
+            export_building_glb(opened, after_path)
+            before = trimesh.load(before_path, force='scene')
+            after = trimesh.load(after_path, force='scene')
+            self.assertTrue(after_path.read_bytes().startswith(b'glTF'))
+            self.assertGreater(len(after.geometry), 0)
+            # Compare physical mesh volume, avoiding unrelated roof/slab geometry
+            # whose bounding boxes naturally include the doorway's location.
+            def total_volume(scene):
+                return sum(abs(part.volume) for part in scene.dump()
+                           if part.is_volume)
+            self.assertAlmostEqual(
+                total_volume(before) - total_volume(after),
+                1.0 * 2.1 * 0.2,
+                delta=0.001)
