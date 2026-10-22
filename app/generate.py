@@ -260,7 +260,7 @@ def machine_info():
 
 
 with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V231 · WORKSPACE')
+    gr.Markdown('# BIM AI Kiến Trúc 360 V236 · Không gian làm việc')
     gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn chức năng bên dưới.')
     from app.local_workspace import setup_runtime_log
     setup_runtime_log(ROOT)
@@ -271,7 +271,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                     with gr.Row():
                         with gr.Column(scale=1, min_width=360):
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
-                            brief=gr.Textbox(label='Mô tả phương án (tiếng Anh cho SD1.5)',lines=3,
+                            brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
                             preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Cấu hình nhanh')
                             style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
@@ -439,19 +439,22 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                             observation_image = gr.Image(type='pil', label='Ảnh công trình')
                             with gr.Column():
                                 observation_project = gr.Textbox(value='office_116', label='Mã công trình')
+                                from app.vi_labels import IMAGE_ROLES
                                 observation_role = gr.Dropdown(
-                                    ['exterior_perspective', 'interior', 'floorplan', 'elevation', 'section'],
-                                    value='exterior_perspective', label='Vai trò ảnh')
+                                    choices=list(IMAGE_ROLES),
+                                    value='Ảnh phối cảnh ngoại thất', label='Loại ảnh đầu vào')
                                 observation_button = gr.Button('PHÂN TÍCH ẢNH / XUẤT JSON', variant='primary')
-                                observation_file = gr.File(label='JSON dữ liệu ảnh')
-                        observation_report = gr.JSON(label='Thông tin ảnh và trạng thái suy luận')
+                                observation_file = gr.File(label='Tải dữ liệu ảnh JSON (định dạng kết nối)')
+                        observation_report = gr.JSON(label='Kết quả kiểm tra ảnh (tiếng Việt)')
                         def observe_architecture(image, project, role):
                             from app.architecture_observation import inspect_architecture
                             try:
-                                observation = inspect_architecture(image, project, role)
+                                from app.vi_labels import image_role_code, translate_report
+                                observation = inspect_architecture(
+                                    image, project, image_role_code(role))
                                 output_path = OUTPUT / ('observation_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
                                 output_path.write_text(json.dumps(observation, ensure_ascii=False, indent=2), encoding='utf-8')
-                                return observation, str(output_path)
+                                return translate_report(observation), str(output_path)
                             except (OSError, ValueError) as exc:
                                 raise gr.Error(str(exc)) from exc
                         observation_button.click(observe_architecture,
