@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V161 — BIMAI360
-Batch V157–V161: multi-image VLM evidence-to-BIM approval, conflict acknowledgement, source-image provenance, tamper regression, Windows Portable. AI metric geometry inference, trained weights and IFC export are not claimed.
+BIM AI Kiến Trúc 360 V166 — BIMAI360
+Batch V162–V166: evidence-linked VLM-to-concept geometry review, advisory constraints, checksum verification of BIM approval, regression. No real image-based geometry recovery or trained model bundled.
