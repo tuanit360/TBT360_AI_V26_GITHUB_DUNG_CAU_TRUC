@@ -376,6 +376,11 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V241 · Thiết kế kiến trúc'
                                                 'canonical_slab_entity_ids': wall_mesh['slab_entity_ids'],
                                                 'canonical_roof_entity_ids': wall_mesh['roof_entity_ids']},
                                                ensure_ascii=False, indent=2), encoding='utf-8')
+                                from app.handoff_roundtrip import verify_exported_handoff
+                                roundtrip_report = verify_exported_handoff(target, model)
+                                (target / 'KIEM_TRA_MO_LAI.json').write_text(
+                                    json.dumps(roundtrip_report, ensure_ascii=False, indent=2),
+                                    encoding='utf-8')
                                 archive_path = str(target) + '.zip'
                                 with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
                                     for path in sorted(target.iterdir()):
@@ -385,6 +390,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V241 · Thiết kế kiến trúc'
                                     'entity_count': len(model['entities']), 'levels': len(model['levels']),
                                     'model_checksum': canonical_checksum(model),
                                     'kiem_tra_hinh_hoc': delivery_audit,
+                                    'kiem_tra_mo_lai': roundtrip_report,
                                     'source': 'explicit_user_constraints', 'ifc_export_ready': False,
                                     'limitations': 'Mô hình vỏ theo kích thước nhập, chưa suy ra mặt bằng từ ảnh',
                                 }
