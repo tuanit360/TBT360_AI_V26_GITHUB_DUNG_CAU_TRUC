@@ -81,7 +81,7 @@ def main():
     sha_lines = [f"{meta['sha256']}  {name}" for name, meta in manifest['files'].items()]
     sha_lines.append(f"{file_hash(target / 'manifest.json')}  manifest.json")
     (target / 'SHA256SUMS.txt').write_text('\n'.join(sha_lines) + '\n', encoding='utf-8')
-    archive = ROOT / f'TBT360_AI_V91_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
+    archive = ROOT / f'TBT360_AI_V96_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as dst:
         for path in sorted(target.rglob('*')):
             if path.is_file():
