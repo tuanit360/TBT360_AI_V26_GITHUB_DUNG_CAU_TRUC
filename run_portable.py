@@ -15,6 +15,8 @@ def root_directory():
 
 def main():
     root = root_directory()
+    os.environ['BIMAI360_HOME'] = str(root)
+    # Legacy environment alias retained for existing integrations.
     os.environ['TBT360_HOME'] = str(root)
     # Gradio's localhost readiness probe must bypass HTTP(S) proxies.
     # Keep existing exclusions and never enable a public share link.
