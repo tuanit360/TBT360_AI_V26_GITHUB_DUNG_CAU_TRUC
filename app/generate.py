@@ -426,7 +426,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         gr.Markdown('**Trước khi tạo BIM:** đây là mô hình từ kích thước nhập, không phải AI suy luận từ ảnh. Nếu xuất tệp thất bại, báo cáo bên dưới sẽ ghi trạng thái bằng tiếng Việt thay vì chỉ hiển thị Error.')
                         scheme_button.click(export_schematic,
                                             inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
-                                            outputs=[scheme_archive, scheme_report])
+                                            outputs=[scheme_archive, scheme_report], api_name='tao_bim')
                     with gr.Accordion('BIMAI360 · PHÂN KHU CÔNG NĂNG SƠ BỘ', open=False):
                         gr.Markdown('Chia vỏ nhà chữ nhật thành hai khu linh hoạt theo tỷ lệ 55/45, '
                                     'dùng cùng dữ liệu canonical để xuất sơ đồ. **Không phải AI suy ra từ ảnh** '
