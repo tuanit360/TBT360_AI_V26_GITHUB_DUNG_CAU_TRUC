@@ -272,7 +272,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V261 · Thiết kế kiến trúc'
                         with gr.Column(scale=1, min_width=360):
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
-                                placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
+                                value='Modern two-story villa, white facade, dark tiled hip roof, large glass windows, architectural photography, daylight',
+                                placeholder='Nhập mô tả phương án hoặc chọn nội dung mẫu')
                             preset=gr.Dropdown(choices=list(PRESETS),value='Xem nhanh · ít VRAM',label='Chọn mức chất lượng')
                             style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
                             preserve=gr.Slider(0.15,0.85,value=0.55,step=0.05,label='Giữ cấu trúc ảnh gốc (cao = ít thay đổi)')
@@ -315,7 +316,21 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V261 · Thiết kế kiến trúc'
                     readiness_button.click(show_readiness, outputs=readiness_result)
                     gr.Markdown('**Máy GPU nhỏ:** mặc định xem nhanh 1 phương án, 15 bước. Chế độ tiết kiệm bộ nhớ có thể xử lý chậm; muốn nhanh hơn cần GPU đủ bộ nhớ để chạy trực tiếp. Ảnh đầu ra chỉ được chấp nhận nếu qua kiểm tra chất lượng.')
                     preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
-                    start.click(create,
+                    def create_with_feedback(*arguments, progress=gr.Progress()):
+                        from app.generation_failures import explain_generation_failure
+                        from app.local_workspace import record_operation
+                        import logging
+                        record_operation(ROOT, 'generate', 'started')
+                        try:
+                            result = create(*arguments, progress=progress)
+                            record_operation(ROOT, 'generate', 'completed')
+                            return result
+                        except Exception as exc:
+                            record_operation(ROOT, 'generate', 'failed')
+                            logging.getLogger('bimai360').error(
+                                'Lỗi sinh ảnh (%s)', type(exc).__name__)
+                            return [], None, 'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: ' + explain_generation_failure(exc)
+                    start.click(create_with_feedback,
                         inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
                             style,guidance,scale,sharpness],
                         outputs=[gallery,export,status],concurrency_limit=1,show_progress='full')
