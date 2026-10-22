@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V181 — BIMAI360
-Batch V177–V181: canonical gable roof with real pitched 3D geometry in GLB, source IDs and roundtrip tests. User-dimensioned concept only, not photogrammetric BIM or IFC.
+BIM AI Kiến Trúc 360 V186 — BIMAI360
+Batch V182–V186: actual door/window voids in hosted canonical walls, non-overlap validation, real GLB cutout geometry and regression. No image-inferred building or IFC export.
