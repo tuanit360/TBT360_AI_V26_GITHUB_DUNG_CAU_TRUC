@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V171 — BIMAI360
+Batch V167–V171: real triangulated metric 3D wall geometry, GLB interchange, stable canonical wall ID sidecar, roundtrip regression and Windows Portable. Image-derived metric geometry and IFC not claimed.
