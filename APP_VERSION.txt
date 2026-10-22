@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V191 — BIMAI360
-Batch V187–V191: V186 GLB regression fix, real GPU runner training workflow, safetensors checkpoint validation, canonical BIM holdout evaluation gate. No pretrained architecture VLM or trained image-to-BIM checkpoint bundled.
+BIM AI Kiến Trúc 360 V196 — BIMAI360
+Batch V192–V196: fix GLB wall opening geometry regression, VLM checkpoint preflight requiring real local model files, image processor and safe shard maps; reject placeholder checkpoints. GPU/VLM inference or trained image-to-BIM still not proven or bundled.
