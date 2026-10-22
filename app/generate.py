@@ -416,6 +416,16 @@ with gr.Blocks(title='TBT360 AI Studio V83 · Training & Architecture') as ui:
                 raise gr.Error(str(exc)) from exc
         handoff_button.click(handoff_export, inputs=[handoff_img, handoff_project, handoff_prompt, handoff_seed],
                              outputs=[handoff_file, handoff_report])
+    with gr.Accordion('V83 · KIỂM TRA LO RA ĐÃ HUẤN LUYỆN THẬT', open=False):
+        gr.Markdown('**Nạp ảnh không có nghĩa mô hình đã học.** Chỉ công nhận checkpoint có trạng thái '
+                    'SUCCEEDED và SHA256/size đúng. LoRA SD1.5 hiện phải chạy huấn luyện bằng '
+                    'môi trường NVIDIA CUDA riêng; CPU Portable không thực hiện bước này.')
+        lora_check_button = gr.Button('KIỂM TRA CHECKPOINT LO RA VÀ BẰNG CHỨNG')
+        lora_check_report = gr.JSON(label='Kết quả checkpoint thực tế')
+        def check_train_evidence():
+            from app.lora_evidence import training_evidence
+            return training_evidence(ROOT)
+        lora_check_button.click(check_train_evidence, outputs=lora_check_report)
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
