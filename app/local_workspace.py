@@ -37,7 +37,7 @@ def record_operation(root, action, status='started'):
     # Open, append and close for each event: Windows temporary folders can be
     # deleted directly after a test, unlike a process-global FileHandler.
     with path.open('a', encoding='utf-8') as stream:
-        stream.write(f'{timestamp} | INFO | {action} | {status}\\n')
+        stream.write(f'{timestamp} | INFO | {action} | {status}\n')
 
 
 def save_local_profile(root, name):
