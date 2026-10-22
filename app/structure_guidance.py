@@ -18,8 +18,11 @@ def structure_reference(image, threshold=80):
     source = ImageOps.exif_transpose(image).convert('RGB')
     if min(source.size) < 128:
         raise ValueError('Ảnh quá nhỏ để trích biên')
-    edges = source.convert('L').filter(ImageFilter.FIND_EDGES)
+    # Suppress fine texture/shingle/tree grain while retaining principal edges.
+    gray = source.convert('L').filter(ImageFilter.GaussianBlur(radius=1.4))
+    edges = gray.filter(ImageFilter.FIND_EDGES)
     edges = edges.point(lambda value: 255 if value >= threshold else 0)
+    edges = edges.filter(ImageFilter.MedianFilter(size=3))
     return edges.convert('RGB')
 
 
