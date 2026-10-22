@@ -1,4 +1,5 @@
 """Negative tests for the Windows frozen BIM delivery smoke validator."""
+import hashlib
 import io
 import json
 import unittest
@@ -20,6 +21,17 @@ def make_archive(overrides=None):
     }
     if overrides:
         contents.update(overrides)
+    hashes = {
+        name: hashlib.sha256(data).hexdigest()
+        for name, data in contents.items()
+        if name not in ('KIEM_TRA_MO_LAI.json', 'KIEM_TRA_HINH_HOC.json')
+    }
+    contents['KIEM_TRA_MO_LAI.json'] = json.dumps({
+        'sha256_tung_tep': hashes,
+        'so_mat_tam_giac_glb': 10,
+    }).encode()
+    if overrides and 'KIEM_TRA_MO_LAI.json' in overrides:
+        contents['KIEM_TRA_MO_LAI.json'] = overrides['KIEM_TRA_MO_LAI.json']
     output = io.BytesIO()
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
         for name, data in contents.items():
@@ -29,7 +41,16 @@ def make_archive(overrides=None):
 
 class RealEXESmokeValidatorTests(unittest.TestCase):
     def setUp(self):
+        model = {'levels': [{}, {}, {}], 'entities': [{'id': 'A'}]}
+        checksum = hashlib.sha256(json.dumps(
+            model, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False,
+        ).encode()).hexdigest()
         self.report = {
+            'model_checksum': checksum,
+            'kiem_tra_mo_lai': json.loads(zipfile.ZipFile(
+                io.BytesIO(make_archive())
+            ).read('KIEM_TRA_MO_LAI.json')),
             'levels': 3,
             'entity_count': 1,
             'source': 'explicit_user_constraints',
@@ -44,6 +65,11 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'entity count'):
             verify_delivery(report, make_archive())
 
+    def test_wrong_model_checksum_is_rejected(self):
+        report = dict(self.report, model_checksum='invalid')
+        with self.assertRaisesRegex(AssertionError, 'checksum'):
+            verify_delivery(report, make_archive())
+
     def test_missing_glb_geometry_is_rejected(self):
         with self.assertRaisesRegex(AssertionError, 'GLB'):
             verify_delivery(self.report, make_archive({'schematic_walls.glb': b'no'}))
@@ -51,6 +77,11 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
     def test_missing_dxf_end_marker_is_rejected(self):
         with self.assertRaisesRegex(AssertionError, 'DXF'):
             verify_delivery(self.report, make_archive({'schematic_plan.dxf': b'incomplete'}))
+
+    def test_tampered_reopen_hash_is_rejected(self):
+        altered = make_archive({'schematic_plan.dxf': b'0\\nEOF\\n'})
+        with self.assertRaisesRegex(AssertionError, 'checksum mismatch'):
+            verify_delivery(self.report, altered)
 
     def test_empty_audit_is_rejected(self):
         with self.assertRaisesRegex(AssertionError, 'audit'):
