@@ -44,8 +44,7 @@ class V186WallOpeningTests(unittest.TestCase):
             # Compare physical mesh volume, avoiding unrelated roof/slab geometry
             # whose bounding boxes naturally include the doorway's location.
             def total_volume(scene):
-                return sum(abs(part.volume) for part in scene.dump()
-                           if part.is_volume)
+                return sum(abs(part.volume) for part in scene.dump())
             self.assertAlmostEqual(
                 total_volume(before) - total_volume(after),
                 1.0 * 2.1 * 0.2,
