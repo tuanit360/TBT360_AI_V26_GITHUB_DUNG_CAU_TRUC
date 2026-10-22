@@ -5,7 +5,7 @@ All prospective elements carry stable IDs and confidence/verification status.
 """
 import json
 import re
-import uuid
+import math
 from pathlib import Path
 
 SCHEMA = 'tbt360.canonical_bim_handoff.v1'
@@ -22,7 +22,7 @@ def build_handoff(project_id, *, units='m', level_ids=None, elements=None):
     if not isinstance(levels, list) or any(
         not isinstance(item, dict) or
         not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', str(item.get('id', ''))) or
-        not isinstance(item.get('elevation'), (int, float))
+        (type(item.get('elevation')) not in (int, float) or not math.isfinite(item['elevation']))
         for item in levels
     ):
         raise ValueError('Danh sách tầng phải có ID và cao độ số')
@@ -48,8 +48,38 @@ def build_handoff(project_id, *, units='m', level_ids=None, elements=None):
             raise ValueError('Cấu kiện thiếu level hợp lệ')
         if entity.get('verification', 'concept') not in DIRECTIONS:
             raise ValueError('Trạng thái xác minh không hợp lệ')
+        # Do not trust externally supplied engineering verification or unknown
+        # semantic relationships without validating their basic shape.
+        geometry = entity.get('geometry')
+        if geometry is not None:
+            if not isinstance(geometry, dict):
+                raise ValueError('Geometry phải là object')
+            coords = geometry.get('origin')
+            if coords is not None and (
+                not isinstance(coords, list) or len(coords) != 3 or
+                any(type(number) not in (int, float) or not math.isfinite(number) for number in coords)
+            ):
+                raise ValueError('Tọa độ cấu kiện cần ba số hữu hạn')
+        if entity.get('verification', 'concept') != 'concept' and geometry is None:
+            raise ValueError('Không thể xác minh geometry nếu chưa có hình học')
+        host = entity.get('host_id')
+        if host is not None and (not isinstance(host, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', host)):
+            raise ValueError('Host ID không hợp lệ')
         seen.add(identity)
         safe_entities.append(dict(entity))
+    for entity in safe_entities:
+        if entity.get('host_id') is not None:
+            if entity['host_id'] == entity['id'] or entity['host_id'] not in seen:
+                raise ValueError('Host tham chiếu chính nó hoặc cấu kiện không tồn tại')
+    hosts = {entity['id']: entity.get('host_id') for entity in safe_entities}
+    for entity_id in hosts:
+        chain = set()
+        current = entity_id
+        while current is not None:
+            if current in chain:
+                raise ValueError('Phát hiện chu kỳ host relationships')
+            chain.add(current)
+            current = hosts.get(current)
     return {
         'schema': SCHEMA, 'project_id': project_id, 'units': units,
         'coordinate_system': 'local_project_unverified',
