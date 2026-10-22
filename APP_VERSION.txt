@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V176 — BIMAI360
+V172–V176: per-level conceptual slab geometry, canonical ID nodes in GLB, 3D roundtrip tests, Windows Portable. Dimensions user supplied; no photo-derived BIM or IFC claimed.
