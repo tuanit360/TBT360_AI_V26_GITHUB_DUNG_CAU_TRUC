@@ -114,6 +114,8 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
             checked_download_url('/file=/tmp/report.zip'),
             'http://127.0.0.1:7861/file=/tmp/report.zip',
         )
+        for valid in ('/gradio_api/file/abc.zip', '/file/abc.zip'):
+            self.assertEqual(checked_download_url(valid), 'http://127.0.0.1:7861' + valid)
         for unsafe in (
             'https://evil.example/file', '//evil.example/file',
             '/redirect?to=/gradio_api/file=foo', '/other/endpoint',
