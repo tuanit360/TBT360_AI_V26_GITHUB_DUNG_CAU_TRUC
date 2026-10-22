@@ -5,7 +5,6 @@ This is NOT remote authentication. Do not embed, persist or log passwords.
 from datetime import datetime, timezone
 from pathlib import Path
 import json
-import logging
 import re
 
 LOGGER_NAME = 'bimai360.operation'
@@ -18,24 +17,11 @@ def _workspace_root(root):
 
 
 def setup_runtime_log(root):
+    """Prepare log directory without holding an open Windows file handle."""
     home = _workspace_root(root)
     log_dir = home / 'logs'
     log_dir.mkdir(parents=True, exist_ok=True)
-    logger = logging.getLogger(LOGGER_NAME)
-    logger.setLevel(logging.INFO)
-    log_file = (log_dir / 'bimai360_operations.log').resolve()
-    if not any(
-        isinstance(handler, logging.FileHandler)
-        and Path(handler.baseFilename).resolve() == log_file
-        for handler in logger.handlers
-    ):
-        handler = logging.FileHandler(log_file, encoding='utf-8')
-        handler.setFormatter(logging.Formatter(
-            '%(asctime)s | %(levelname)s | %(message)s'
-        ))
-        logger.addHandler(handler)
-    logger.propagate = False
-    return logger
+    return log_dir / 'bimai360_operations.log'
 
 
 def record_operation(root, action, status='started'):
@@ -46,7 +32,12 @@ def record_operation(root, action, status='started'):
         raise ValueError('Unsupported operation name')
     if status not in {'started', 'completed', 'failed'}:
         raise ValueError('Unsupported operation status')
-    setup_runtime_log(root).info('%s | %s', action, status)
+    path = setup_runtime_log(root)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    # Open, append and close for each event: Windows temporary folders can be
+    # deleted directly after a test, unlike a process-global FileHandler.
+    with path.open('a', encoding='utf-8') as stream:
+        stream.write(f'{timestamp} | INFO | {action} | {status}\\n')
 
 
 def save_local_profile(root, name):
