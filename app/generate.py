@@ -259,7 +259,7 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') as ui:
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Thiết kế kiến trúc') as ui:
     gr.Markdown('# BIM AI Kiến Trúc 360 V236 · Không gian làm việc')
     gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn chức năng bên dưới.')
     from app.local_workspace import setup_runtime_log
@@ -273,7 +273,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
-                            preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Cấu hình nhanh')
+                            preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Chọn mức chất lượng')
                             style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
                             preserve=gr.Slider(0.15,0.85,value=0.55,step=0.05,label='Giữ cấu trúc ảnh gốc (cao = ít thay đổi)')
                             with gr.Accordion('Thông số kỹ thuật',open=False):
@@ -287,7 +287,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                                 guidance=gr.Slider(1,12,value=7.0,step=0.5,label='Mức bám mô tả (CFG)')
                                 count=gr.Slider(1,4,value=2,step=1,label='Số phương án')
                                 seed=gr.Number(value=-1,precision=0,label='Seed (-1 = ngẫu nhiên)')
-                                lora_name=gr.Dropdown(choices=installed_loras(),value='Không dùng LoRA',label='LoRA đã xác minh')
+                                lora_name=gr.Dropdown(choices=installed_loras(),value='Không dùng LoRA',label='Bộ tinh chỉnh AI (LoRA) đã xác minh')
                                 refresh_lora=gr.Button('Làm mới danh sách LoRA')
                                 refresh_lora.click(lambda: gr.update(choices=installed_loras(),value='Không dùng LoRA'),outputs=lora_name)
                             with gr.Accordion('Hậu xử lý ảnh · không phải AI upscale',open=False):
@@ -295,9 +295,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                                 sharpness=gr.Slider(0,1,value=0.2,step=0.1,label='Làm nét nhẹ')
                             start=gr.Button('TẠO PHƯƠNG ÁN',variant='primary',size='lg')
                         with gr.Column(scale=2,min_width=380):
-                            gallery=gr.Gallery(label='Các phương án kiến trúc',columns=2,height=630,object_fit='contain')
-                            export=gr.File(label='Tải ZIP ảnh, seed và cấu hình')
-                            status=gr.Textbox(label='Trạng thái / thông báo',lines=3,interactive=False)
+                            gallery=gr.Gallery(label='Ảnh các phương án kiến trúc',columns=2,height=630,object_fit='contain')
+                            export=gr.File(label='Tải gói ảnh và thông số tạo ảnh (ZIP)')
+                            status=gr.Textbox(label='Tiến trình và thông báo',lines=3,interactive=False)
                     gr.Markdown('**Bắt đầu:** Nạp ảnh → Chọn cấu hình → Tạo phương án → Xem kết quả. Nếu thiếu checkpoint, phần mềm phải báo thiếu thay vì xuất ảnh giả.')
                     readiness_button = gr.Button('KIỂM TRA GPU / MODEL TRƯỚC KHI TẠO')
                     readiness_result = gr.JSON(label='Khả năng chạy AI thực tế')
@@ -326,7 +326,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                             scheme_project = gr.Textbox(value='office_121', label='Mã công trình')
                             scheme_width = gr.Number(value=12, label='Ngang (m)')
                             scheme_depth = gr.Number(value=8, label='Sâu (m)')
-                            scheme_height = gr.Number(value=3.2, label='Cao mỗi tầng (m)')
+                            scheme_height = gr.Number(value=3.2, label='Chiều cao mỗi tầng (m)')
                             scheme_floors = gr.Number(value=3, precision=0, label='Số tầng')
                         scheme_button = gr.Button('TẠO PHƯƠNG ÁN VỎ BIM / MẶT BẰNG / MẶT ĐỨNG', variant='primary')
                         sample_button = gr.Button('DÙNG DỰ ÁN MẪU / TẠO BIM CONCEPT 2 TẦNG')
@@ -381,7 +381,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                                     'entity_count': len(model['entities']), 'levels': len(model['levels']),
                                     'model_checksum': canonical_checksum(model),
                                     'source': 'explicit_user_constraints', 'ifc_export_ready': False,
-                                    'limitations': 'Only user-dimensioned shell with real wall GLB, not floorplan inferred from images',
+                                    'limitations': 'Mô hình vỏ theo kích thước nhập, chưa suy ra mặt bằng từ ảnh',
                                 }
                             except (ValueError, OSError) as exc:
                                 record_operation(ROOT, 'concept_export', 'failed')
@@ -442,7 +442,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                                 from app.vi_labels import IMAGE_ROLES
                                 observation_role = gr.Dropdown(
                                     choices=list(IMAGE_ROLES),
-                                    value='Ảnh phối cảnh ngoại thất', label='Loại ảnh đầu vào')
+                                    value='Ảnh phối cảnh ngoại thất', label='Loại ảnh đầu vào (chọn theo nội dung thực tế)')
                                 observation_button = gr.Button('PHÂN TÍCH ẢNH / XUẤT JSON', variant='primary')
                                 observation_file = gr.File(label='Tải dữ liệu ảnh JSON (định dạng kết nối)')
                         observation_report = gr.JSON(label='Kết quả kiểm tra ảnh (tiếng Việt)')
@@ -470,8 +470,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                                 vlm_model_path = gr.Textbox(label='Thư mục checkpoint VLM trên máy',
                                                              placeholder='models/architecture_vlm')
                                 vlm_button = gr.Button('CHẠY VLM THẬT / XUẤT JSON')
-                        vlm_report = gr.JSON(label='Quan sát và độ xác minh')
-                        vlm_file = gr.File(label='Tải kết quả suy luận JSON')
+                        vlm_report = gr.JSON(label='Quan sát và trạng thái kiểm chứng')
+                        vlm_file = gr.File(label='Tải dữ liệu suy luận (JSON)')
                         def run_architecture_vlm(image, model_path, project):
                             from app.local_workspace import record_operation
                             record_operation(ROOT, 'vlm_inference', 'started')
@@ -998,7 +998,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Training & Architecture') 
                     gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
                     gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
                     gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
-                    readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+                    readiness = gr.JSON(label='Kiểm tra mô hình AI, bộ tinh chỉnh và cấu hình đề xuất')
                     def inspect_readiness():
                         from app.cpu_readiness import inspect_local_assets
                         try:
