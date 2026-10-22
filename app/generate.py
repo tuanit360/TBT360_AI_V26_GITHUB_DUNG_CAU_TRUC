@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V156 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V156 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V161 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V161 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -705,6 +705,51 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V156 · Training & Architecture') 
                 raise gr.Error(str(exc)[:400]) from exc
         compare_button.click(inspect_multiview, inputs=multimodal_files,
                              outputs=compare_report)
+        gr.Markdown('**Duyệt đề xuất đa ảnh → BIM concept:** các kích thước dưới đây do bạn nhập, '
+                    'không đoán từ ảnh; xung đột cần được bạn xác nhận rõ.')
+        with gr.Row():
+            multi_width = gr.Number(value=12, label='Ngang (m)')
+            multi_depth = gr.Number(value=8, label='Sâu (m)')
+            multi_height = gr.Number(value=3.2, label='Cao tầng (m)')
+            multi_floors = gr.Number(value=3, precision=0, label='Số tầng đã xác nhận')
+        multi_approved = gr.Checkbox(value=False, label='Tôi xác nhận kích thước thật')
+        multi_acknowledge = gr.Checkbox(value=False, label='Tôi đã xem và chấp nhận khác biệt với kết quả AI')
+        multi_export_button = gr.Button('XUẤT BIM CONCEPT TỪ BẰNG CHỨNG ĐA ẢNH')
+        multi_export_file = gr.File(label='JSON BIM concept')
+        multi_export_report = gr.JSON(label='Kiểm tra bàn giao')
+        def export_multiview_concept(files, width, depth, height, floors, approved, acknowledged):
+            from app.architecture_multiview import reconcile_architecture_observations
+            from app.multiview_bim_approval import approve_multiview_concept
+            from app.bim_transaction import canonical_checksum
+            try:
+                if not files or len(files) > 12:
+                    raise ValueError('Cần 1–12 tệp JSON VLM từ cùng công trình')
+                observations = []
+                for file in files:
+                    path = Path(file if isinstance(file, (str, Path)) else file.name)
+                    if path.stat().st_size > 1000000:
+                        raise ValueError('Tệp dữ liệu VLM quá lớn')
+                    observations.append(json.loads(path.read_text(encoding='utf-8')))
+                review = reconcile_architecture_observations(observations)
+                model = approve_multiview_concept(
+                    observations, review,
+                    {'width_m': width, 'depth_m': depth, 'floor_height_m': height,
+                     'floor_count': floors, 'user_approved': approved}, acknowledged)
+                output_path = OUTPUT / ('approved_multiview_' +
+                    datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(model, ensure_ascii=False, indent=2),
+                                       encoding='utf-8')
+                return str(output_path), {'entities': len(model['entities']),
+                    'sha256': canonical_checksum(model),
+                    'conflicts': model['concept_source']['multiview_conflict_fields'],
+                    'dimensions_from_user': True, 'ifc_export_ready': False}
+            except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        multi_export_button.click(export_multiview_concept,
+            inputs=[multimodal_files, multi_width, multi_depth, multi_height,
+                    multi_floors, multi_approved, multi_acknowledge],
+            outputs=[multi_export_file, multi_export_report])
+
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
