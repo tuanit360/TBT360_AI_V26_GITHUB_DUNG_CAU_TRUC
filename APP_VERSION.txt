@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V156 — BIMAI360
+Batch V152–V156: cross-image VLM architecture evidence consistency, duplicate suppression, conflict detection, Studio review, regression and portable package. Not trained image-to-BIM or IFC export.
