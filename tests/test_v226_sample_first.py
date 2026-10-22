@@ -18,7 +18,7 @@ class V226SampleFirstTests(unittest.TestCase):
         self.assertIn("export_schematic('OFFICE_001_DEMO', 12.0, 9.0, 3.2, 2)", content)
         version_file = file.parents[1] / 'APP_VERSION.txt'
         import re
-        version_match = re.search(r'\\bV\\d+\\b', version_file.read_text(encoding='utf-8'))
+        version_match = re.search(r'\bV\d+\b', version_file.read_text(encoding='utf-8'))
         self.assertIsNotNone(version_match, 'Thiếu mã phiên bản phát hành')
         self.assertIn('BIM AI Kiến Trúc 360 ' + version_match.group() + ' ·', content)
 
