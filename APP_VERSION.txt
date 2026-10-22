@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V166 — BIMAI360
+Batch V162–V166: evidence-linked VLM-to-concept geometry review, advisory constraints, checksum verification of BIM approval, regression. No real image-based geometry recovery or trained model bundled.
