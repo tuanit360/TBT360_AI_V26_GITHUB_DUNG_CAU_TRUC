@@ -1,2 +1,3 @@
-TBT360 AI V91 – Five-stage Hardening Consolidated
-Baseline V86; stronger LoRA integrity, BIM canonical handoff, regression. No unverified training/IFC claims.
+TBT360 AI V96 – Five-stage BIM Data Integrity Hardening
+V92–V96: host relations, finite geometry, saved handoff verification, regression and consolidated packaging.
+No claim of trained LoRA, geometry-verified IFC, or full BIM export.
