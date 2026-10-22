@@ -1,2 +1,2 @@
-TBT360 AI V86 – Architecture Preflight & CPU-safe Quality Guard
-Inherits V78–V85; LoRA user-data training and true ControlNet not verified.
+TBT360 AI V91 – Five-stage Hardening Consolidated
+Baseline V86; stronger LoRA integrity, BIM canonical handoff, regression. No unverified training/IFC claims.
