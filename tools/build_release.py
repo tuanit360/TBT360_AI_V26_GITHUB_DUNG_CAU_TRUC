@@ -38,12 +38,13 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
                '--console', '--name', 'TBT360_AI',
                '--collect-all', 'gradio', '--collect-all', 'gradio_client',
+               '--collect-all', 'safehttpx',
                '--collect-all', 'diffusers', '--collect-all', 'transformers',
                '--collect-all', 'accelerate', '--collect-all', 'huggingface_hub',
                '--collect-all', 'safetensors', '--collect-all', 'peft',
                '--collect-all', 'torch', '--collect-all', 'torchvision',
                '--collect-all', 'PIL', '--collect-all', 'tokenizers',
-               '--collect-all', 'datasets', '--collect-all', 'tensorboard',
+               # Training-only datasets/tensorboard stay in source, not CPU EXE.
                '--collect-all', 'cv2',
                '--collect-submodules', 'app', '--collect-submodules', 'tools',
                '--collect-submodules', 'learning',
@@ -66,8 +67,10 @@ def main():
             else:
                 print(f'[WARN] {model_name} missing model_index.json; offline model not included')
     shutil.copy2(ROOT / 'README_PORTABLE.md', target / 'README_PORTABLE.md')
-    shutil.copy2(ROOT / 'README_V69_LEARNING.md', target / 'README_V69_LEARNING.md')
+    shutil.copy2(ROOT / 'APP_VERSION.txt', target / 'APP_VERSION.txt')
+    shutil.copy2(ROOT / 'README_START_HERE.md', target / 'README_START_HERE.md')
     shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
+    shutil.copy2(ROOT / 'START_V81_DIAGNOSTIC.bat', target / 'START_V81_DIAGNOSTIC.bat')
     shutil.copy2(ROOT / 'VERIFY_SHA256_WINDOWS.ps1', target / 'VERIFY_SHA256_WINDOWS.ps1')
     shutil.copy2(ROOT / 'CHAY_OFFLINE_WINDOWS.bat', target / 'CHAY_OFFLINE_WINDOWS.bat')
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
@@ -78,7 +81,7 @@ def main():
     sha_lines = [f"{meta['sha256']}  {name}" for name, meta in manifest['files'].items()]
     sha_lines.append(f"{file_hash(target / 'manifest.json')}  manifest.json")
     (target / 'SHA256SUMS.txt').write_text('\n'.join(sha_lines) + '\n', encoding='utf-8')
-    archive = ROOT / f'TBT360_AI_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
+    archive = ROOT / f'TBT360_AI_V85_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as dst:
         for path in sorted(target.rglob('*')):
             if path.is_file():

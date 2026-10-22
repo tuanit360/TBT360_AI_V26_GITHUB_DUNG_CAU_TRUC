@@ -1,0 +1,2 @@
+TBT360 AI V85 – Architecture Before/After Image Comparison
+Retains V78–V84. Comparison is descriptive, no claim of trained LoRA or BIM.
