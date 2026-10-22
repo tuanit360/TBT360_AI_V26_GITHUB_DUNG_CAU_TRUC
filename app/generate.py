@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V176 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V176 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V181 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V181 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -558,6 +558,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V176 · Training & Architecture') 
                 model = create_schematic(project, width, depth, height, floors)
                 from app.schematic_slabs import add_schematic_slabs
                 model = add_schematic_slabs(model)
+                from app.schematic_roof import add_gable_roof
+                model = add_gable_roof(model)
                 files = render_views(model)
                 from app.schematic_multiview import schematic_multiview
                 extra = schematic_multiview(model)
@@ -578,7 +580,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V176 · Training & Architecture') 
                     json.dumps({'canonical_wall_entity_ids': wall_mesh['wall_entity_ids'],
                                 'geometry_source': wall_mesh['geometry_source'],
                                 'geometry_verified': wall_mesh['geometry_verified'],
-                                'canonical_slab_entity_ids': wall_mesh['slab_entity_ids']},
+                                'canonical_slab_entity_ids': wall_mesh['slab_entity_ids'],
+                                'canonical_roof_entity_ids': wall_mesh['roof_entity_ids']},
                                ensure_ascii=False, indent=2), encoding='utf-8')
                 archive_path = str(target) + '.zip'
                 with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
