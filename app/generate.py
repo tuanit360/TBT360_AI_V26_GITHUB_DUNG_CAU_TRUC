@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V91 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V91 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='TBT360 AI Studio V96 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V96 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
