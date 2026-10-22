@@ -652,22 +652,37 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V251 · Thiết kế kiến trúc'
                     with gr.Row():
                         edge_threshold = gr.Slider(10, 240, value=80, step=5, label='Ngưỡng phát hiện cạnh')
                         structure_seed = gr.Number(value=42, precision=0, label='Seed đối chiếu')
-                    structure_preview = gr.Button('TẠO BIÊN THAM CHIẾU', variant='primary')
-                    structure_export = gr.Button('XUẤT GÓI CONTROL + SEED')
-                    structure_file = gr.File(label='Gói ZIP ảnh gốc, biên và manifest')
-                    structure_status = gr.JSON(label='Kiểm tra cấu trúc')
+                    gr.Markdown('**Bước 1:** Tải ảnh kiến trúc vào ô bên trái. **Bước 2:** Chọn ngưỡng rồi tạo ảnh biên. **Bước 3:** Nếu cần, xuất gói dữ liệu. Chức năng này tạo ảnh biên trên CPU, không chạy AI ControlNet.')
+                    structure_preview = gr.Button('TẠO ẢNH BIÊN THAM CHIẾU', variant='primary', interactive=False)
+                    structure_export = gr.Button('XUẤT ZIP ẢNH GỐC VÀ ẢNH BIÊN', interactive=False)
+                    structure_file = gr.File(label='Tải gói ZIP ảnh biên và thông số')
+                    structure_status = gr.Markdown('**Chưa có ảnh:** Hãy tải ảnh vào ô bên trái để bắt đầu.')
+                    def image_input_state(image):
+                        has_image = image is not None
+                        message = ('**Đã nhận ảnh.** Chọn ngưỡng cạnh rồi bấm **Tạo ảnh biên tham chiếu**.'
+                                   if has_image else '**Chưa có ảnh:** Hãy tải ảnh vào ô bên trái để bắt đầu.')
+                        return (gr.update(interactive=has_image),
+                                gr.update(interactive=has_image), message, None, None)
+                    structure_input.change(
+                        image_input_state, inputs=structure_input,
+                        outputs=[structure_preview, structure_export, structure_status,
+                                 structure_output, structure_file])
                     def edge_preview(image, threshold):
                         from app.structure_guidance import structure_reference
+                        if image is None:
+                            return None, '**Chưa có ảnh:** Vui lòng tải ảnh kiến trúc trước.'
                         try:
-                            return structure_reference(image, threshold)
+                            output = structure_reference(image, threshold)
+                            return output, '**Đã tạo ảnh biên.** Bạn có thể tải gói ZIP để dùng làm tham chiếu.'
                         except ValueError as exc:
-                            raise gr.Error(str(exc)) from exc
-                    structure_preview.click(edge_preview, inputs=[structure_input, edge_threshold],
-                                            outputs=structure_output)
+                            return None, '**Không tạo được ảnh biên:** ' + str(exc)
+                    structure_preview.click(
+                        edge_preview, inputs=[structure_input, edge_threshold],
+                        outputs=[structure_output, structure_status])
                     def save_structure(image, threshold, seed):
                         from app.structure_guidance import export_structure_package
                         if image is None:
-                            raise gr.Error('Nạp một ảnh để xuất cấu trúc')
+                            return None, '**Chưa có ảnh:** Vui lòng tải ảnh kiến trúc trước.'
                         folder = OUTPUT / ('control_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
                         try:
                             _, report = export_structure_package(image, folder, threshold, seed)
@@ -675,12 +690,12 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V251 · Thiết kế kiến trúc'
                             with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
                                 for path in sorted(folder.iterdir()):
                                     output_zip.write(path, path.name)
-                            return archive, report
+                            return archive, '**Đã xuất ZIP ảnh biên** theo ngưỡng ' + str(report['threshold']) + '.'
                         except (ValueError, OSError) as exc:
-                            raise gr.Error(str(exc)) from exc
-                    structure_export.click(save_structure,
-                                           inputs=[structure_input, edge_threshold, structure_seed],
-                                           outputs=[structure_file, structure_status])
+                            return None, '**Không xuất được ZIP:** ' + str(exc)
+                    structure_export.click(
+                        save_structure, inputs=[structure_input, edge_threshold, structure_seed],
+                        outputs=[structure_file, structure_status])
         with gr.Tab("02 · KIỂM TRA"):
             with gr.Tabs():
                 with gr.Tab("Ảnh đầu vào"):
