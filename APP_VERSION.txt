@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V166 — BIMAI360
-Batch V162–V166: evidence-linked VLM-to-concept geometry review, advisory constraints, checksum verification of BIM approval, regression. No real image-based geometry recovery or trained model bundled.
+BIM AI Kiến Trúc 360 V171 — BIMAI360
+Batch V167–V171: real triangulated metric 3D wall geometry, GLB interchange, stable canonical wall ID sidecar, roundtrip regression and Windows Portable. Image-derived metric geometry and IFC not claimed.
