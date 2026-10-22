@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V231 — BIMAI360
-Image-generation quality gate rejects black/flat images, publishes real saved image paths to gallery, adds actual Gradio workspace UI construction smoke tests, keeps BIM concept sample and local logs. No architecture-trained VLM/image-to-BIM checkpoint bundled.
+BIM AI Kiến Trúc 360 V236 — BIMAI360
+Giao diện ưu tiên tiếng Việt: lựa chọn vai trò ảnh thuần Việt, giải thích kết quả rõ ràng, giữ mã API/JSON ổn định, tiếp tục kiểm thử giao diện và chất lượng ảnh đầu ra. Không tuyên bố đã đào tạo VLM kiến trúc.
