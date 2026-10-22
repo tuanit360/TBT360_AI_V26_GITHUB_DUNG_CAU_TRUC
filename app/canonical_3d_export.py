@@ -73,9 +73,32 @@ def export_building_glb(model, filename):
     for index, identity in enumerate(wall['wall_entity_ids']):
         offset = index * 8
         local = [[i-offset for i in tri] for tri in wall['triangles'][index*12:(index+1)*12]]
-        mesh = trimesh.Trimesh(vertices=wall['vertices_m'][offset:offset+8],
-                               faces=local, process=False)
-        scene.add_geometry(mesh, node_name=identity, geom_name=identity)
+        canonical = next(entity for entity in model['entities'] if entity['id'] == identity)
+        hosted = [entity for entity in model['entities']
+                  if entity.get('category') == 'opening' and entity.get('host_id') == identity]
+        if hosted:
+            from app.wall_openings import wall_solid_parts
+            start, end = canonical['geometry']['origin'], canonical['geometry']['endpoint']
+            dx, dy = end[0] - start[0], end[1] - start[1]
+            length = math.hypot(dx, dy)
+            angle = math.atan2(dy, dx)
+            thickness = canonical['geometry']['thickness']
+            for piece_index, (left, right, bottom, top) in enumerate(
+                    wall_solid_parts(model, identity)):
+                piece = trimesh.creation.box(
+                    extents=[right-left, thickness, top-bottom])
+                rotation = trimesh.transformations.rotation_matrix(angle, [0, 0, 1])
+                piece.apply_transform(rotation)
+                center = (left+right)/2
+                piece.apply_translation([
+                    start[0] + dx/length*center, start[1] + dy/length*center,
+                    start[2] + (bottom+top)/2])
+                scene.add_geometry(piece, node_name=f'{identity}_PART_{piece_index}',
+                                   geom_name=f'{identity}_PART_{piece_index}')
+        else:
+            mesh = trimesh.Trimesh(vertices=wall['vertices_m'][offset:offset+8],
+                                   faces=local, process=False)
+            scene.add_geometry(mesh, node_name=identity, geom_name=identity)
     slab_ids = []
     for identity, low, high in slab_mesh_data(model):
         extents = [high[i] - low[i] for i in range(3)]
