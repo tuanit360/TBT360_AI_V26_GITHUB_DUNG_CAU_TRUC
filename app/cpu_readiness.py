@@ -13,9 +13,12 @@ def inspect_local_assets(root, *, cuda_available=False):
     root = Path(root)
     folder = root / 'models' / 'sd15'
     index = folder / 'model_index.json'
+    required_parts = ('unet', 'vae', 'text_encoder', 'tokenizer', 'scheduler')
     status = {
         'model_found': index.is_file(),
         'model_valid_index': False,
+        'model_files_complete': False,
+        'missing_components': [],
         'model_path': str(folder),
         'cuda_available': bool(cuda_available),
         'lora_verified_count': 0,
@@ -34,6 +37,21 @@ def inspect_local_assets(root, *, cuda_available=False):
                 status['issues'].append('model_index.json không đúng cấu trúc Diffusers.')
             else:
                 status['model_valid_index'] = True
+                missing = []
+                for component in required_parts:
+                    component_dir = folder / component
+                    if not component_dir.is_dir():
+                        missing.append(component)
+                    elif component in ('unet', 'vae', 'text_encoder') and not any(
+                        component_dir.rglob('*.safetensors')
+                    ) and not any(component_dir.rglob('*.bin')):
+                        missing.append(component + '/weights')
+                status['missing_components'] = missing
+                status['model_files_complete'] = not missing
+                if missing:
+                    status['issues'].append(
+                        'Checkpoint chưa đủ thành phần: ' + ', '.join(missing)
+                    )
         except (ValueError, OSError, UnicodeError):
             status['issues'].append('Không đọc được model_index.json.')
     if not cuda_available:
