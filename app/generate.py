@@ -119,27 +119,8 @@ def get_pipeline(memory_mode):
 
 
 def installed_loras():
-    choices = ['Không dùng LoRA']
-    for path in sorted(LORA_DIR.iterdir()):
-        if not path.is_dir():
-            continue
-        weights = path / 'pytorch_lora_weights.safetensors'
-        status = path / 'training_status.json'
-        if not weights.is_file() or not status.is_file():
-            continue
-        try:
-            record = json.loads(status.read_text(encoding='utf-8'))
-            if record.get('status') != 'SUCCEEDED':
-                continue
-            if weights.stat().st_size != record.get('weights_bytes'):
-                continue
-            digest = hashlib.sha256(weights.read_bytes()).hexdigest()
-            if digest != record.get('weights_sha256'):
-                continue
-            choices.append(path.name)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            continue
-    return choices
+    from app.lora_validation import verified_adapters
+    return ['Không dùng LoRA'] + verified_adapters(LORA_DIR)
 
 
 def select_lora(pipe, memory_mode, adapter_name):
