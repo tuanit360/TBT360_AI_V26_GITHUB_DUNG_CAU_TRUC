@@ -10,10 +10,15 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 PROMPT = (
-    "Describe visible architectural features only. List roof, facade, openings, "
-    "building massing and apparent levels if actually visible. Distinguish "
-    "uncertainties clearly. Do not invent room plans, structural dimensions, "
-    "MEP layouts or IFC data from a perspective photograph."
+    "Return ONLY valid JSON. Format: "
+    '{"observations":{"building_type":{"value":null,"evidence":"","uncertain":true},'
+    '"floor_count":{"value":null,"evidence":"","uncertain":true},'
+    '"roof_type":{"value":null,"evidence":"","uncertain":true},'
+    '"facade_system":{"value":null,"evidence":"","uncertain":true}}}. '
+    "Use a positive integer for floor_count and short strings for other values. "
+    "Every non-null value must cite a visible feature in evidence. "
+    "Use null for unknowns. The uncertain flag must reflect ambiguity. "
+    "Do not invent room plans, metric dimensions, MEP, or IFC geometry."
 )
 
 
@@ -43,6 +48,9 @@ def infer_architecture(image, model_path, project_id):
     decoded = processor.batch_decode(outputs, skip_special_tokens=True)[0].strip()
     if not decoded:
         raise RuntimeError('VLM không sinh được kết quả')
+    from app.architecture_evidence import parse_vlm_observations
+    structured = parse_vlm_observations(decoded)
+    observation['structured_observations'] = structured
     observation['vlm'] = {
         'model_directory': path.name,
         'prompt': PROMPT,
