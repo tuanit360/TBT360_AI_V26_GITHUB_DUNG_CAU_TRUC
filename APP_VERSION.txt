@@ -1,2 +1,2 @@
-TBT360 AI V85 – Architecture Before/After Image Comparison
-Retains V78–V84. Comparison is descriptive, no claim of trained LoRA or BIM.
+TBT360 AI V86 – Architecture Preflight & CPU-safe Quality Guard
+Inherits V78–V85; LoRA user-data training and true ControlNet not verified.
