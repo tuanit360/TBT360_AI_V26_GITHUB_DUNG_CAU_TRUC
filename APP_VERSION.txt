@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V266 — BIMAI360
-Sửa giao diện Tạo phương án: mô tả mẫu được điền sẵn thật, lỗi mô hình/GPU/VRAM/ảnh đen hiển thị tiếng Việt ngay trên màn hình, không giữ gallery hoặc file tải của lần chạy lỗi. Nhật ký ghi trạng thái không tiết lộ bí mật. Chưa có VLM ảnh→BIM đã học.
+BIM AI Kiến Trúc 360 V271 — BIMAI360
+Kiểm thử trực tiếp chuỗi nút tạo BIM 3 tầng từ kích thước người dùng, xuất và mở lại toàn bộ GLB/DXF/SVG/JSON; lỗi bàn giao hiển thị báo cáo tiếng Việt, không còn thông báo Error chung. Mô hình SD1.5 chưa được đóng gói sẵn và cần tải riêng khi chạy ảnh AI.
