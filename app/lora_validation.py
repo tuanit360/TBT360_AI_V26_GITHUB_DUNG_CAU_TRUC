@@ -20,7 +20,8 @@ def validate_adapter(folder):
             return {'valid': False, 'reason': 'Missing weight size'}
         if weights.stat().st_size != expected_size:
             return {'valid': False, 'reason': 'Weight size mismatch'}
-        digest = hashlib.file_digest(weights.open('rb'), 'sha256').hexdigest()
+        with weights.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         if digest != record.get('weights_sha256'):
             return {'valid': False, 'reason': 'SHA256 mismatch'}
         return {'valid': True, 'sha256': digest, 'bytes': expected_size}
