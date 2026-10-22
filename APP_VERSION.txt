@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V241 — BIMAI360
+Bản nâng cấp thực chất: báo cáo QA mô hình canonical và kiểm tra ràng buộc hình học tường/sàn/mái/cửa theo các tầng trước khi xuất. Giữ giao diện Việt hóa và test regression. Chưa huấn luyện VLM image-to-BIM và không tuyên bố IFC.
