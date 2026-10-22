@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V161 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V161 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V166 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V166 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -731,10 +731,15 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V161 · Training & Architecture') 
                         raise ValueError('Tệp dữ liệu VLM quá lớn')
                     observations.append(json.loads(path.read_text(encoding='utf-8')))
                 review = reconcile_architecture_observations(observations)
-                model = approve_multiview_concept(
-                    observations, review,
-                    {'width_m': width, 'depth_m': depth, 'floor_height_m': height,
-                     'floor_count': floors, 'user_approved': approved}, acknowledged)
+                from app.architecture_design_review import (
+                    create_reviewed_architecture_proposal, verify_reviewed_proposal)
+                constraints = {'width_m': width, 'depth_m': depth,
+                    'floor_height_m': height, 'floor_count': floors,
+                    'user_approved': approved}
+                model, review = create_reviewed_architecture_proposal(
+                    observations, constraints, acknowledged)
+                integrity = verify_reviewed_proposal(
+                    model, observations, constraints, acknowledged)
                 output_path = OUTPUT / ('approved_multiview_' +
                     datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
                 output_path.write_text(json.dumps(model, ensure_ascii=False, indent=2),
@@ -742,7 +747,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V161 · Training & Architecture') 
                 return str(output_path), {'entities': len(model['entities']),
                     'sha256': canonical_checksum(model),
                     'conflicts': model['concept_source']['multiview_conflict_fields'],
-                    'dimensions_from_user': True, 'ifc_export_ready': False}
+                    'dimensions_from_user': True, 'ifc_export_ready': False,
+                    'approval_replay': integrity,
+                    'ai_advisory': model['design_evidence_review']['advisory_hypotheses']}
             except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
                 raise gr.Error(str(exc)[:400]) from exc
         multi_export_button.click(export_multiview_concept,
