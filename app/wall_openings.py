@@ -25,7 +25,7 @@ def add_wall_opening(document, wall_id, opening_id, offset_m, sill_m, width_m, h
             or sill_m + height_m > g['height'] - 0.1):
         raise ValueError('Opening exceeds wall boundaries')
     for entity in model['entities']:
-        if entity.get('category') != 'opening' or entity.get('host_id') != wall_id:
+        if entity.get('category') not in ('door', 'window') or entity.get('host_id') != wall_id:
             continue
         other = entity['geometry']
         if (offset_m < other['offset_m'] + other['width_m'] and
@@ -34,7 +34,7 @@ def add_wall_opening(document, wall_id, opening_id, offset_m, sill_m, width_m, h
                 other['sill_m'] < sill_m + height_m):
             raise ValueError('Opening overlaps an existing opening')
     model['entities'].append({
-        'id': opening_id, 'category': 'opening', 'level_id': wall['level_id'],
+        'id': opening_id, 'category': 'door' if sill_m == 0 else 'window', 'level_id': wall['level_id'],
         'host_id': wall_id, 'verification': 'concept',
         'geometry': {'offset_m': float(offset_m), 'sill_m': float(sill_m),
                      'width_m': float(width_m), 'height_m': float(height_m)},
@@ -51,7 +51,7 @@ def wall_solid_parts(document, wall_id):
     g = wall['geometry']
     length = math.dist(g['origin'][:2], g['endpoint'][:2])
     openings = [e['geometry'] for e in document['entities']
-                if e['category'] == 'opening' and e.get('host_id') == wall_id]
+                if e['category'] in ('door', 'window') and e.get('host_id') == wall_id]
     boundaries = sorted({0.0, length} |
                         {v for o in openings for v in (o['offset_m'], o['offset_m']+o['width_m'])})
     solids = []
