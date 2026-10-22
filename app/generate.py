@@ -259,7 +259,7 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V231 · Thiết kế kiến trúc') as ui:
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V236 · Thiết kế kiến trúc') as ui:
     gr.Markdown('# BIM AI Kiến Trúc 360 V236 · Không gian làm việc')
     gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn chức năng bên dưới.')
     from app.local_workspace import setup_runtime_log
