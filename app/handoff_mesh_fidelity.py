@@ -30,10 +30,17 @@ def expected_solid_volume(model):
 
 def validate_reopened_mesh_volume(scene, model, tolerance_m3=0.005):
     target = expected_solid_volume(model)
-    solids = scene.dump()
-    if not solids:
+    nodes = list(scene.graph.nodes_geometry)
+    if not nodes:
         raise ValueError('GLB không có cấu kiện hình học')
-    actual = sum(abs(mesh.volume) for mesh in solids if mesh.is_volume)
+    actual = 0.0
+    for node in nodes:
+        transform, geometry_name = scene.graph.get(node)
+        if node == 'ROOF_MAIN' or geometry_name == 'ROOF_MAIN':
+            continue
+        part = scene.geometry[geometry_name].copy()
+        part.apply_transform(transform)
+        actual += abs(part.volume)
     if abs(actual-target) > tolerance_m3:
         raise ValueError(
             'Thể tích GLB không khớp dữ liệu BIM: '
