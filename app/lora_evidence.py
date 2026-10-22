@@ -1,34 +1,25 @@
-"""V83 LoRA training evidence: report facts, not completion by file name."""
-import hashlib
-import json
+"""UI evidence readout uses the same LoRA validation as inference."""
 from pathlib import Path
+from app.lora_validation import validate_adapter
 
 
 def training_evidence(root):
     folder = Path(root) / 'loras'
-    results = []
-    if not folder.is_dir():
-        return {'verified': 0, 'runs': [], 'training_on_this_machine': False}
-    for run in sorted(folder.iterdir()):
-        if not run.is_dir():
-            continue
-        status = run / 'training_status.json'
-        weights = run / 'pytorch_lora_weights.safetensors'
-        item = {'name': run.name, 'checkpoint_verified': False, 'status': 'UNVERIFIED'}
-        try:
-            record = json.loads(status.read_text(encoding='utf-8'))
-            item['status'] = record.get('status', 'UNKNOWN')
-            if (record.get('status') == 'SUCCEEDED' and weights.is_file()
-                    and record.get('weights_bytes') == weights.stat().st_size
-                    and hashlib.sha256(weights.read_bytes()).hexdigest() == record.get('weights_sha256')):
-                item['checkpoint_verified'] = True
-                item['status'] = 'CHECKPOINT_SHA256_VERIFIED'
-                item['sha256'] = record['weights_sha256']
-            else:
-                item['note'] = 'Huấn luyện chưa hoàn thành hoặc hash/size không khớp'
-        except (OSError, ValueError, TypeError):
-            item['note'] = 'Thiếu hoặc sai training_status.json'
-        results.append(item)
-    return {'verified': sum(item['checkpoint_verified'] for item in results),
-            'runs': results, 'training_on_this_machine': False,
-            'note': 'Đọc checkpoint có sẵn, không tự huấn luyện. Đánh giá chất lượng cần mẫu holdout và ảnh trước/sau.'}
+    runs = []
+    if folder.is_dir():
+        for directory in sorted(folder.iterdir()):
+            if not directory.is_dir():
+                continue
+            result = validate_adapter(directory)
+            runs.append({
+                'name': directory.name,
+                'checkpoint_verified': result['valid'],
+                'status': 'CHECKPOINT_SHA256_VERIFIED' if result['valid'] else 'UNVERIFIED',
+                'reason': result.get('reason', ''),
+                'sha256': result.get('sha256'),
+            })
+    return {
+        'verified': sum(record['checkpoint_verified'] for record in runs),
+        'runs': runs, 'training_on_this_machine': False,
+        'note': 'Checksum proves artifact integrity, not architecture model quality or provenance.',
+    }
