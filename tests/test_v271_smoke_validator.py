@@ -116,7 +116,17 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
         )
         for valid in ('/gradio_api/file/abc.zip', '/file/abc.zip'):
             self.assertEqual(checked_download_url(valid), 'http://127.0.0.1:7861' + valid)
+        for local_url in (
+            'http://127.0.0.1:7861/gradio_api/file=/tmp/report.zip',
+            'http://localhost:7861/file=/tmp/report.zip',
+        ):
+            self.assertEqual(
+                checked_download_url(local_url),
+                local_url.replace('localhost', '127.0.0.1'),
+            )
         for unsafe in (
+            'http://127.0.0.1:9999/file=wrong-port',
+            'http://example.com:7861/file=remote',
             'https://evil.example/file', '//evil.example/file',
             '/../private/file.zip', '/file/../../private/file.zip',
         ):
