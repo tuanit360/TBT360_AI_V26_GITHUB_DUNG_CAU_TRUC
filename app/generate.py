@@ -268,11 +268,164 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
-    gr.Markdown('# TBT360 AI Advanced ML Studio · V68 | Kiến trúc & Nội thất')
+with gr.Blocks(title='TBT360 AI Studio V83 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V83 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
+    with gr.Accordion('NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET (chỉ thao tác tại đây)', open=True):
+        gr.Markdown('**1. Chọn ảnh → 2. Nhập mã công trình và mô tả → 3. Nhấn LƯU ẢNH → 4. XEM ẢNH.** '
+                    'Ảnh được lưu bên cạnh EXE; không tự huấn luyện, không yêu cầu tìm thư mục Windows.')
+        with gr.Row():
+            with gr.Column(scale=1):
+                dataset_zip = gr.File(label='NẠP GÓI ZIP DỮ LIỆU KIẾN TRÚC (tối đa 500 ảnh/lượt)',
+                                      file_count='single', file_types=['.zip'])
+                dataset_upload = gr.File(label='1 · NẠP NHIỀU ẢNH (kéo thả hoặc bấm chọn)',
+                                         file_count='multiple', file_types=['image'])
+                dataset_project = gr.Textbox(label='2 · Mã công trình', value='office_demo_01')
+                dataset_caption = gr.Textbox(label='3 · Nhãn / mô tả của nhóm ảnh',
+                    value='Contemporary office building, architectural facade, realistic proportions',
+                    lines=2)
+                with gr.Row():
+                    dataset_save = gr.Button('LƯU ẢNH VÀ NHÃN NHÁP', variant='primary')
+                    dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
+                    dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
+                dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
+                dataset_v81_bundle = gr.Button('NẠP ZIP TỰ ĐỘNG – KHÔNG CẦN TÌM MANIFEST', variant='primary')
+                dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
+            with gr.Column(scale=2):
+                dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
+                                             columns=4, height=320, object_fit='contain')
+        def save_dataset(files, project, caption):
+            from app.dataset_import import import_images, preview_project
+            try:
+                result = import_images(ROOT, files, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        def show_dataset(project):
+            from app.dataset_import import preview_project
+            return preview_project(ROOT, project)
+        dataset_save.click(save_dataset,
+                           inputs=[dataset_upload, dataset_project, dataset_caption],
+                           outputs=[dataset_status, dataset_gallery])
+        def save_zip_dataset(archive, project, caption):
+            from app.dataset_zip_import import import_zip_archive
+            from app.dataset_import import preview_project
+            if not archive:
+                return {'error': 'Hãy chọn file ZIP trước'}, []
+            try:
+                result = import_zip_archive(ROOT, archive, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError, RuntimeError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_import_zip.click(save_zip_dataset,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
+        def import_smart_archive(archive, project, caption):
+            from app.dataset_auto_import import import_any_zip
+            from app.dataset_import import preview_all_projects
+            if not archive:
+                return {'error': 'Chọn file ZIP có ảnh trước khi nhấn Nạp'}, []
+            try:
+                result = import_any_zip(ROOT, archive, project, caption)
+                gallery, overview = preview_all_projects(ROOT)
+                result['overview'] = overview
+                return result, gallery
+            except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                return {
+                    'error': str(exc),
+                    'suggestion': 'Chọn đúng ZIP ảnh; RAR/SVG/DXF không hỗ trợ nạp như ảnh. Không cần mở dataset trong Windows.',
+                    'training_started': False,
+                }, []
+        dataset_v81_bundle.click(import_smart_archive,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
+
+        dataset_view.click(show_dataset, inputs=dataset_project,
+                           outputs=[dataset_gallery, dataset_status])
+        def show_all_datasets():
+            from app.dataset_import import preview_all_projects
+            return preview_all_projects(ROOT)
+        dataset_view_all.click(show_all_datasets,
+                               outputs=[dataset_gallery, dataset_status])
+        gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
+                    'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
+                    'Không tự động đưa ảnh mới vào model.')
+    with gr.Accordion('V83 · CROP BOARD / CHUẨN PROMPT / BÀN GIAO BIM (một màn hình)', open=False):
+        gr.Markdown('**Tách ảnh board theo lưới do bạn chọn, xem trước, xuất ảnh tham chiếu và JSON cho BIM.** '
+                    'Không tự xóa logo/chữ, không đoán kích thước thực hoặc xuất IFC giả.')
+        with gr.Row():
+            with gr.Column():
+                crop_input = gr.Image(type='pil', label='Chọn ảnh board cần tách')
+                crop_rows = gr.Slider(1, 8, value=2, step=1, label='Số hàng trên board')
+                crop_cols = gr.Slider(1, 8, value=3, step=1, label='Số cột trên board')
+                crop_button = gr.Button('TÁCH ẢNH VÀ XEM TRƯỚC', variant='primary')
+                crop_result = gr.Gallery(label='Các ảnh con, cần chọn và kiểm tra', columns=3, height=290)
+            with gr.Column():
+                handoff_img = gr.Image(type='pil', label='Chọn 1 ảnh sạch để bàn giao')
+                handoff_project = gr.Textbox(value='office_demo_83', label='Mã công trình')
+                handoff_prompt = gr.Textbox(value='Contemporary office building, coherent facade, daylight',
+                                            label='Prompt đã dùng')
+                handoff_seed = gr.Number(value=42, precision=0, label='Seed cố định')
+                handoff_button = gr.Button('XUẤT THAM CHIẾU CHO CAD/BIM')
+                handoff_file = gr.File(label='ZIP tham chiếu + JSON')
+                handoff_report = gr.JSON(label='Trạng thái bàn giao')
+        with gr.Row():
+            building_type = gr.Dropdown(['office building', 'residential building', 'school building'],
+                                        value='office building', label='Loại công trình')
+            floors = gr.Slider(1, 30, value=5, step=1, label='Số tầng mô tả')
+            facade = gr.Dropdown(['curtain wall facade', 'rendered masonry facade', 'mixed glazing facade'],
+                                 value='curtain wall facade', label='Mặt đứng')
+            roof = gr.Dropdown(['flat roof', 'pitched roof'], value='flat roof', label='Mái')
+        arch_prompt_button = gr.Button('TẠO PROMPT KIẾN TRÚC ĐỒNG NHẤT')
+        arch_prompt_result = gr.Textbox(label='Prompt kiến trúc đề xuất', lines=3)
+        def crop_board(image, rows, cols):
+            from app.architecture_crop import propose_crops
+            try:
+                return [(item['image'], f"Hàng {item['row']} · Cột {item['column']} · cần duyệt")
+                        for item in propose_crops(image, rows, cols)]
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        crop_button.click(crop_board, inputs=[crop_input, crop_rows, crop_cols], outputs=crop_result)
+        def prompt_architecture(kind, count, face, roof_type):
+            from app.bim_handoff import build_prompt
+            return build_prompt(kind, count, face, roof_type, 'corner perspective', 'natural daylight',
+                                'concrete, glass and metal')
+        arch_prompt_button.click(prompt_architecture, inputs=[building_type, floors, facade, roof],
+                                 outputs=arch_prompt_result)
+        def handoff_export(image, project, prompt, seed):
+            import tempfile
+            from app.bim_handoff import export_handoff
+            if image is None:
+                raise gr.Error('Chọn ảnh sạch trước khi bàn giao')
+            export_dir = OUTPUT / ('handoff_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                report = export_handoff(image, export_dir, project_id=project, prompt=prompt, seed=int(seed))
+                archive = str(export_dir) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
+                    for path in sorted(export_dir.iterdir()):
+                        if path.is_file():
+                            output_zip.write(path, path.name)
+                return archive, report
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        handoff_button.click(handoff_export, inputs=[handoff_img, handoff_project, handoff_prompt, handoff_seed],
+                             outputs=[handoff_file, handoff_report])
+    with gr.Accordion('V83 · KIỂM TRA LO RA ĐÃ HUẤN LUYỆN THẬT', open=False):
+        gr.Markdown('**Nạp ảnh không có nghĩa mô hình đã học.** Chỉ công nhận checkpoint có trạng thái '
+                    'SUCCEEDED và SHA256/size đúng. LoRA SD1.5 hiện phải chạy huấn luyện bằng '
+                    'môi trường NVIDIA CUDA riêng; CPU Portable không thực hiện bước này.')
+        lora_check_button = gr.Button('KIỂM TRA CHECKPOINT LO RA VÀ BẰNG CHỨNG')
+        lora_check_report = gr.JSON(label='Kết quả checkpoint thực tế')
+        def check_train_evidence():
+            from app.lora_evidence import training_evidence
+            return training_evidence(ROOT)
+        lora_check_button.click(check_train_evidence, outputs=lora_check_report)
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
@@ -317,6 +470,20 @@ with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
         with gr.Tab('02 · Trạng thái AI'):
             gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
             gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+            gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+            readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+            def inspect_readiness():
+                from app.cpu_readiness import inspect_local_assets
+                try:
+                    import torch
+                    has_cuda = torch.cuda.is_available()
+                except (ImportError, RuntimeError):
+                    has_cuda = False
+                return inspect_local_assets(ROOT, cuda_available=has_cuda)
+            gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                inspect_readiness, outputs=readiness)
+            gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                        'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
             gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab('03 · Kiểm tra ảnh & dữ liệu'):
             gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')

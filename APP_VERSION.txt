@@ -1,0 +1,2 @@
+TBT360 AI V83 – Architecture Crop, Prompt and BIM Handoff
+Inherits V78–V82; LoRA from user images NOT trained; IFC not generated.
