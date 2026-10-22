@@ -14,10 +14,31 @@ def schematic_multiview(model):
     d = float(parameters['depth_m'])
     height = float(parameters['floor_height_m'])
     count = int(parameters['floor_count'])
-    from app.schematic_delivery_audit import audit_schematic_building
-    # Validate shell geometry while preserving canonical slabs, roof and openings.
-    # Counting all entities here wrongly rejects a valid enriched BIM model.
-    audit_schematic_building(model)
+    from app.schematic_architecture import create_schematic
+    from app.bim_transaction import validate_document
+    validate_document(model)
+    expected = create_schematic(model['project_id'], w, d, height, count)
+    actual_walls = {
+        entity['id']: entity
+        for entity in model['entities'] if entity['category'] == 'wall'
+    }
+    expected_walls = {
+        entity['id']: entity
+        for entity in expected['entities']
+    }
+    if len(model.get('levels', [])) != count or set(actual_walls) != set(expected_walls):
+        raise ValueError('Số tầng hoặc tường vỏ không khớp thông số')
+    for actual_level, expected_level in zip(model['levels'], expected['levels']):
+        if (actual_level['id'] != expected_level['id']
+                or abs(actual_level['elevation'] - expected_level['elevation']) > 1e-5):
+            raise ValueError('Cao độ tầng không khớp thông số')
+    for identity, canonical in expected_walls.items():
+        actual = actual_walls[identity]
+        if (actual['level_id'] != canonical['level_id']
+                or actual['geometry'] != canonical['geometry']):
+            raise ValueError('Hình học tường vỏ không khớp thông số')
+    # Slabs, roof, doors and windows may legitimately share this canonical
+    # model and do not invalidate the projection.
     scale = 20
     def view(horizontal):
         width = round(horizontal * scale + 40)
