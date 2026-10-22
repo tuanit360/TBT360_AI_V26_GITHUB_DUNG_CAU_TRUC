@@ -28,17 +28,30 @@ def checked_download_url(relative_url):
     if not isinstance(relative_url, str):
         raise AssertionError('Gradio returned no download URL')
     parsed = urlsplit(relative_url)
+    if parsed.scheme or parsed.netloc:
+        if (
+            parsed.scheme != 'http'
+            or parsed.hostname not in ('127.0.0.1', 'localhost', '::1')
+            or parsed.port != 7861
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise AssertionError('Gradio download URL points outside local server')
+        normalized = BASE + parsed.path + (
+            ('?' + parsed.query) if parsed.query else ''
+        )
+    else:
+        if not relative_url.startswith('/') or relative_url.startswith('//'):
+            raise AssertionError('Gradio download URL is not a local path')
+        normalized = BASE + relative_url
     if (
-        not relative_url.startswith('/')
-        or relative_url.startswith('//')
-        or parsed.scheme
-        or parsed.netloc
-        or not parsed.path
+        not parsed.path
         or '..' in parsed.path.split('/')
         or any(ord(char) < 32 for char in relative_url)
+        or parsed.fragment
     ):
-        raise AssertionError('Gradio download URL is not a local file endpoint')
-    return BASE + relative_url
+        raise AssertionError('Unsafe Gradio download URL')
+    return normalized
 
 
 def verify_delivery(report, archive_bytes):
