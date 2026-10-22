@@ -1,4 +1,4 @@
-name: BIM AI Kiến Trúc 360 V241 Portable Windows x64
+name: BIM AI Kiến Trúc 360 V246 Portable Windows x64
 on:
   workflow_dispatch:
   push:
@@ -41,17 +41,17 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - name: Require the V241 entry point only
+      - name: Require the V246 entry point only
         run: |
-          if (!(Test-Path 'run_portable.py')) { throw 'V241 launcher missing' }
-          if (!(Test-Path 'app/generate.py')) { throw 'V241 Studio UI missing' }
-          if (!(Test-Path 'APP_VERSION.txt')) { throw 'V241 release marker missing' }
-          if ((Get-Content APP_VERSION.txt -Raw) -notmatch 'V241') { throw 'Wrong release version marker' }
-          if ((Get-Content app/generate.py -Raw) -notmatch 'BIM AI Kiến Trúc 360 V241') { throw 'UI still advertises an old version' }
+          if (!(Test-Path 'run_portable.py')) { throw 'V246 launcher missing' }
+          if (!(Test-Path 'app/generate.py')) { throw 'V246 Studio UI missing' }
+          if (!(Test-Path 'APP_VERSION.txt')) { throw 'V246 release marker missing' }
+          if ((Get-Content APP_VERSION.txt -Raw) -notmatch 'V246') { throw 'Wrong release version marker' }
+          if ((Get-Content app/generate.py -Raw) -notmatch 'BIM AI Kiến Trúc 360 V246') { throw 'UI still advertises an old version' }
           if (Test-Path 'tbt360_ai/app.py') { throw 'Legacy V26 UI still present' }
           if (Test-Path 'main.py') { throw 'Legacy V26 entry point still present' }
           $launcher = Get-Content 'run_portable.py' -Raw
-          if ($launcher -notmatch "run_module\('app.generate'") { throw 'Launcher does not start V241 Studio' }
+          if ($launcher -notmatch "run_module\('app.generate'") { throw 'Launcher does not start V246 Studio' }
       - name: Fast Python syntax gate before heavy dependencies
         run: |
           python -m compileall -q app learning recognition evaluation training tools tests run_portable.py
@@ -63,16 +63,16 @@ jobs:
           python -m pip install -r requirements-runtime.txt
           python -m pip install 'pyinstaller==6.16.0'
           python -m pip check
-      - name: Run V241 regression tests
+      - name: Run V246 regression tests
         run: python -m unittest discover -s tests -v
-      - name: Build and self-test actual V241 Studio
+      - name: Build and self-test actual V246 Studio
         run: python tools/build_release.py --profile cpu
-      - name: Smoke test V241 Gradio launch and HTTP readiness
+      - name: Smoke test V246 Gradio launch and HTTP readiness
         shell: pwsh
         run: |
           $exe = (Resolve-Path 'dist/BIMAI360/BIMAI360.exe').Path
-          $stdout = Join-Path $env:RUNNER_TEMP 'v241-launch-stdout.log'
-          $stderr = Join-Path $env:RUNNER_TEMP 'v241-launch-stderr.log'
+          $stdout = Join-Path $env:RUNNER_TEMP 'v246-launch-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'v246-launch-stderr.log'
           $env:NO_PROXY = '127.0.0.1,localhost,::1'
           $env:no_proxy = $env:NO_PROXY
           $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
@@ -81,33 +81,33 @@ jobs:
             for ($i = 0; $i -lt 45; $i++) {
               Start-Sleep -Seconds 2
               $proc.Refresh()
-              if ($proc.HasExited) { throw "V241 EXE exited during launch with code $($proc.ExitCode)" }
+              if ($proc.HasExited) { throw "V246 EXE exited during launch with code $($proc.ExitCode)" }
               try {
                 $response = Invoke-WebRequest -Uri 'http://127.0.0.1:7861/' -UseBasicParsing -TimeoutSec 3
                 if ($response.StatusCode -eq 200 -and $response.Content -match 'gradio') { $ready = $true; break }
               } catch { }
             }
-            if (!$ready) { throw 'V241 Gradio UI did not become ready on http://127.0.0.1:7861/' }
-            Write-Host 'PASS: V241 EXE launched Gradio UI and served HTTP 200'
+            if (!$ready) { throw 'V246 Gradio UI did not become ready on http://127.0.0.1:7861/' }
+            Write-Host 'PASS: V246 EXE launched Gradio UI and served HTTP 200'
           } finally {
             if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
             if (Test-Path $stdout) { Get-Content $stdout -Tail 120 }
             if (Test-Path $stderr) { Get-Content $stderr -Tail 120 }
           }
-      - name: Upload V241 launch logs on failure
+      - name: Upload V246 launch logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: V241_RUNTIME_LAUNCH_LOGS
-          path: ${{ runner.temp }}/v241-launch-*.log
+          name: V246_RUNTIME_LAUNCH_LOGS
+          path: ${{ runner.temp }}/v246-launch-*.log
           if-no-files-found: ignore
       - name: Verify artifact and checksum
         run: |
-          if (!(Test-Path 'BIMAI360_V241_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
+          if (!(Test-Path 'BIMAI360_V246_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
           python -m tools.verify_portable dist/BIMAI360
-          Get-FileHash BIMAI360_V241_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
+          Get-FileHash BIMAI360_V246_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
-          name: BIMAI360_V241_PORTABLE_WINDOWS_X64_CPU
-          path: BIMAI360_V241_PORTABLE_WINDOWS_X64_CPU.zip
+          name: BIMAI360_V246_PORTABLE_WINDOWS_X64_CPU
+          path: BIMAI360_V246_PORTABLE_WINDOWS_X64_CPU.zip
           if-no-files-found: error
