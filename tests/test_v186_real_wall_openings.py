@@ -44,4 +44,4 @@ class V186WallOpeningTests(unittest.TestCase):
                 return all(bounds[0][i] < point[i] < bounds[1][i] for i in range(3))
             door_void = [2.5, 0.0, 1.0]
             self.assertFalse(any(point_inside_part(door_void, part.bounds)
-                                 for part in reopened.geometry.values()))
+                                 for part in reopened.dump()))
