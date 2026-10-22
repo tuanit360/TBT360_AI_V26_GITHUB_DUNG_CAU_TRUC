@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V181 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V181 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V186 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V186 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -560,6 +560,11 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V181 · Training & Architecture') 
                 model = add_schematic_slabs(model)
                 from app.schematic_roof import add_gable_roof
                 model = add_gable_roof(model)
+                from app.wall_openings import add_wall_opening
+                model = add_wall_opening(
+                    model, 'W01_01', 'DOOR_01', 1.0, 0.0, 1.0, 2.1)
+                model = add_wall_opening(
+                    model, 'W01_03', 'WINDOW_01', 2.0, 0.9, 1.5, 1.3)
                 files = render_views(model)
                 from app.schematic_multiview import schematic_multiview
                 extra = schematic_multiview(model)
