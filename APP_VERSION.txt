@@ -1,2 +1,2 @@
-TBT360 AI V84 – Architectural Edge Control Reference and Handoff
-Baseline V78-V83 retained. No claim of trained LoRA or active ControlNet model.
+TBT360 AI V85 – Architecture Before/After Image Comparison
+Retains V78–V84. Comparison is descriptive, no claim of trained LoRA or BIM.
