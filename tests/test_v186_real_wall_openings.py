@@ -37,4 +37,4 @@ class V186WallOpeningTests(unittest.TestCase):
             export_building_glb(model, path)
             reopened = trimesh.load(path, force='scene')
             self.assertTrue(path.read_bytes().startswith(b'glTF'))
-            self.assertTrue(any('W01_01_PART_' in name for name in reopened.geometry))
+            self.assertTrue(any('W01_01_PART_' in name for name in reopened.graph.nodes_geometry))
