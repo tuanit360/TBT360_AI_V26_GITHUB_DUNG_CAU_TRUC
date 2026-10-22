@@ -2,6 +2,7 @@
 
 Stdlib-only so it can run on the Windows runner beside the packaged executable.
 """
+import hashlib
 import io
 import json
 import zipfile
@@ -72,10 +73,30 @@ def verify_delivery(report, archive_bytes):
             raise AssertionError('Canonical model does not have three levels')
         if report.get('entity_count') != len(model.get('entities', [])):
             raise AssertionError('Report entity count differs from canonical model')
+        checksum = hashlib.sha256(json.dumps(
+            model, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False,
+        ).encode('utf-8')).hexdigest()
+        if report.get('model_checksum') != checksum:
+            raise AssertionError('Report checksum differs from canonical BIM JSON')
+        reopen_audit = None
         for audit_name in ('KIEM_TRA_HINH_HOC.json', 'KIEM_TRA_MO_LAI.json'):
             audit = json.loads(package.read(audit_name))
             if not isinstance(audit, dict) or not audit:
                 raise AssertionError('Invalid or empty audit: ' + audit_name)
+            if audit_name == 'KIEM_TRA_MO_LAI.json':
+                reopen_audit = audit
+        if reopen_audit != report.get('kiem_tra_mo_lai'):
+            raise AssertionError('Reopen audit in ZIP differs from Gradio report')
+        file_hashes = reopen_audit.get('sha256_tung_tep')
+        if not isinstance(file_hashes, dict) or not file_hashes:
+            raise AssertionError('Reopen audit lacks file checksums')
+        for filename, recorded_sha in file_hashes.items():
+            if filename not in names:
+                raise AssertionError('Reopen audit references missing file: ' + filename)
+            actual_sha = hashlib.sha256(package.read(filename)).hexdigest()
+            if actual_sha != recorded_sha:
+                raise AssertionError('Reopen audit checksum mismatch: ' + filename)
         if package.read('schematic_walls.glb')[:4] != b'glTF':
             raise AssertionError('Missing GLB binary geometry')
         if b'EOF' not in package.read('schematic_plan.dxf')[-128:]:
