@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V146 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V146 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V151 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V151 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -648,6 +648,40 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V146 · Training & Architecture') 
         vlm_button.click(run_architecture_vlm,
                          inputs=[vlm_image, vlm_model_path, vlm_project],
                          outputs=[vlm_report, vlm_file])
+        gr.Markdown('**Bước duyệt thiết kế:** chỉ khi VLM đã chạy thành công và '
+                    'bạn cung cấp kích thước thực, mới tạo BIM concept.')
+        with gr.Row():
+            approved_width = gr.Number(value=12, label='Ngang do bạn xác nhận (m)')
+            approved_depth = gr.Number(value=8, label='Sâu do bạn xác nhận (m)')
+            approved_height = gr.Number(value=3.2, label='Cao tầng do bạn xác nhận (m)')
+            approved_floors = gr.Number(value=3, precision=0, label='Số tầng xác nhận')
+        vlm_approved = gr.Checkbox(value=False, label='Tôi xác nhận kích thước và chấp thuận tạo BIM concept')
+        approve_button = gr.Button('DUYỆT VLM + XUẤT MÔ HÌNH CONCEPT', variant='secondary')
+        approval_output = gr.File(label='Canonical BIM concept đã duyệt (JSON)')
+        approval_report = gr.JSON(label='Kết quả duyệt')
+        def approve_vlm_proposal(observation, width, depth, height, floors, approved):
+            from app.architecture_evidence import approve_schematic_from_vlm
+            from app.bim_transaction import canonical_checksum
+            try:
+                model = approve_schematic_from_vlm(
+                    observation, {'width_m': width, 'depth_m': depth,
+                                  'floor_height_m': height, 'floor_count': floors,
+                                  'user_approved': approved})
+                destination = OUTPUT / ('approved_concept_' +
+                    datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                destination.write_text(json.dumps(model, ensure_ascii=False, indent=2),
+                                       encoding='utf-8')
+                return str(destination), {'canonical_sha256': canonical_checksum(model),
+                                          'entities': len(model['entities']),
+                                          'image_dimensions_inferred': False,
+                                          'ifc_export_ready': False}
+            except (ValueError, KeyError, TypeError, OSError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        approve_button.click(approve_vlm_proposal,
+                             inputs=[vlm_report, approved_width, approved_depth,
+                                     approved_height, approved_floors, vlm_approved],
+                             outputs=[approval_output, approval_report])
+
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
