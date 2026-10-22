@@ -18,7 +18,7 @@ class V266GenerationErrorTests(unittest.TestCase):
         source = (Path(__file__).resolve().parents[1] /
                   'app' / 'generate.py').read_text(encoding='utf-8')
         compile(source, 'app/generate.py', 'exec')
-        self.assertIn("value='Modern two-story villa", source)
+        self.assertIn("value='Contemporary office building", source)
         self.assertIn("start.click(create_with_feedback", source)
         self.assertIn('explain_generation_failure(exc)', source)
         self.assertIn("'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: '", source)
