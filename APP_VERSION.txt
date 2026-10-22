@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V251 — BIMAI360
+Kiểm tra thể tích hình học GLB mở lại theo canonical tường/sàn trừ lỗ cửa đi/cửa sổ, đối chiếu tọa độ thế giới, kiểm tra bàn giao JSON/GLB/DXF/SVG. Không công bố IFC hay kết cấu kỹ thuật đã kiểm chứng.
