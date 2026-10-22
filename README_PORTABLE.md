@@ -1,15 +1,15 @@
-# TBT360 AI V82 – Portable Windows x64
+# TBT360 AI V83 – Portable Windows x64
 
-## Run V82 without installing Python
-Extract the full V82 artifact `TBT360_AI_V82_PORTABLE_WINDOWS_X64_CPU.zip` into a new writable directory, such as `C:\\TBT360_AI_V82`. Do NOT launch from inside ZIP or copy the EXE alone.
-Double-click `TBT360_AI.exe` (or `START_V82_DIAGNOSTIC.bat` for persistent error logs).
+## Run V83 without installing Python
+Extract the full V83 artifact `TBT360_AI_V83_PORTABLE_WINDOWS_X64_CPU.zip` into a new writable directory, such as `C:\\TBT360_AI_V83`. Do NOT launch from inside ZIP or copy the EXE alone.
+Double-click `TBT360_AI.exe` (or `START_V83_DIAGNOSTIC.bat` for persistent error logs).
 The Gradio Studio opens at http://127.0.0.1:7861/ (local only, share=False).
 Do not reuse old V26/V78 folders to avoid mixing DLLs, data and scripts.
 
 ## One-screen training data intake
 Use `NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET` at the top of the screen to select multiple images or a ZIP of images; select/enter the project ID and draft caption, then press **LƯU ẢNH** or **NẠP ẢNH TỪ ZIP**. The built-in gallery shows the saved images.
 
-To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V82 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V82_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
+To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V83 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V83_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
 Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
 
 ## Runtime and model limitations
@@ -19,8 +19,10 @@ Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
 - The `--self-test` probes package imports, not real image generation. CI additionally launches the UI and checks localhost readiness.
 
 ## Diagnostics
-Run `START_V82_DIAGNOSTIC.bat` and send `logs/startup_console.log` / `logs/startup_error.log` on failure.
+Run `START_V83_DIAGNOSTIC.bat` and send `logs/startup_console.log` / `logs/startup_error.log` on failure.
 `manifest.json` and `SHA256SUMS.txt` allow verification of packaged file integrity.
 
 ## Smart ZIP Import
 Choose an image ZIP or V81 bundle; the new **NẠP ZIP TỰ ĐỘNG** control recognizes both and one-layer wrapped GitHub artifacts. An original RAR archive cannot be opened by this ZIP-only control. Importing does NOT initiate LoRA training. User images are a separate data overlay, not bundled in the portable executable.
+
+V83 adds crop-by-user-selected-grid, prompt composition and concept image+JSON handoff. It does not provide true BIM geometry, IFC, trained LoRA, or automatic semantic recognition. Use approved GPU training data for future verified fine-tune.
