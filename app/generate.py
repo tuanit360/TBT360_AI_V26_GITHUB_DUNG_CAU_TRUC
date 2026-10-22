@@ -313,6 +313,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     scheme_archive = gr.File(label='ZIP gồm BIM canonical JSON + 2 bản vẽ SVG')
                     scheme_report = gr.JSON(label='Thông tin mô hình vỏ sơ bộ')
                     def export_schematic(project, width, depth, height, floors):
+                        from app.local_workspace import record_operation
+                        record_operation(ROOT, 'concept_export', 'started')
                         from app.schematic_architecture import create_schematic, render_views
                         from app.bim_transaction import canonical_checksum
                         try:
@@ -442,6 +444,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     vlm_report = gr.JSON(label='Quan sát và độ xác minh')
                     vlm_file = gr.File(label='Tải kết quả suy luận JSON')
                     def run_architecture_vlm(image, model_path, project):
+                        from app.local_workspace import record_operation
+                        record_operation(ROOT, 'vlm_inference', 'started')
                         from app.architecture_vlm import infer_architecture
                         try:
                             observation = infer_architecture(image, model_path, project)
@@ -523,6 +527,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     multi_export_file = gr.File(label='JSON BIM concept')
                     multi_export_report = gr.JSON(label='Kiểm tra bàn giao')
                     def export_multiview_concept(files, width, depth, height, floors, approved, acknowledged):
+                        from app.local_workspace import record_operation
+                        record_operation(ROOT, 'concept_export', 'started')
                         from app.architecture_multiview import reconcile_architecture_observations
                         from app.multiview_bim_approval import approve_multiview_concept
                         from app.bim_transaction import canonical_checksum
@@ -770,6 +776,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                             key=lambda p: p.stat().st_mtime, reverse=True)[:100]
                         return gr.update(choices=[p.relative_to(OUTPUT).as_posix() for p in candidates], value=None)
                     def choose_existing_export(relative):
+                        from app.local_workspace import record_operation
+                        record_operation(ROOT, 'export_file', 'started')
                         if not relative:
                             raise gr.Error('Hãy chọn một tệp trước khi tải')
                         filepath = (OUTPUT / relative).resolve()
@@ -868,6 +876,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                             dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
                                                          columns=4, height=320, object_fit='contain')
                     def save_dataset(files, project, caption):
+                        from app.local_workspace import record_operation
+                        record_operation(ROOT, 'dataset_import', 'started')
                         from app.dataset_import import import_images, preview_project
                         try:
                             result = import_images(ROOT, files, project, caption)
