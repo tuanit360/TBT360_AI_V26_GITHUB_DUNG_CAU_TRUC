@@ -16,7 +16,11 @@ class V226SampleFirstTests(unittest.TestCase):
         self.assertIn('DÙNG DỰ ÁN MẪU', content)
         self.assertIn('KIỂM TRA GPU / MODEL', content)
         self.assertIn("export_schematic('OFFICE_001_DEMO', 12.0, 9.0, 3.2, 2)", content)
-        self.assertIn('BIM AI Kiến Trúc 360 V226 · WORKSPACE', content)
+        version_file = file.parents[1] / 'APP_VERSION.txt'
+        import re
+        version_match = re.search(r'\\bV\\d+\\b', version_file.read_text(encoding='utf-8'))
+        self.assertIsNotNone(version_match, 'Thiếu mã phiên bản phát hành')
+        self.assertIn('BIM AI Kiến Trúc 360 ' + version_match.group() + ' ·', content)
 
     def test_sample_canonical_assembly_contains_real_3d_wall_openings(self):
         doc = create_schematic('OFFICE_001_DEMO', 12, 9, 3.2, 2)
