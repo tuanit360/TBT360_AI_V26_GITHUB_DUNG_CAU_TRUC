@@ -75,7 +75,7 @@ def export_building_glb(model, filename):
         local = [[i-offset for i in tri] for tri in wall['triangles'][index*12:(index+1)*12]]
         canonical = next(entity for entity in model['entities'] if entity['id'] == identity)
         hosted = [entity for entity in model['entities']
-                  if entity.get('category') == 'opening' and entity.get('host_id') == identity]
+                  if entity.get('category') in ('door', 'window') and entity.get('host_id') == identity]
         if hosted:
             from app.wall_openings import wall_solid_parts
             start, end = canonical['geometry']['origin'], canonical['geometry']['endpoint']
