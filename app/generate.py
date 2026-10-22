@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V126 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V126 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V131 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V131 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -562,6 +562,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V126 · Training & Architecture') 
                 meta = extra.pop('view_meta')
                 files.update(extra)
                 files['view_meta.json'] = json.dumps(meta, ensure_ascii=False, indent=2)
+                from app.schematic_dxf import export_plan_dxf
+                files['schematic_plan.dxf'] = export_plan_dxf(model)
                 target = OUTPUT / ('schematic_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
                 target.mkdir()
                 (target / 'canonical_bim_handoff.json').write_text(
