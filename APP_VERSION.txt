@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V201 — BIMAI360
-V197–V201: fix GLB world-coordinate regression check and add VLM holdout evaluation with accuracy, coverage and abstention. Real VLM checkpoint/training not included.
+BIM AI Kiến Trúc 360 V206 — BIMAI360
+V202–V206: GLB wall opening test checks before-after solid volume instead of unrelated slab/roof bounding box; replay held-out VLM architectural evaluations from recorded JSONL. Training/GPU not completed.
