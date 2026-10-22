@@ -30,6 +30,21 @@ class V221WorkspaceNavigationTests(unittest.TestCase):
             self.assertIn('workspace_open', log)
             self.assertIn('export_file', log)
 
+    def test_log_handle_released_before_windows_temp_cleanup(self):
+        import shutil
+        from app.local_workspace import setup_runtime_log
+        folder = Path(tempfile.mkdtemp(prefix='bimai360_log_test_'))
+        try:
+            setup_runtime_log(folder)
+            for _ in range(8):
+                record_operation(folder, 'generate', 'completed')
+            self.assertEqual(
+                read_runtime_log(folder).count('generate | completed'), 8)
+        finally:
+            # Windows raises PermissionError / WinError 32 here if a
+            # process-global FileHandler is still keeping the file open.
+            shutil.rmtree(folder)
+
     def test_invalid_local_account_name_and_unknown_action_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(ValueError):
