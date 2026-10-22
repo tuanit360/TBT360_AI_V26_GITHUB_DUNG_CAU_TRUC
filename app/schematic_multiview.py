@@ -14,8 +14,10 @@ def schematic_multiview(model):
     d = float(parameters['depth_m'])
     height = float(parameters['floor_height_m'])
     count = int(parameters['floor_count'])
-    if len(model.get('levels', [])) != count or len(model.get('entities', [])) != count * 4:
-        raise ValueError('Canonical shell entities/levels do not match parameters')
+    from app.schematic_delivery_audit import audit_schematic_building
+    # Validate shell geometry while preserving canonical slabs, roof and openings.
+    # Counting all entities here wrongly rejects a valid enriched BIM model.
+    audit_schematic_building(model)
     scale = 20
     def view(horizontal):
         width = round(horizontal * scale + 40)
