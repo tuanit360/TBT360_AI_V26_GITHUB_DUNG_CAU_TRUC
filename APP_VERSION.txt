@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V151 — BIMAI360
-Batch V147–V151: deep VLM structured evidence validation, hallucination checks, explicit user approval before canonical concept BIM, Studio integration and regression. No pre-trained architecture model bundled and no IFC export.
+BIM AI Kiến Trúc 360 V156 — BIMAI360
+Batch V152–V156: cross-image VLM architecture evidence consistency, duplicate suppression, conflict detection, Studio review, regression and portable package. Not trained image-to-BIM or IFC export.
