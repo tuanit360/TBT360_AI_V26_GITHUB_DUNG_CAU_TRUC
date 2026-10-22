@@ -37,4 +37,11 @@ class V186WallOpeningTests(unittest.TestCase):
             export_building_glb(model, path)
             reopened = trimesh.load(path, force='scene')
             self.assertTrue(path.read_bytes().startswith(b'glTF'))
-            self.assertTrue(any('W01_01_PART_' in name for name in reopened.graph.nodes_geometry))
+            self.assertGreater(len(reopened.geometry), 0)
+            # GLB exporters can rename both geometry keys and scene nodes.
+            # Verify the hole geometrically, not through unstable exporter labels.
+            def point_inside_part(point, bounds):
+                return all(bounds[0][i] < point[i] < bounds[1][i] for i in range(3))
+            door_void = [2.5, 0.0, 1.0]
+            self.assertFalse(any(point_inside_part(door_void, part.bounds)
+                                 for part in reopened.geometry.values()))
