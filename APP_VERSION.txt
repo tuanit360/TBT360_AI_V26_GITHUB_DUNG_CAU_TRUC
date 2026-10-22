@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V121 — BIMAI360
-Batch V117–V121: explicit-dimension schematic BIM shell, common wall IDs, plan/elevation SVG, regression, Windows Portable. Not single-image BIM reconstruction or IFC.
+BIM AI Kiến Trúc 360 V126 — BIMAI360
+Batch V122–V126: user-dimensioned canonical shell; four elevations and two section diagrams, consistency tests, Portable build. No claim of learned BIM or IFC.
