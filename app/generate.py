@@ -410,12 +410,20 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V266 · Thiết kế kiến trúc'
                                     'source': 'explicit_user_constraints', 'ifc_export_ready': False,
                                     'limitations': 'Mô hình vỏ theo kích thước nhập, chưa suy ra mặt bằng từ ảnh',
                                 }
-                            except (ValueError, OSError) as exc:
+                            except Exception as exc:
                                 record_operation(ROOT, 'concept_export', 'failed')
-                                raise gr.Error(str(exc)) from exc
+                                from app.generation_failures import explain_generation_failure
+                                return None, {
+                                    'trang_thai': 'KHÔNG THỂ TẠO BIM',
+                                    'loai_loi': type(exc).__name__,
+                                    'huong_dan': 'Xem Tài khoản → Nhật ký hoạt động hoặc kiểm tra gói dữ liệu',
+                                    'chi_tiet': str(exc)[:250] if isinstance(exc, ValueError) else
+                                                'Lỗi xuất BIM hoặc kiểm tra mở lại; xem nhật ký để xác định bước lỗi.',
+                                }
                         def generate_native_sample():
                             return export_schematic('OFFICE_001_DEMO', 12.0, 9.0, 3.2, 2)
                         sample_button.click(generate_native_sample, outputs=[scheme_archive, scheme_report])
+                        gr.Markdown('**Trước khi tạo BIM:** đây là mô hình từ kích thước nhập, không phải AI suy luận từ ảnh. Nếu xuất tệp thất bại, báo cáo bên dưới sẽ ghi trạng thái bằng tiếng Việt thay vì chỉ hiển thị Error.')
                         scheme_button.click(export_schematic,
                                             inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
                                             outputs=[scheme_archive, scheme_report])
