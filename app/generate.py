@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V171 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V171 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V176 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V176 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -556,6 +556,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V171 · Training & Architecture') 
             from app.bim_transaction import canonical_checksum
             try:
                 model = create_schematic(project, width, depth, height, floors)
+                from app.schematic_slabs import add_schematic_slabs
+                model = add_schematic_slabs(model)
                 files = render_views(model)
                 from app.schematic_multiview import schematic_multiview
                 extra = schematic_multiview(model)
@@ -570,13 +572,13 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V171 · Training & Architecture') 
                     json.dumps(model, ensure_ascii=False, indent=2), encoding='utf-8')
                 for file_name, contents in files.items():
                     (target / file_name).write_text(contents, encoding='utf-8')
-                from app.canonical_3d_export import export_wall_glb
-                wall_mesh = export_wall_glb(model, target / 'schematic_walls.glb')
+                from app.canonical_3d_export import export_building_glb
+                wall_mesh = export_building_glb(model, target / 'schematic_walls.glb')
                 (target / 'schematic_wall_id_mapping.json').write_text(
                     json.dumps({'canonical_wall_entity_ids': wall_mesh['wall_entity_ids'],
                                 'geometry_source': wall_mesh['geometry_source'],
-                                'geometry_verified': wall_mesh['verified'],
-                                'triangle_count': len(wall_mesh['triangles'])},
+                                'geometry_verified': wall_mesh['geometry_verified'],
+                                'canonical_slab_entity_ids': wall_mesh['slab_entity_ids']},
                                ensure_ascii=False, indent=2), encoding='utf-8')
                 archive_path = str(target) + '.zip'
                 with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
