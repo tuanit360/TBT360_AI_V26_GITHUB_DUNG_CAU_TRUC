@@ -14,7 +14,7 @@ import gradio as gr
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 from app.quality import image_diagnostics, diagnostic_notes
 
-ROOT = Path(os.environ['TBT360_HOME']).resolve() if os.environ.get('TBT360_HOME') else Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ['BIMAI360_HOME']).resolve() if os.environ.get('BIMAI360_HOME') else (Path(os.environ['TBT360_HOME']).resolve() if os.environ.get('TBT360_HOME') else Path(__file__).resolve().parents[1])
 OUTPUT = ROOT / 'output'
 CACHE = ROOT / 'models'
 OUTPUT.mkdir(exist_ok=True)
