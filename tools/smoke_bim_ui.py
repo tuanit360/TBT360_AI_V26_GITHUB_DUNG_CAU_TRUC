@@ -1,18 +1,17 @@
-"""Real Windows EXE Gradio event smoke, not merely checking HTTP 200.
+"""Exercise the real frozen Windows EXE Gradio BIM event and inspect its delivery.
 
-Calls the same named event as the user's TẠO BIM button and checks a
-downloadable result. Stdlib-only: runs beside the frozen executable.
+Stdlib-only so it can run on the Windows runner beside the packaged executable.
 """
-import json
 import io
+import json
 import zipfile
-import sys
-import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 
 BASE = 'http://127.0.0.1:7861'
 EVENT = 'tao_bim'
+MAX_ARCHIVE_BYTES = 80 * 1024 * 1024
 
 
 def get_json(url, payload=None):
@@ -22,6 +21,68 @@ def get_json(url, payload=None):
     )
     with urllib.request.urlopen(request, timeout=90) as response:
         return response.read().decode('utf-8')
+
+
+def checked_download_url(relative_url):
+    if not isinstance(relative_url, str):
+        raise AssertionError('Gradio returned no download URL')
+    parsed = urlsplit(relative_url)
+    if (
+        not relative_url.startswith('/')
+        or relative_url.startswith('//')
+        or parsed.scheme
+        or parsed.netloc
+        or not parsed.path.startswith('/gradio_api/file=')
+    ):
+        raise AssertionError('Gradio download URL is not a local file endpoint')
+    return BASE + relative_url
+
+
+def verify_delivery(report, archive_bytes):
+    if not isinstance(report, dict):
+        raise AssertionError('BIM report is not a JSON object')
+    if report.get('levels') != 3 or report.get('source') != 'explicit_user_constraints':
+        raise AssertionError('BIM report does not describe the requested three-floor model')
+    if report.get('ifc_export_ready') is not False:
+        raise AssertionError('Unverified IFC capability was incorrectly advertised')
+    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as package:
+        expected = {
+            'canonical_bim_handoff.json', 'schematic_walls.glb',
+            'schematic_plan.dxf', 'plan.svg', 'front_elevation.svg',
+            'KIEM_TRA_HINH_HOC.json', 'KIEM_TRA_MO_LAI.json',
+        }
+        names = package.namelist()
+        if len(names) != len(set(names)):
+            raise AssertionError('ZIP contains duplicate entries')
+        if any(
+            name.startswith('/') or '..' in name.split('/') or '\\' in name
+            for name in names
+        ):
+            raise AssertionError('ZIP contains unsafe entry paths')
+        missing = expected.difference(names)
+        if missing:
+            raise AssertionError('ZIP lacks BIM files: ' + ', '.join(sorted(missing)))
+        for name in expected:
+            if package.getinfo(name).file_size <= 0:
+                raise AssertionError('BIM delivery has empty file: ' + name)
+        if package.testzip() is not None:
+            raise AssertionError('ZIP member CRC is invalid')
+        model = json.loads(package.read('canonical_bim_handoff.json'))
+        if len(model.get('levels', [])) != 3:
+            raise AssertionError('Canonical model does not have three levels')
+        if report.get('entity_count') != len(model.get('entities', [])):
+            raise AssertionError('Report entity count differs from canonical model')
+        for audit_name in ('KIEM_TRA_HINH_HOC.json', 'KIEM_TRA_MO_LAI.json'):
+            audit = json.loads(package.read(audit_name))
+            if not isinstance(audit, dict) or not audit:
+                raise AssertionError('Invalid or empty audit: ' + audit_name)
+        if package.read('schematic_walls.glb')[:4] != b'glTF':
+            raise AssertionError('Missing GLB binary geometry')
+        if b'EOF' not in package.read('schematic_plan.dxf')[-128:]:
+            raise AssertionError('DXF is missing its end marker')
+        for svg_name in ('plan.svg', 'front_elevation.svg'):
+            if b'<svg' not in package.read(svg_name)[:2048]:
+                raise AssertionError('Invalid SVG file: ' + svg_name)
 
 
 def run_smoke():
@@ -47,34 +108,15 @@ def run_smoke():
     if not isinstance(output, list) or len(output) != 2:
         raise AssertionError('BIM callback failed or returned invalid outputs')
     download, report = output
-    if not isinstance(report, dict) or report.get('levels') != 3:
-        raise AssertionError('BIM button returned no valid 3-floor report: ' + str(report)[:300])
-    if not isinstance(download, dict) or not (
-        download.get('path') or download.get('name')
-    ):
-        raise AssertionError('BIM button returned no downloadable ZIP: ' + str(download)[:300])
-    # Gradio file outputs expose a local server URL. Retrieve the ZIP and
-    # examine its contents instead of accepting a filename as proof.
-    download_url = download.get('url')
-    if not isinstance(download_url, str) or not download_url.startswith('/'):
-        raise AssertionError('No relative local file URL in Gradio ZIP output')
-    with urllib.request.urlopen(BASE + download_url, timeout=60) as response:
-        archive_bytes = response.read()
-    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as package:
-        expected = {
-            'canonical_bim_handoff.json', 'schematic_walls.glb',
-            'schematic_plan.dxf', 'plan.svg', 'front_elevation.svg',
-            'KIEM_TRA_HINH_HOC.json', 'KIEM_TRA_MO_LAI.json',
-        }
-        missing = expected.difference(package.namelist())
-        if missing:
-            raise AssertionError('ZIP lacks BIM files: ' + ', '.join(sorted(missing)))
-        model = json.loads(package.read('canonical_bim_handoff.json'))
-        if len(model['levels']) != 3:
-            raise AssertionError('ZIP BIM model does not have three levels')
-        if package.read('schematic_walls.glb')[:4] != b'glTF':
-            raise AssertionError('ZIP lacks actual GLB binary geometry')
-    print('PASS: real frozen Gradio BIM button returned ZIP with canonical model, GLB and QA')
+    if not isinstance(download, dict) or not (download.get('path') or download.get('name')):
+        raise AssertionError('No downloadable ZIP in BIM button response')
+    url = checked_download_url(download.get('url'))
+    with urllib.request.urlopen(url, timeout=60) as response:
+        archive_bytes = response.read(MAX_ARCHIVE_BYTES + 1)
+    if len(archive_bytes) > MAX_ARCHIVE_BYTES:
+        raise AssertionError('Unexpectedly large ZIP from three-floor smoke test')
+    verify_delivery(report, archive_bytes)
+    print('PASS: frozen Gradio BIM event, three floors, complete ZIP and model/report consistency')
 
 
 if __name__ == '__main__':
