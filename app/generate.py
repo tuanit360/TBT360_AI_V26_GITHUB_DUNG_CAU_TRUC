@@ -1134,4 +1134,4 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
 if __name__ == '__main__':
     ui.queue(default_concurrency_limit=1,max_size=4).launch(
       server_name='127.0.0.1',server_port=7861,inbrowser=True,share=False,
-      allowed_paths=[str(OUTPUT)])
+      allowed_paths=[str(OUTPUT), str(ROOT / 'logs')])
