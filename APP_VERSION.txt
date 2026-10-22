@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V141 — BIMAI360
+Batch V137–V141: zoning geometry and area validation, partition consistency, CI teardown hardening, regression and Windows Portable. IFC and ML-derived designs not claimed.
