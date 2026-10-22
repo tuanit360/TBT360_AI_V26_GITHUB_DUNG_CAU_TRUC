@@ -60,3 +60,29 @@ def export_wall_glb(model, filename):
     scene.metadata['source'] = 'BIMAI360 concept geometry; not photo-inferred IFC'
     scene.export(file_obj=str(filename), file_type='glb')
     return mesh
+
+def export_building_glb(model, filename):
+    """Export canonical walls and slabs as separate named GLB scene nodes."""
+    try:
+        import trimesh
+    except ImportError as exc:
+        raise RuntimeError('GLB export requires trimesh') from exc
+    from app.schematic_slabs import slab_mesh_data
+    wall = canonical_wall_mesh(model)
+    scene = trimesh.Scene()
+    for index, identity in enumerate(wall['wall_entity_ids']):
+        offset = index * 8
+        local = [[i-offset for i in tri] for tri in wall['triangles'][index*12:(index+1)*12]]
+        mesh = trimesh.Trimesh(vertices=wall['vertices_m'][offset:offset+8],
+                               faces=local, process=False)
+        scene.add_geometry(mesh, node_name=identity, geom_name=identity)
+    slab_ids = []
+    for identity, low, high in slab_mesh_data(model):
+        extents = [high[i] - low[i] for i in range(3)]
+        slab = trimesh.creation.box(extents=extents)
+        slab.apply_translation([(low[i]+high[i])/2 for i in range(3)])
+        scene.add_geometry(slab, node_name=identity, geom_name=identity)
+        slab_ids.append(identity)
+    scene.export(file_obj=str(filename), file_type='glb')
+    return {'wall_entity_ids': wall['wall_entity_ids'], 'slab_entity_ids': slab_ids,
+            'geometry_source': 'explicit_user_dimensions', 'geometry_verified': False}
