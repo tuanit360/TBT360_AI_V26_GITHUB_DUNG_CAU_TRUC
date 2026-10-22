@@ -37,6 +37,8 @@ def verify_exported_handoff(folder, expected_model):
         raise ValueError('Không thể mở lại mô hình GLB') from exc
     if not scene.geometry or sum(len(g.faces) for g in scene.geometry.values()) == 0:
         raise ValueError('Mô hình GLB không có hình học tam giác')
+    from app.handoff_mesh_fidelity import validate_reopened_mesh_volume
+    geometry_fidelity = validate_reopened_mesh_volume(scene, reopened)
     dxf = (base / 'schematic_plan.dxf').read_text(encoding='utf-8')
     if 'SECTION' not in dxf or 'ENTITIES' not in dxf or 'EOF' not in dxf:
         raise ValueError('Tệp DXF chưa có cấu trúc cơ bản hợp lệ')
@@ -53,6 +55,7 @@ def verify_exported_handoff(folder, expected_model):
         'trang_thai': 'ĐÃ MỞ LẠI CÁC TỆP BÀN GIAO',
         'ket_qua_hinh_hoc': model_audit,
         'so_mesh_glb': len(scene.geometry),
+        'doi_chieu_the_tich': geometry_fidelity,
         'so_mat_tam_giac_glb': sum(len(g.faces) for g in scene.geometry.values()),
         'sha256_tung_tep': hashes,
         'xac_minh_ifc': False,
