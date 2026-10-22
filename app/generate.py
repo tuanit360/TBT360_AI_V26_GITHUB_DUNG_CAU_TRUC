@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V106 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V106 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V111 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V111 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
