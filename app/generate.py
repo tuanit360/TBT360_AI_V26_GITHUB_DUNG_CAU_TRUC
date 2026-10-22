@@ -172,6 +172,10 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
         raise gr.Error('Thông số hậu xử lý hoặc guidance không hợp lệ.')
     if not (0.0 <= float(sharpness) <= 1.0):
         raise gr.Error('Độ sắc nét không hợp lệ.')
+    from app.architecture_preflight import inspect_reference, cpu_generation_recommendation
+    inspection = inspect_reference(source_image)
+    if not inspection['ready']:
+        raise gr.Error('; '.join(inspection['blocking']))
     with LOCK:
         started = time.perf_counter()
         try:
@@ -198,7 +202,9 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 'postprocess_method':'PIL Lanczos + optional unsharp mask (not AI super-resolution)',
                 'aspect':aspect,
                 'fit_mode':fit_mode,'memory_mode':memory_mode,'runtime':runtime,
-                'images':[], 'quality_method':'diagnostics only, no learned aesthetics or BIM validation'}
+                'images':[], 'quality_method':'diagnostics only, no learned aesthetics or BIM validation',
+                'input_preflight':inspection,
+                'cpu_advice':cpu_generation_recommendation(torch.cuda.is_available(), steps, count, scale)}
             for index in range(int(count)):
                 progress(index / int(count), desc=f'Đang sinh ảnh {index+1}/{int(count)}')
                 current_seed=seed0+index
@@ -268,8 +274,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V85 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V85 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='TBT360 AI Studio V86 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V86 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -490,6 +496,17 @@ with gr.Blocks(title='TBT360 AI Studio V85 · Training & Architecture') as ui:
         compare_button.click(compare_and_export,
                              inputs=[before_img, after_img, comparison_seed],
                              outputs=[compare_preview, compare_report, compare_file])
+    with gr.Accordion('V86 · KIỂM TRA ẢNH TRƯỚC KHI SINH / CPU GUARD', open=True):
+        gr.Markdown('**Bước kiểm soát chất lượng ảnh:** kiểm tra cạnh, tỷ lệ khung và cảnh báo board/collage. '
+                    'Kết quả là quy tắc kỹ thuật, không phải AI đã hiểu BIM.')
+        preflight_image = gr.Image(label='Chọn ảnh tham chiếu để kiểm tra', type='pil')
+        preflight_button = gr.Button('KIỂM TRA ẢNH – PHÁT HIỆN NGUY CƠ NHIỄU', variant='primary')
+        preflight_result = gr.JSON(label='Báo cáo ảnh')
+        def inspect_architecture_reference(image):
+            from app.architecture_preflight import inspect_reference
+            return inspect_reference(image)
+        preflight_button.click(inspect_architecture_reference,
+                               inputs=preflight_image, outputs=preflight_result)
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
