@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V256 — BIMAI360
-Ảnh biên: yêu cầu nạp ảnh trước khi bật nút, phản hồi lỗi ngay trên giao diện. Sinh ảnh: cấu hình thử nhanh một phương án 15 bước dành cho GPU laptop; các chế độ chi tiết vẫn tùy chọn. Giữ kiểm chứng BIM và GLB.
+BIM AI Kiến Trúc 360 V261 — BIMAI360
+Sửa lỗi mô hình nhiều tầng có sàn/mái/cửa không tạo được hình chiếu; giảm nhiễu ảnh biên bằng Gaussian/Median; tự khóa thao tác ảnh nâng cao nếu CUDA không hoạt động. Báo cáo concept không phải dữ liệu BIM do AI học từ ảnh.
