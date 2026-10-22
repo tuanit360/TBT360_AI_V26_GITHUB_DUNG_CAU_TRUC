@@ -355,6 +355,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                             with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
                                 for path in sorted(target.iterdir()):
                                     archive.write(path, path.name)
+                            record_operation(ROOT, 'concept_export', 'completed')
                             return archive_path, {
                                 'entity_count': len(model['entities']), 'levels': len(model['levels']),
                                 'model_checksum': canonical_checksum(model),
@@ -362,6 +363,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                                 'limitations': 'Only user-dimensioned shell with real wall GLB, not floorplan inferred from images',
                             }
                         except (ValueError, OSError) as exc:
+                            record_operation(ROOT, 'concept_export', 'failed')
                             raise gr.Error(str(exc)) from exc
                     scheme_button.click(export_schematic,
                                         inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
@@ -783,6 +785,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                         filepath = (OUTPUT / relative).resolve()
                         if OUTPUT.resolve() not in filepath.parents or not filepath.is_file():
                             raise gr.Error('Đường dẫn xuất không hợp lệ')
+                        record_operation(ROOT, 'export_file', 'completed')
                         return str(filepath)
                     export_refresh.click(list_existing_exports, outputs=export_items)
                     export_button.click(choose_existing_export, inputs=export_items, outputs=export_file)
@@ -883,8 +886,10 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                             result = import_images(ROOT, files, project, caption)
                             gallery, summary = preview_project(ROOT, project)
                             result['project_summary'] = summary
+                            record_operation(ROOT, 'dataset_import', 'completed')
                             return result, gallery
                         except (ValueError, OSError) as exc:
+                            record_operation(ROOT, 'dataset_import', 'failed')
                             return {'error': str(exc), 'training_started': False}, []
                     def show_dataset(project):
                         from app.dataset_import import preview_project
@@ -1001,6 +1006,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                         from app.local_workspace import read_runtime_log
                         return read_runtime_log(ROOT)
                     refresh_logs.click(load_runtime_logs, outputs=runtime_logs)
+                    log_timer = gr.Timer(value=3.0, active=True)
+                    log_timer.tick(load_runtime_logs, outputs=runtime_logs)
 
 
 
