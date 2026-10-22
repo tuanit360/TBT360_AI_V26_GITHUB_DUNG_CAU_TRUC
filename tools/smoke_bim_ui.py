@@ -33,7 +33,7 @@ def checked_download_url(relative_url):
         or relative_url.startswith('//')
         or parsed.scheme
         or parsed.netloc
-        or not parsed.path.startswith('/gradio_api/file=')
+        or not parsed.path.startswith(('/gradio_api/file=', '/file='))
     ):
         raise AssertionError('Gradio download URL is not a local file endpoint')
     return BASE + relative_url
