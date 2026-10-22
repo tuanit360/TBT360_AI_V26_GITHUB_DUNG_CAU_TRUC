@@ -1,2 +1,2 @@
-TBT360 AI V82 – Smart Dataset Import
-Baseline: V78 + V79 + V80 + V81; no automatic LoRA training claimed.
+TBT360 AI V83 – Architecture Crop, Prompt and BIM Handoff
+Inherits V78–V82; LoRA from user images NOT trained; IFC not generated.
