@@ -83,6 +83,16 @@ def export_building_glb(model, filename):
         slab.apply_translation([(low[i]+high[i])/2 for i in range(3)])
         scene.add_geometry(slab, node_name=identity, geom_name=identity)
         slab_ids.append(identity)
+    from app.schematic_roof import gable_mesh
+    roof_ids = []
+    if any(entity.get('id') == 'ROOF_MAIN' for entity in model['entities']):
+        roof_data = gable_mesh(model)
+        roof_geometry = trimesh.Trimesh(vertices=roof_data['vertices_m'],
+                                       faces=roof_data['triangles'], process=False)
+        scene.add_geometry(roof_geometry, node_name=roof_data['entity_id'],
+                           geom_name=roof_data['entity_id'])
+        roof_ids.append(roof_data['entity_id'])
     scene.export(file_obj=str(filename), file_type='glb')
-    return {'wall_entity_ids': wall['wall_entity_ids'], 'slab_entity_ids': slab_ids,
+    return {'roof_entity_ids': roof_ids,
+            'wall_entity_ids': wall['wall_entity_ids'], 'slab_entity_ids': slab_ids,
             'geometry_source': 'explicit_user_dimensions', 'geometry_verified': False}
