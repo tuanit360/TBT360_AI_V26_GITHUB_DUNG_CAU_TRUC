@@ -8,7 +8,7 @@ import json
 import zipfile
 import urllib.error
 import urllib.request
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 BASE = 'http://127.0.0.1:7861'
 EVENT = 'tao_bim'
@@ -53,6 +53,38 @@ def checked_download_url(relative_url):
         raise AssertionError('Unsafe Gradio download URL')
     return normalized
 
+
+
+def download_bim_archive(file_info):
+    """Verify a real HTTP download, handling Gradio 5 file URL variants."""
+    urls = []
+    reported = file_info.get('url')
+    if isinstance(reported, str) and reported:
+        urls.append(checked_download_url(reported))
+    # Gradio 5 can return a URL rooted at /file= while its server
+    # actually serves /gradio_api/file=, or vice versa. Derive only
+    # known local routes from the returned file path.
+    file_path = file_info.get('path') or file_info.get('name')
+    if isinstance(file_path, str) and file_path.lower().endswith('.zip'):
+        encoded_path = quote(file_path, safe='/:\\')
+        for prefix in ('/gradio_api/file=', '/file='):
+            urls.append(BASE + prefix + encoded_path)
+    errors = []
+    for url in dict.fromkeys(urls):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as response:
+                payload = response.read(MAX_ARCHIVE_BYTES + 1)
+                if len(payload) > MAX_ARCHIVE_BYTES:
+                    raise AssertionError('Unexpectedly large BIM ZIP response')
+                if payload[:2] != b'PK':
+                    raise AssertionError('Download did not contain ZIP bytes')
+                return payload
+        except (urllib.error.HTTPError, urllib.error.URLError, AssertionError) as exc:
+            errors.append(type(exc).__name__ + ': ' + str(getattr(exc, 'code', exc)))
+    raise AssertionError(
+        'BIM exported but all Gradio HTTP download routes failed: '
+        + '; '.join(errors)
+    )
 
 def verify_delivery(report, archive_bytes):
     if not isinstance(report, dict):
@@ -146,11 +178,7 @@ def run_smoke():
     download, report = output
     if not isinstance(download, dict) or not (download.get('path') or download.get('name')):
         raise AssertionError('No downloadable ZIP in BIM button response')
-    url = checked_download_url(download.get('url'))
-    with urllib.request.urlopen(url, timeout=60) as response:
-        archive_bytes = response.read(MAX_ARCHIVE_BYTES + 1)
-    if len(archive_bytes) > MAX_ARCHIVE_BYTES:
-        raise AssertionError('Unexpectedly large ZIP from three-floor smoke test')
+    archive_bytes = download_bim_archive(download)
     verify_delivery(report, archive_bytes)
     print('PASS: frozen Gradio BIM event, three floors, complete ZIP and model/report consistency')
 
