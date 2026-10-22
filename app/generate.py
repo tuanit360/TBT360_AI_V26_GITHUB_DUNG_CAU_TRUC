@@ -14,7 +14,7 @@ import gradio as gr
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 from app.quality import image_diagnostics, diagnostic_notes
 
-ROOT = Path(os.environ['TBT360_HOME']).resolve() if os.environ.get('TBT360_HOME') else Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ['BIMAI360_HOME']).resolve() if os.environ.get('BIMAI360_HOME') else (Path(os.environ['TBT360_HOME']).resolve() if os.environ.get('TBT360_HOME') else Path(__file__).resolve().parents[1])
 OUTPUT = ROOT / 'output'
 CACHE = ROOT / 'models'
 OUTPUT.mkdir(exist_ok=True)
@@ -119,27 +119,8 @@ def get_pipeline(memory_mode):
 
 
 def installed_loras():
-    choices = ['Không dùng LoRA']
-    for path in sorted(LORA_DIR.iterdir()):
-        if not path.is_dir():
-            continue
-        weights = path / 'pytorch_lora_weights.safetensors'
-        status = path / 'training_status.json'
-        if not weights.is_file() or not status.is_file():
-            continue
-        try:
-            record = json.loads(status.read_text(encoding='utf-8'))
-            if record.get('status') != 'SUCCEEDED':
-                continue
-            if weights.stat().st_size != record.get('weights_bytes'):
-                continue
-            digest = hashlib.sha256(weights.read_bytes()).hexdigest()
-            if digest != record.get('weights_sha256'):
-                continue
-            choices.append(path.name)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            continue
-    return choices
+    from app.lora_validation import verified_adapters
+    return ['Không dùng LoRA'] + verified_adapters(LORA_DIR)
 
 
 def select_lora(pipe, memory_mode, adapter_name):
@@ -172,6 +153,10 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
         raise gr.Error('Thông số hậu xử lý hoặc guidance không hợp lệ.')
     if not (0.0 <= float(sharpness) <= 1.0):
         raise gr.Error('Độ sắc nét không hợp lệ.')
+    from app.architecture_preflight import inspect_reference, cpu_generation_recommendation
+    inspection = inspect_reference(source_image)
+    if not inspection['ready']:
+        raise gr.Error('; '.join(inspection['blocking']))
     with LOCK:
         started = time.perf_counter()
         try:
@@ -198,7 +183,9 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 'postprocess_method':'PIL Lanczos + optional unsharp mask (not AI super-resolution)',
                 'aspect':aspect,
                 'fit_mode':fit_mode,'memory_mode':memory_mode,'runtime':runtime,
-                'images':[], 'quality_method':'diagnostics only, no learned aesthetics or BIM validation'}
+                'images':[], 'quality_method':'diagnostics only, no learned aesthetics or BIM validation',
+                'input_preflight':inspection,
+                'cpu_advice':cpu_generation_recommendation(torch.cuda.is_available(), steps, count, scale)}
             for index in range(int(count)):
                 progress(index / int(count), desc=f'Đang sinh ảnh {index+1}/{int(count)}')
                 current_seed=seed0+index
@@ -268,11 +255,526 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
-    gr.Markdown('# TBT360 AI Advanced ML Studio · V68 | Kiến trúc & Nội thất')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V206 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V206 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
+    with gr.Accordion('NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET (chỉ thao tác tại đây)', open=True):
+        gr.Markdown('**1. Chọn ảnh → 2. Nhập mã công trình và mô tả → 3. Nhấn LƯU ẢNH → 4. XEM ẢNH.** '
+                    'Ảnh được lưu bên cạnh EXE; không tự huấn luyện, không yêu cầu tìm thư mục Windows.')
+        with gr.Row():
+            with gr.Column(scale=1):
+                dataset_zip = gr.File(label='NẠP GÓI ZIP DỮ LIỆU KIẾN TRÚC (tối đa 500 ảnh/lượt)',
+                                      file_count='single', file_types=['.zip'])
+                dataset_upload = gr.File(label='1 · NẠP NHIỀU ẢNH (kéo thả hoặc bấm chọn)',
+                                         file_count='multiple', file_types=['image'])
+                dataset_project = gr.Textbox(label='2 · Mã công trình', value='office_demo_01')
+                dataset_caption = gr.Textbox(label='3 · Nhãn / mô tả của nhóm ảnh',
+                    value='Contemporary office building, architectural facade, realistic proportions',
+                    lines=2)
+                with gr.Row():
+                    dataset_save = gr.Button('LƯU ẢNH VÀ NHÃN NHÁP', variant='primary')
+                    dataset_view = gr.Button('XEM ẢNH ĐÃ NẠP')
+                    dataset_view_all = gr.Button('XEM TẤT CẢ DATASET CÓ SẴN')
+                dataset_import_zip = gr.Button('NẠP ẢNH TỪ ZIP VÀO DATASET')
+                dataset_v81_bundle = gr.Button('NẠP ZIP TỰ ĐỘNG – KHÔNG CẦN TÌM MANIFEST', variant='primary')
+                dataset_status = gr.JSON(label='Trạng thái nạp dữ liệu')
+            with gr.Column(scale=2):
+                dataset_gallery = gr.Gallery(label='THƯ VIỆN ẢNH V81 (xem tất cả bằng một nút)',
+                                             columns=4, height=320, object_fit='contain')
+        def save_dataset(files, project, caption):
+            from app.dataset_import import import_images, preview_project
+            try:
+                result = import_images(ROOT, files, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        def show_dataset(project):
+            from app.dataset_import import preview_project
+            return preview_project(ROOT, project)
+        dataset_save.click(save_dataset,
+                           inputs=[dataset_upload, dataset_project, dataset_caption],
+                           outputs=[dataset_status, dataset_gallery])
+        def save_zip_dataset(archive, project, caption):
+            from app.dataset_zip_import import import_zip_archive
+            from app.dataset_import import preview_project
+            if not archive:
+                return {'error': 'Hãy chọn file ZIP trước'}, []
+            try:
+                result = import_zip_archive(ROOT, archive, project, caption)
+                gallery, summary = preview_project(ROOT, project)
+                result['project_summary'] = summary
+                return result, gallery
+            except (ValueError, OSError, RuntimeError) as exc:
+                return {'error': str(exc), 'training_started': False}, []
+        dataset_import_zip.click(save_zip_dataset,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
+        def import_smart_archive(archive, project, caption):
+            from app.dataset_auto_import import import_any_zip
+            from app.dataset_import import preview_all_projects
+            if not archive:
+                return {'error': 'Chọn file ZIP có ảnh trước khi nhấn Nạp'}, []
+            try:
+                result = import_any_zip(ROOT, archive, project, caption)
+                gallery, overview = preview_all_projects(ROOT)
+                result['overview'] = overview
+                return result, gallery
+            except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                return {
+                    'error': str(exc),
+                    'suggestion': 'Chọn đúng ZIP ảnh; RAR/SVG/DXF không hỗ trợ nạp như ảnh. Không cần mở dataset trong Windows.',
+                    'training_started': False,
+                }, []
+        dataset_v81_bundle.click(import_smart_archive,
+                                 inputs=[dataset_zip, dataset_project, dataset_caption],
+                                 outputs=[dataset_status, dataset_gallery])
+
+        dataset_view.click(show_dataset, inputs=dataset_project,
+                           outputs=[dataset_gallery, dataset_status])
+        def show_all_datasets():
+            from app.dataset_import import preview_all_projects
+            return preview_all_projects(ROOT)
+        dataset_view_all.click(show_all_datasets,
+                               outputs=[dataset_gallery, dataset_status])
+        gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
+                    'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
+                    'Không tự động đưa ảnh mới vào model.')
+    with gr.Accordion('V83 · CROP BOARD / CHUẨN PROMPT / BÀN GIAO BIM (một màn hình)', open=False):
+        gr.Markdown('**Tách ảnh board theo lưới do bạn chọn, xem trước, xuất ảnh tham chiếu và JSON cho BIM.** '
+                    'Không tự xóa logo/chữ, không đoán kích thước thực hoặc xuất IFC giả.')
+        with gr.Row():
+            with gr.Column():
+                crop_input = gr.Image(type='pil', label='Chọn ảnh board cần tách')
+                crop_rows = gr.Slider(1, 8, value=2, step=1, label='Số hàng trên board')
+                crop_cols = gr.Slider(1, 8, value=3, step=1, label='Số cột trên board')
+                crop_button = gr.Button('TÁCH ẢNH VÀ XEM TRƯỚC', variant='primary')
+                crop_result = gr.Gallery(label='Các ảnh con, cần chọn và kiểm tra', columns=3, height=290)
+            with gr.Column():
+                handoff_img = gr.Image(type='pil', label='Chọn 1 ảnh sạch để bàn giao')
+                handoff_project = gr.Textbox(value='office_demo_83', label='Mã công trình')
+                handoff_prompt = gr.Textbox(value='Contemporary office building, coherent facade, daylight',
+                                            label='Prompt đã dùng')
+                handoff_seed = gr.Number(value=42, precision=0, label='Seed cố định')
+                handoff_button = gr.Button('XUẤT THAM CHIẾU CHO CAD/BIM')
+                handoff_file = gr.File(label='ZIP tham chiếu + JSON')
+                handoff_report = gr.JSON(label='Trạng thái bàn giao')
+        with gr.Row():
+            building_type = gr.Dropdown(['office building', 'residential building', 'school building'],
+                                        value='office building', label='Loại công trình')
+            floors = gr.Slider(1, 30, value=5, step=1, label='Số tầng mô tả')
+            facade = gr.Dropdown(['curtain wall facade', 'rendered masonry facade', 'mixed glazing facade'],
+                                 value='curtain wall facade', label='Mặt đứng')
+            roof = gr.Dropdown(['flat roof', 'pitched roof'], value='flat roof', label='Mái')
+        arch_prompt_button = gr.Button('TẠO PROMPT KIẾN TRÚC ĐỒNG NHẤT')
+        arch_prompt_result = gr.Textbox(label='Prompt kiến trúc đề xuất', lines=3)
+        def crop_board(image, rows, cols):
+            from app.architecture_crop import propose_crops
+            try:
+                return [(item['image'], f"Hàng {item['row']} · Cột {item['column']} · cần duyệt")
+                        for item in propose_crops(image, rows, cols)]
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        crop_button.click(crop_board, inputs=[crop_input, crop_rows, crop_cols], outputs=crop_result)
+        def prompt_architecture(kind, count, face, roof_type):
+            from app.bim_handoff import build_prompt
+            return build_prompt(kind, count, face, roof_type, 'corner perspective', 'natural daylight',
+                                'concrete, glass and metal')
+        arch_prompt_button.click(prompt_architecture, inputs=[building_type, floors, facade, roof],
+                                 outputs=arch_prompt_result)
+        def handoff_export(image, project, prompt, seed):
+            import tempfile
+            from app.bim_handoff import export_handoff
+            if image is None:
+                raise gr.Error('Chọn ảnh sạch trước khi bàn giao')
+            export_dir = OUTPUT / ('handoff_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                report = export_handoff(image, export_dir, project_id=project, prompt=prompt, seed=int(seed))
+                archive = str(export_dir) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
+                    for path in sorted(export_dir.iterdir()):
+                        if path.is_file():
+                            output_zip.write(path, path.name)
+                return archive, report
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        handoff_button.click(handoff_export, inputs=[handoff_img, handoff_project, handoff_prompt, handoff_seed],
+                             outputs=[handoff_file, handoff_report])
+    with gr.Accordion('V83 · KIỂM TRA LO RA ĐÃ HUẤN LUYỆN THẬT', open=False):
+        gr.Markdown('**Nạp ảnh không có nghĩa mô hình đã học.** Chỉ công nhận checkpoint có trạng thái '
+                    'SUCCEEDED và SHA256/size đúng. LoRA SD1.5 hiện phải chạy huấn luyện bằng '
+                    'môi trường NVIDIA CUDA riêng; CPU Portable không thực hiện bước này.')
+        lora_check_button = gr.Button('KIỂM TRA CHECKPOINT LO RA VÀ BẰNG CHỨNG')
+        lora_check_report = gr.JSON(label='Kết quả checkpoint thực tế')
+        def check_train_evidence():
+            from app.lora_evidence import training_evidence
+            return training_evidence(ROOT)
+        lora_check_button.click(check_train_evidence, outputs=lora_check_report)
+    with gr.Accordion('V84 · GIỮ CẤU TRÚC KIẾN TRÚC / EDGE CONTROL', open=False):
+        gr.Markdown('Tạo ảnh biên và gói dữ liệu tham chiếu cùng seed. '
+                    '**Đây chưa phải ControlNet đã chạy; không tự khẳng định hình học được bảo toàn.**')
+        with gr.Row():
+            structure_input = gr.Image(label='Ảnh kiến trúc gốc', type='pil')
+            structure_output = gr.Image(label='Ảnh cạnh kiến trúc', type='pil', interactive=False)
+        with gr.Row():
+            edge_threshold = gr.Slider(10, 240, value=80, step=5, label='Ngưỡng phát hiện cạnh')
+            structure_seed = gr.Number(value=42, precision=0, label='Seed đối chiếu')
+        structure_preview = gr.Button('TẠO BIÊN THAM CHIẾU', variant='primary')
+        structure_export = gr.Button('XUẤT GÓI CONTROL + SEED')
+        structure_file = gr.File(label='Gói ZIP ảnh gốc, biên và manifest')
+        structure_status = gr.JSON(label='Kiểm tra cấu trúc')
+        def edge_preview(image, threshold):
+            from app.structure_guidance import structure_reference
+            try:
+                return structure_reference(image, threshold)
+            except ValueError as exc:
+                raise gr.Error(str(exc)) from exc
+        structure_preview.click(edge_preview, inputs=[structure_input, edge_threshold],
+                                outputs=structure_output)
+        def save_structure(image, threshold, seed):
+            from app.structure_guidance import export_structure_package
+            if image is None:
+                raise gr.Error('Nạp một ảnh để xuất cấu trúc')
+            folder = OUTPUT / ('control_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                _, report = export_structure_package(image, folder, threshold, seed)
+                archive = str(folder) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
+                    for path in sorted(folder.iterdir()):
+                        output_zip.write(path, path.name)
+                return archive, report
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        structure_export.click(save_structure,
+                               inputs=[structure_input, edge_threshold, structure_seed],
+                               outputs=[structure_file, structure_status])
+    with gr.Accordion('V85 · SO SÁNH CHẤT LƯỢNG ẢNH TRƯỚC / SAU', open=False):
+        gr.Markdown('So sánh hai ảnh và xuất kết quả kèm checksum. '
+                    '**Chênh lệch pixel không phải điểm đẹp, độ chính xác BIM hoặc bằng chứng LoRA tốt hơn.**')
+        with gr.Row():
+            before_img = gr.Image(label='Ảnh tham chiếu', type='pil')
+            after_img = gr.Image(label='Ảnh kết quả', type='pil')
+        comparison_seed = gr.Number(value=42, precision=0, label='Seed sử dụng (nhập theo lượt tạo)')
+        compare_button = gr.Button('SO SÁNH VÀ XUẤT BÁO CÁO', variant='primary')
+        compare_preview = gr.Image(label='Ảnh trước / sau', interactive=False)
+        compare_report = gr.JSON(label='Độ lệch pixel/cạnh và giới hạn đánh giá')
+        compare_file = gr.File(label='ZIP kết quả QA')
+        def compare_and_export(reference, result, seed):
+            from app.architecture_quality_compare import export_comparison
+            folder = OUTPUT / ('compare_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                preview, report = export_comparison(reference, result, folder, seed)
+                archive = str(folder) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as out:
+                    for item in sorted(folder.iterdir()):
+                        out.write(item, item.name)
+                return preview, report, archive
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        compare_button.click(compare_and_export,
+                             inputs=[before_img, after_img, comparison_seed],
+                             outputs=[compare_preview, compare_report, compare_file])
+    with gr.Accordion('V86 · KIỂM TRA ẢNH TRƯỚC KHI SINH / CPU GUARD', open=True):
+        gr.Markdown('**Bước kiểm soát chất lượng ảnh:** kiểm tra cạnh, tỷ lệ khung và cảnh báo board/collage. '
+                    'Kết quả là quy tắc kỹ thuật, không phải AI đã hiểu BIM.')
+        preflight_image = gr.Image(label='Chọn ảnh tham chiếu để kiểm tra', type='pil')
+        preflight_button = gr.Button('KIỂM TRA ẢNH – PHÁT HIỆN NGUY CƠ NHIỄU', variant='primary')
+        preflight_result = gr.JSON(label='Báo cáo ảnh')
+        def inspect_architecture_reference(image):
+            from app.architecture_preflight import inspect_reference
+            return inspect_reference(image)
+        preflight_button.click(inspect_architecture_reference,
+                               inputs=preflight_image, outputs=preflight_result)
+    with gr.Accordion('BIMAI360 · KIỂM TRA FILE BÀN GIAO BIM', open=False):
+        gr.Markdown('Nạp **canonical_bim_handoff.json** để kiểm tra ID, tầng, host, '
+                    'tọa độ và ràng buộc 2D/3D. Kiểm tra dữ liệu, không biến ảnh thành IFC.')
+        bim_audit_file = gr.File(label='Chọn canonical_bim_handoff.json',
+                                 file_types=['.json'], file_count='single')
+        bim_audit_button = gr.Button('KIỂM TRA TÍNH TOÀN VẸN BIM', variant='primary')
+        bim_audit_report = gr.JSON(label='Báo cáo kiểm tra BIM')
+        def inspect_bim_handoff(upload):
+            from app.bim_transaction import validate_document, canonical_checksum
+            if upload is None:
+                return {'valid': False, 'reason': 'Chưa nạp JSON'}
+            try:
+                source_path = Path(upload if isinstance(upload, (str, Path)) else upload.name)
+                if source_path.stat().st_size > 5 * 1024 * 1024:
+                    raise ValueError('JSON vượt 5 MB')
+                record = json.loads(source_path.read_text(encoding='utf-8'))
+                canonical = validate_document(record)
+                return {'valid': True, 'entities': len(canonical['entities']),
+                        'levels': len(canonical['levels']),
+                        'sha256': canonical_checksum(canonical),
+                        'ifc_export_ready': False,
+                        'message': 'Dữ liệu hợp lệ theo hợp đồng, không phải chứng nhận IFC.'}
+            except (ValueError, TypeError, OSError, UnicodeError, KeyError) as exc:
+                return {'valid': False, 'reason': str(exc)[:250]}
+        bim_audit_button.click(inspect_bim_handoff, inputs=bim_audit_file,
+                               outputs=bim_audit_report)
+    with gr.Accordion('BIMAI360 · PHÂN TÍCH ẢNH CHO PHƯƠNG ÁN BIM', open=True):
+        gr.Markdown('Quan sát ảnh, gắn đúng mã công trình và tạo JSON cho bước mô hình lớn. '
+                    'Chưa chạy VLM/segmentation nên sẽ **không tự đoán** số tầng hoặc kích thước.')
+        with gr.Row():
+            observation_image = gr.Image(type='pil', label='Ảnh công trình')
+            with gr.Column():
+                observation_project = gr.Textbox(value='office_116', label='Mã công trình')
+                observation_role = gr.Dropdown(
+                    ['exterior_perspective', 'interior', 'floorplan', 'elevation', 'section'],
+                    value='exterior_perspective', label='Vai trò ảnh')
+                observation_button = gr.Button('PHÂN TÍCH ẢNH / XUẤT JSON', variant='primary')
+                observation_file = gr.File(label='JSON dữ liệu ảnh')
+        observation_report = gr.JSON(label='Thông tin ảnh và trạng thái suy luận')
+        def observe_architecture(image, project, role):
+            from app.architecture_observation import inspect_architecture
+            try:
+                observation = inspect_architecture(image, project, role)
+                output_path = OUTPUT / ('observation_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(observation, ensure_ascii=False, indent=2), encoding='utf-8')
+                return observation, str(output_path)
+            except (OSError, ValueError) as exc:
+                raise gr.Error(str(exc)) from exc
+        observation_button.click(observe_architecture,
+                                 inputs=[observation_image, observation_project, observation_role],
+                                 outputs=[observation_report, observation_file])
+    with gr.Accordion('BIMAI360 · TẠO MẶT BẰNG / MẶT ĐỨNG SƠ BỘ TỪ KÍCH THƯỚC', open=True):
+        gr.Markdown('Tạo vỏ công trình chữ nhật từ kích thước **bạn nhập**, cùng ID tường và tầng cho BIM. '
+                    '**Chưa suy diễn mặt bằng từ ảnh, chưa bố trí phòng/cửa/MEP hay xuất IFC.**')
+        with gr.Row():
+            scheme_project = gr.Textbox(value='office_121', label='Mã công trình')
+            scheme_width = gr.Number(value=12, label='Ngang (m)')
+            scheme_depth = gr.Number(value=8, label='Sâu (m)')
+            scheme_height = gr.Number(value=3.2, label='Cao mỗi tầng (m)')
+            scheme_floors = gr.Number(value=3, precision=0, label='Số tầng')
+        scheme_button = gr.Button('TẠO PHƯƠNG ÁN VỎ BIM / MẶT BẰNG / MẶT ĐỨNG', variant='primary')
+        scheme_archive = gr.File(label='ZIP gồm BIM canonical JSON + 2 bản vẽ SVG')
+        scheme_report = gr.JSON(label='Thông tin mô hình vỏ sơ bộ')
+        def export_schematic(project, width, depth, height, floors):
+            from app.schematic_architecture import create_schematic, render_views
+            from app.bim_transaction import canonical_checksum
+            try:
+                model = create_schematic(project, width, depth, height, floors)
+                from app.schematic_slabs import add_schematic_slabs
+                model = add_schematic_slabs(model)
+                from app.schematic_roof import add_gable_roof
+                model = add_gable_roof(model)
+                from app.wall_openings import add_wall_opening
+                model = add_wall_opening(
+                    model, 'W01_01', 'DOOR_01', 1.0, 0.0, 1.0, 2.1)
+                model = add_wall_opening(
+                    model, 'W01_03', 'WINDOW_01', 2.0, 0.9, 1.5, 1.3)
+                files = render_views(model)
+                from app.schematic_multiview import schematic_multiview
+                extra = schematic_multiview(model)
+                meta = extra.pop('view_meta')
+                files.update(extra)
+                files['view_meta.json'] = json.dumps(meta, ensure_ascii=False, indent=2)
+                from app.schematic_dxf import export_plan_dxf
+                files['schematic_plan.dxf'] = export_plan_dxf(model)
+                target = OUTPUT / ('schematic_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+                target.mkdir()
+                (target / 'canonical_bim_handoff.json').write_text(
+                    json.dumps(model, ensure_ascii=False, indent=2), encoding='utf-8')
+                for file_name, contents in files.items():
+                    (target / file_name).write_text(contents, encoding='utf-8')
+                from app.canonical_3d_export import export_building_glb
+                wall_mesh = export_building_glb(model, target / 'schematic_walls.glb')
+                (target / 'schematic_wall_id_mapping.json').write_text(
+                    json.dumps({'canonical_wall_entity_ids': wall_mesh['wall_entity_ids'],
+                                'geometry_source': wall_mesh['geometry_source'],
+                                'geometry_verified': wall_mesh['geometry_verified'],
+                                'canonical_slab_entity_ids': wall_mesh['slab_entity_ids'],
+                                'canonical_roof_entity_ids': wall_mesh['roof_entity_ids']},
+                               ensure_ascii=False, indent=2), encoding='utf-8')
+                archive_path = str(target) + '.zip'
+                with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    for path in sorted(target.iterdir()):
+                        archive.write(path, path.name)
+                return archive_path, {
+                    'entity_count': len(model['entities']), 'levels': len(model['levels']),
+                    'model_checksum': canonical_checksum(model),
+                    'source': 'explicit_user_constraints', 'ifc_export_ready': False,
+                    'limitations': 'Only user-dimensioned shell with real wall GLB, not floorplan inferred from images',
+                }
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        scheme_button.click(export_schematic,
+                            inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
+                            outputs=[scheme_archive, scheme_report])
+    with gr.Accordion('BIMAI360 · PHÂN KHU CÔNG NĂNG SƠ BỘ', open=False):
+        gr.Markdown('Chia vỏ nhà chữ nhật thành hai khu linh hoạt theo tỷ lệ 55/45, '
+                    'dùng cùng dữ liệu canonical để xuất sơ đồ. **Không phải AI suy ra từ ảnh** '
+                    'và chưa có cửa, giao thông, MEP hoặc kiểm chứng tiêu chuẩn.')
+        with gr.Row():
+            zone_project = gr.Textbox(value='office_136', label='Mã công trình')
+            zone_width = gr.Number(value=12, label='Ngang (m)')
+            zone_depth = gr.Number(value=8, label='Sâu (m)')
+            zone_height = gr.Number(value=3.2, label='Cao tầng (m)')
+        zone_button = gr.Button('TẠO HAI KHU CÔNG NĂNG / XUẤT BIM JSON + SVG')
+        zone_file = gr.File(label='ZIP phương án phân khu')
+        zone_report = gr.JSON(label='Trạng thái kiểm chứng')
+        def export_zoning(project, width, depth, height):
+            from app.schematic_zoning import add_two_zone_sketch, zoning_svg
+            from app.bim_transaction import canonical_checksum
+            try:
+                data = add_two_zone_sketch(project, width, depth, height)
+                target = OUTPUT / ('zoning_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+                target.mkdir()
+                (target / 'canonical_bim_handoff.json').write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+                (target / 'zoning_plan.svg').write_text(zoning_svg(data), encoding='utf-8')
+                archive_path = str(target) + '.zip'
+                with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    for path in sorted(target.iterdir()):
+                        archive.write(path, path.name)
+                from app.zoning_validation import validate_zoning
+                consistency = validate_zoning(data)
+                return archive_path, {'zones': 2, 'wall_count': 5,
+                                      'geometry_consistency': consistency,
+                                      'canonical_checksum': canonical_checksum(data),
+                                      'source': 'user_dimensions_simple_55_45_split',
+                                      'image_to_bim_ml_performed': False,
+                                      'code_compliance_verified': False,
+                                      'ifc_export_ready': False}
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        zone_button.click(export_zoning, inputs=[zone_project, zone_width, zone_depth, zone_height],
+                          outputs=[zone_file, zone_report])
+    with gr.Accordion('BIMAI360 · THỬ NGHIỆM AI NHẬN DIỆN KIẾN TRÚC (VLM)', open=False):
+        gr.Markdown('Chỉ chạy khi bạn có **checkpoint VLM tương thích lưu trên máy và GPU CUDA**. '
+                    'Đây là suy luận hình ảnh thực, không phải tạo BIM/IFC và chưa có model huấn luyện sẵn.')
+        with gr.Row():
+            vlm_image = gr.Image(type='pil', label='Ảnh phối cảnh')
+            with gr.Column():
+                vlm_project = gr.Textbox(value='office_146', label='Mã công trình')
+                vlm_model_path = gr.Textbox(label='Thư mục checkpoint VLM trên máy',
+                                             placeholder='models/architecture_vlm')
+                vlm_button = gr.Button('CHẠY VLM THẬT / XUẤT JSON')
+        vlm_report = gr.JSON(label='Quan sát và độ xác minh')
+        vlm_file = gr.File(label='Tải kết quả suy luận JSON')
+        def run_architecture_vlm(image, model_path, project):
+            from app.architecture_vlm import infer_architecture
+            try:
+                observation = infer_architecture(image, model_path, project)
+                output_path = OUTPUT / ('vlm_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(observation, ensure_ascii=False, indent=2), encoding='utf-8')
+                return observation, str(output_path)
+            except (OSError, ValueError, RuntimeError, ImportError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        vlm_button.click(run_architecture_vlm,
+                         inputs=[vlm_image, vlm_model_path, vlm_project],
+                         outputs=[vlm_report, vlm_file])
+        gr.Markdown('**Bước duyệt thiết kế:** chỉ khi VLM đã chạy thành công và '
+                    'bạn cung cấp kích thước thực, mới tạo BIM concept.')
+        with gr.Row():
+            approved_width = gr.Number(value=12, label='Ngang do bạn xác nhận (m)')
+            approved_depth = gr.Number(value=8, label='Sâu do bạn xác nhận (m)')
+            approved_height = gr.Number(value=3.2, label='Cao tầng do bạn xác nhận (m)')
+            approved_floors = gr.Number(value=3, precision=0, label='Số tầng xác nhận')
+        vlm_approved = gr.Checkbox(value=False, label='Tôi xác nhận kích thước và chấp thuận tạo BIM concept')
+        approve_button = gr.Button('DUYỆT VLM + XUẤT MÔ HÌNH CONCEPT', variant='secondary')
+        approval_output = gr.File(label='Canonical BIM concept đã duyệt (JSON)')
+        approval_report = gr.JSON(label='Kết quả duyệt')
+        def approve_vlm_proposal(observation, width, depth, height, floors, approved):
+            from app.architecture_evidence import approve_schematic_from_vlm
+            from app.bim_transaction import canonical_checksum
+            try:
+                model = approve_schematic_from_vlm(
+                    observation, {'width_m': width, 'depth_m': depth,
+                                  'floor_height_m': height, 'floor_count': floors,
+                                  'user_approved': approved})
+                destination = OUTPUT / ('approved_concept_' +
+                    datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                destination.write_text(json.dumps(model, ensure_ascii=False, indent=2),
+                                       encoding='utf-8')
+                return str(destination), {'canonical_sha256': canonical_checksum(model),
+                                          'entities': len(model['entities']),
+                                          'image_dimensions_inferred': False,
+                                          'ifc_export_ready': False}
+            except (ValueError, KeyError, TypeError, OSError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        approve_button.click(approve_vlm_proposal,
+                             inputs=[vlm_report, approved_width, approved_depth,
+                                     approved_height, approved_floors, vlm_approved],
+                             outputs=[approval_output, approval_report])
+
+    with gr.Accordion('BIMAI360 · ĐỐI CHIẾU NHIỀU GÓC NHÌN AI', open=False):
+        gr.Markdown('Đối chiếu các tệp JSON VLM đã suy luận thực cho **cùng công trình**. '
+                    'Báo xung đột số tầng / mái / mặt đứng; không tự sửa BIM khi AI bất đồng.')
+        multimodal_files = gr.File(label='Chọn nhiều JSON kết quả VLM',
+                                   file_types=['.json'], file_count='multiple')
+        compare_button = gr.Button('KIỂM TRA XUNG ĐỘT KIẾN TRÚC')
+        compare_report = gr.JSON(label='Độ nhất quán và bằng chứng từng góc nhìn')
+        def inspect_multiview(files):
+            from app.architecture_multiview import reconcile_architecture_observations
+            try:
+                if not files or len(files) > 12:
+                    raise ValueError('Chọn từ 1 đến 12 kết quả JSON')
+                observations = []
+                for file in files:
+                    path = Path(file if isinstance(file, (str, Path)) else file.name)
+                    if path.stat().st_size > 1000000:
+                        raise ValueError('Tệp JSON quá lớn')
+                    observations.append(json.loads(path.read_text(encoding='utf-8')))
+                return reconcile_architecture_observations(observations)
+            except (ValueError, KeyError, OSError, UnicodeError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        compare_button.click(inspect_multiview, inputs=multimodal_files,
+                             outputs=compare_report)
+        gr.Markdown('**Duyệt đề xuất đa ảnh → BIM concept:** các kích thước dưới đây do bạn nhập, '
+                    'không đoán từ ảnh; xung đột cần được bạn xác nhận rõ.')
+        with gr.Row():
+            multi_width = gr.Number(value=12, label='Ngang (m)')
+            multi_depth = gr.Number(value=8, label='Sâu (m)')
+            multi_height = gr.Number(value=3.2, label='Cao tầng (m)')
+            multi_floors = gr.Number(value=3, precision=0, label='Số tầng đã xác nhận')
+        multi_approved = gr.Checkbox(value=False, label='Tôi xác nhận kích thước thật')
+        multi_acknowledge = gr.Checkbox(value=False, label='Tôi đã xem và chấp nhận khác biệt với kết quả AI')
+        multi_export_button = gr.Button('XUẤT BIM CONCEPT TỪ BẰNG CHỨNG ĐA ẢNH')
+        multi_export_file = gr.File(label='JSON BIM concept')
+        multi_export_report = gr.JSON(label='Kiểm tra bàn giao')
+        def export_multiview_concept(files, width, depth, height, floors, approved, acknowledged):
+            from app.architecture_multiview import reconcile_architecture_observations
+            from app.multiview_bim_approval import approve_multiview_concept
+            from app.bim_transaction import canonical_checksum
+            try:
+                if not files or len(files) > 12:
+                    raise ValueError('Cần 1–12 tệp JSON VLM từ cùng công trình')
+                observations = []
+                for file in files:
+                    path = Path(file if isinstance(file, (str, Path)) else file.name)
+                    if path.stat().st_size > 1000000:
+                        raise ValueError('Tệp dữ liệu VLM quá lớn')
+                    observations.append(json.loads(path.read_text(encoding='utf-8')))
+                review = reconcile_architecture_observations(observations)
+                from app.architecture_design_review import (
+                    create_reviewed_architecture_proposal, verify_reviewed_proposal)
+                constraints = {'width_m': width, 'depth_m': depth,
+                    'floor_height_m': height, 'floor_count': floors,
+                    'user_approved': approved}
+                model, review = create_reviewed_architecture_proposal(
+                    observations, constraints, acknowledged)
+                integrity = verify_reviewed_proposal(
+                    model, observations, constraints, acknowledged)
+                output_path = OUTPUT / ('approved_multiview_' +
+                    datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(model, ensure_ascii=False, indent=2),
+                                       encoding='utf-8')
+                return str(output_path), {'entities': len(model['entities']),
+                    'sha256': canonical_checksum(model),
+                    'conflicts': model['concept_source']['multiview_conflict_fields'],
+                    'dimensions_from_user': True, 'ifc_export_ready': False,
+                    'approval_replay': integrity,
+                    'ai_advisory': model['design_evidence_review']['advisory_hypotheses']}
+            except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        multi_export_button.click(export_multiview_concept,
+            inputs=[multimodal_files, multi_width, multi_depth, multi_height,
+                    multi_floors, multi_approved, multi_acknowledge],
+            outputs=[multi_export_file, multi_export_report])
+
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
@@ -317,6 +819,20 @@ with gr.Blocks(title='TBT360 AI Advanced ML Studio — V68') as ui:
         with gr.Tab('02 · Trạng thái AI'):
             gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
             gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+            gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+            readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+            def inspect_readiness():
+                from app.cpu_readiness import inspect_local_assets
+                try:
+                    import torch
+                    has_cuda = torch.cuda.is_available()
+                except (ImportError, RuntimeError):
+                    has_cuda = False
+                return inspect_local_assets(ROOT, cuda_available=has_cuda)
+            gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                inspect_readiness, outputs=readiness)
+            gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                        'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
             gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab('03 · Kiểm tra ảnh & dữ liệu'):
             gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')

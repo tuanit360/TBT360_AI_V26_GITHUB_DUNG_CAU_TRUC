@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V206 — BIMAI360
+V202–V206: GLB wall opening test checks before-after solid volume instead of unrelated slab/roof bounding box; replay held-out VLM architectural evaluations from recorded JSONL. Training/GPU not completed.
