@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V136 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V136 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V141 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V141 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -611,7 +611,10 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V136 · Training & Architecture') 
                 with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
                     for path in sorted(target.iterdir()):
                         archive.write(path, path.name)
+                from app.zoning_validation import validate_zoning
+                consistency = validate_zoning(data)
                 return archive_path, {'zones': 2, 'wall_count': 5,
+                                      'geometry_consistency': consistency,
                                       'canonical_checksum': canonical_checksum(data),
                                       'source': 'user_dimensions_simple_55_45_split',
                                       'image_to_bim_ml_performed': False,
