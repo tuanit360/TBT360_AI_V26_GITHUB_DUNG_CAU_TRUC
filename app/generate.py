@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V111 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V111 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V116 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V116 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -514,6 +514,31 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V111 · Training & Architecture') 
                 return {'valid': False, 'reason': str(exc)[:250]}
         bim_audit_button.click(inspect_bim_handoff, inputs=bim_audit_file,
                                outputs=bim_audit_report)
+    with gr.Accordion('BIMAI360 · PHÂN TÍCH ẢNH CHO PHƯƠNG ÁN BIM', open=True):
+        gr.Markdown('Quan sát ảnh, gắn đúng mã công trình và tạo JSON cho bước mô hình lớn. '
+                    'Chưa chạy VLM/segmentation nên sẽ **không tự đoán** số tầng hoặc kích thước.')
+        with gr.Row():
+            observation_image = gr.Image(type='pil', label='Ảnh công trình')
+            with gr.Column():
+                observation_project = gr.Textbox(value='office_116', label='Mã công trình')
+                observation_role = gr.Dropdown(
+                    ['exterior_perspective', 'interior', 'floorplan', 'elevation', 'section'],
+                    value='exterior_perspective', label='Vai trò ảnh')
+                observation_button = gr.Button('PHÂN TÍCH ẢNH / XUẤT JSON', variant='primary')
+                observation_file = gr.File(label='JSON dữ liệu ảnh')
+        observation_report = gr.JSON(label='Thông tin ảnh và trạng thái suy luận')
+        def observe_architecture(image, project, role):
+            from app.architecture_observation import inspect_architecture
+            try:
+                observation = inspect_architecture(image, project, role)
+                output_path = OUTPUT / ('observation_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(observation, ensure_ascii=False, indent=2), encoding='utf-8')
+                return observation, str(output_path)
+            except (OSError, ValueError) as exc:
+                raise gr.Error(str(exc)) from exc
+        observation_button.click(observe_architecture,
+                                 inputs=[observation_image, observation_project, observation_role],
+                                 outputs=[observation_report, observation_file])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
