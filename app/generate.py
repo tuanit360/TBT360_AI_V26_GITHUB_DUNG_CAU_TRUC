@@ -1116,6 +1116,16 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         from app.local_workspace import read_runtime_log
                         return read_runtime_log(ROOT)
                     refresh_logs.click(load_runtime_logs, outputs=runtime_logs)
+                    gr.Markdown('**Khi mọi tab báo Connection errored out:** đóng EXE, mở Command Prompt trong thư mục Portable và chạy `BIMAI360.exe --diagnostics`. ZIP sẽ nằm trong thư mục logs, không cần mở giao diện.')
+                    diagnostic_button = gr.Button('XUẤT GÓI CHẨN ĐOÁN ZIP')
+                    diagnostic_output = gr.File(label='ZIP chẩn đoán để gửi hỗ trợ')
+                    def export_diagnostics():
+                        from app.diagnostic_bundle import build_diagnostic_zip
+                        return build_diagnostic_zip(ROOT)
+                    diagnostic_button.click(
+                        export_diagnostics, outputs=diagnostic_output,
+                        api_name='xuat_chan_doan',
+                    )
                     log_timer = gr.Timer(value=3.0, active=True)
                     log_timer.tick(load_runtime_logs, outputs=runtime_logs)
 
