@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V96 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V96 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V101 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V101 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -488,6 +488,32 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V96 · Training & Architecture') a
             return inspect_reference(image)
         preflight_button.click(inspect_architecture_reference,
                                inputs=preflight_image, outputs=preflight_result)
+    with gr.Accordion('BIMAI360 · KIỂM TRA FILE BÀN GIAO BIM', open=False):
+        gr.Markdown('Nạp **canonical_bim_handoff.json** để kiểm tra ID, tầng, host, '
+                    'tọa độ và ràng buộc 2D/3D. Kiểm tra dữ liệu, không biến ảnh thành IFC.')
+        bim_audit_file = gr.File(label='Chọn canonical_bim_handoff.json',
+                                 file_types=['.json'], file_count='single')
+        bim_audit_button = gr.Button('KIỂM TRA TÍNH TOÀN VẸN BIM', variant='primary')
+        bim_audit_report = gr.JSON(label='Báo cáo kiểm tra BIM')
+        def inspect_bim_handoff(upload):
+            from app.bim_transaction import validate_document, canonical_checksum
+            if upload is None:
+                return {'valid': False, 'reason': 'Chưa nạp JSON'}
+            try:
+                source_path = Path(upload if isinstance(upload, (str, Path)) else upload.name)
+                if source_path.stat().st_size > 5 * 1024 * 1024:
+                    raise ValueError('JSON vượt 5 MB')
+                record = json.loads(source_path.read_text(encoding='utf-8'))
+                canonical = validate_document(record)
+                return {'valid': True, 'entities': len(canonical['entities']),
+                        'levels': len(canonical['levels']),
+                        'sha256': canonical_checksum(canonical),
+                        'ifc_export_ready': False,
+                        'message': 'Dữ liệu hợp lệ theo hợp đồng, không phải chứng nhận IFC.'}
+            except (ValueError, TypeError, OSError, UnicodeError, KeyError) as exc:
+                return {'valid': False, 'reason': str(exc)[:250]}
+        bim_audit_button.click(inspect_bim_handoff, inputs=bim_audit_file,
+                               outputs=bim_audit_report)
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
