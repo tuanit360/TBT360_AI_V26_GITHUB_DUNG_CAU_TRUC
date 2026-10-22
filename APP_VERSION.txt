@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V146 — BIMAI360
+Batch V142–V146: optional genuine local CUDA VLM architecture image inference, checkpoint preflight and explicit output provenance; no bundled trained checkpoint or inferred BIM/IFC.
