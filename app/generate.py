@@ -1126,12 +1126,11 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         export_diagnostics, outputs=diagnostic_output,
                         api_name='xuat_chan_doan',
                     )
-                    log_timer = gr.Timer(value=3.0, active=True)
-                    log_timer.tick(load_runtime_logs, outputs=runtime_logs)
+                    gr.Markdown('Nhấn LÀM MỚI LOG khi cần; không tự gửi yêu cầu định kỳ gây nghẽn hàng đợi.')
 
 
 
 if __name__ == '__main__':
-    ui.queue(default_concurrency_limit=1,max_size=4).launch(
+    ui.queue(default_concurrency_limit=2,max_size=32).launch(
       server_name='127.0.0.1',server_port=7861,inbrowser=True,share=False,
       allowed_paths=[str(OUTPUT), str(ROOT / 'logs')])
