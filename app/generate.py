@@ -642,6 +642,16 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V256 · Thiết kế kiến trúc'
                             return upscale_ai(image,prompt,int(seed),low)
                         except Exception as exc:
                             raise gr.Error(f'AI upscale chưa chạy thành công: {type(exc).__name__}: {exc}') from exc
+                    gr.Markdown('**Sinh ảnh nâng cao cần GPU NVIDIA CUDA.** Nếu máy không nhận CUDA, nút sẽ bị khóa. Muốn thử trên CPU, dùng mục Thiết kế và sinh ảnh.')
+                    def check_advanced_gpu():
+                        try:
+                            import torch
+                            available = torch.cuda.is_available()
+                        except (ImportError, RuntimeError):
+                            available = False
+                        return (gr.update(interactive=available),
+                                gr.update(interactive=available))
+                    ui.load(check_advanced_gpu, outputs=[adv_button, upscale_button])
                     adv_button.click(run_advanced,inputs=[adv_input,adv_prompt,adv_model,adv_control,adv_strength,adv_steps,adv_cfg,adv_control_strength,adv_seed,adv_low],outputs=[adv_output,adv_metadata],concurrency_limit=1)
                     upscale_button.click(run_upscale,inputs=[adv_output,adv_prompt,adv_seed,adv_low],outputs=[upscale_output,upscale_metadata],concurrency_limit=1)
                 with gr.Accordion('V84 · GIỮ CẤU TRÚC KIẾN TRÚC / EDGE CONTROL', open=False):
@@ -651,7 +661,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V256 · Thiết kế kiến trúc'
                         structure_input = gr.Image(label='Ảnh kiến trúc gốc', type='pil')
                         structure_output = gr.Image(label='Ảnh cạnh kiến trúc', type='pil', interactive=False)
                     with gr.Row():
-                        edge_threshold = gr.Slider(10, 240, value=80, step=5, label='Ngưỡng phát hiện cạnh')
+                        edge_threshold = gr.Slider(10, 240, value=95, step=5, label='Ngưỡng phát hiện cạnh')
                         structure_seed = gr.Number(value=42, precision=0, label='Seed đối chiếu')
                     gr.Markdown('**Bước 1:** Tải ảnh kiến trúc vào ô bên trái. **Bước 2:** Chọn ngưỡng rồi tạo ảnh biên. **Bước 3:** Nếu cần, xuất gói dữ liệu. Chức năng này tạo ảnh biên trên CPU, không chạy AI ControlNet.')
                     structure_preview = gr.Button('TẠO ẢNH BIÊN THAM CHIẾU', variant='primary', interactive=False)
