@@ -268,8 +268,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V82 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V82 · Thiết kế & Chuẩn bị dữ liệu trên một màn hình')
+with gr.Blocks(title='TBT360 AI Studio V83 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V83 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -356,6 +356,66 @@ with gr.Blocks(title='TBT360 AI Studio V82 · Training & Architecture') as ui:
         gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
                     'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
                     'Không tự động đưa ảnh mới vào model.')
+    with gr.Accordion('V83 · CROP BOARD / CHUẨN PROMPT / BÀN GIAO BIM (một màn hình)', open=False):
+        gr.Markdown('**Tách ảnh board theo lưới do bạn chọn, xem trước, xuất ảnh tham chiếu và JSON cho BIM.** '
+                    'Không tự xóa logo/chữ, không đoán kích thước thực hoặc xuất IFC giả.')
+        with gr.Row():
+            with gr.Column():
+                crop_input = gr.Image(type='pil', label='Chọn ảnh board cần tách')
+                crop_rows = gr.Slider(1, 8, value=2, step=1, label='Số hàng trên board')
+                crop_cols = gr.Slider(1, 8, value=3, step=1, label='Số cột trên board')
+                crop_button = gr.Button('TÁCH ẢNH VÀ XEM TRƯỚC', variant='primary')
+                crop_result = gr.Gallery(label='Các ảnh con, cần chọn và kiểm tra', columns=3, height=290)
+            with gr.Column():
+                handoff_img = gr.Image(type='pil', label='Chọn 1 ảnh sạch để bàn giao')
+                handoff_project = gr.Textbox(value='office_demo_83', label='Mã công trình')
+                handoff_prompt = gr.Textbox(value='Contemporary office building, coherent facade, daylight',
+                                            label='Prompt đã dùng')
+                handoff_seed = gr.Number(value=42, precision=0, label='Seed cố định')
+                handoff_button = gr.Button('XUẤT THAM CHIẾU CHO CAD/BIM')
+                handoff_file = gr.File(label='ZIP tham chiếu + JSON')
+                handoff_report = gr.JSON(label='Trạng thái bàn giao')
+        with gr.Row():
+            building_type = gr.Dropdown(['office building', 'residential building', 'school building'],
+                                        value='office building', label='Loại công trình')
+            floors = gr.Slider(1, 30, value=5, step=1, label='Số tầng mô tả')
+            facade = gr.Dropdown(['curtain wall facade', 'rendered masonry facade', 'mixed glazing facade'],
+                                 value='curtain wall facade', label='Mặt đứng')
+            roof = gr.Dropdown(['flat roof', 'pitched roof'], value='flat roof', label='Mái')
+        arch_prompt_button = gr.Button('TẠO PROMPT KIẾN TRÚC ĐỒNG NHẤT')
+        arch_prompt_result = gr.Textbox(label='Prompt kiến trúc đề xuất', lines=3)
+        def crop_board(image, rows, cols):
+            from app.architecture_crop import propose_crops
+            try:
+                return [(item['image'], f"Hàng {item['row']} · Cột {item['column']} · cần duyệt")
+                        for item in propose_crops(image, rows, cols)]
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        crop_button.click(crop_board, inputs=[crop_input, crop_rows, crop_cols], outputs=crop_result)
+        def prompt_architecture(kind, count, face, roof_type):
+            from app.bim_handoff import build_prompt
+            return build_prompt(kind, count, face, roof_type, 'corner perspective', 'natural daylight',
+                                'concrete, glass and metal')
+        arch_prompt_button.click(prompt_architecture, inputs=[building_type, floors, facade, roof],
+                                 outputs=arch_prompt_result)
+        def handoff_export(image, project, prompt, seed):
+            import tempfile
+            from app.bim_handoff import export_handoff
+            if image is None:
+                raise gr.Error('Chọn ảnh sạch trước khi bàn giao')
+            export_dir = OUTPUT / ('handoff_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                report = export_handoff(image, export_dir, project_id=project, prompt=prompt, seed=int(seed))
+                archive = str(export_dir) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
+                    for path in sorted(export_dir.iterdir()):
+                        if path.is_file():
+                            output_zip.write(path, path.name)
+                return archive, report
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        handoff_button.click(handoff_export, inputs=[handoff_img, handoff_project, handoff_prompt, handoff_seed],
+                             outputs=[handoff_file, handoff_report])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
