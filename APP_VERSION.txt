@@ -1,0 +1,3 @@
+BIM AI Kiến Trúc 360 V101 — BIMAI360
+Batch V97–V101: portable regression, canonical model validation, transaction and audit, same-screen verification.
+AI image import is not training. IFC export not yet verified.
