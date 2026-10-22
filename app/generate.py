@@ -273,7 +273,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V251 · Thiết kế kiến trúc'
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
-                            preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Chọn mức chất lượng')
+                            preset=gr.Dropdown(choices=list(PRESETS),value='Xem nhanh · ít VRAM',label='Chọn mức chất lượng')
                             style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
                             preserve=gr.Slider(0.15,0.85,value=0.55,step=0.05,label='Giữ cấu trúc ảnh gốc (cao = ít thay đổi)')
                             with gr.Accordion('Thông số kỹ thuật',open=False):
@@ -283,9 +283,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V251 · Thiết kế kiến trúc'
                                     value='Giữ đủ ảnh (thêm viền)',label='Khớp ảnh')
                                 memory_mode=gr.Radio(choices=['Cân bằng','Tiết kiệm VRAM tối đa'],
                                     value='Tiết kiệm VRAM tối đa',label='Quản lý GPU')
-                                steps=gr.Slider(10,50,value=28,step=1,label='Số bước xử lý')
+                                steps=gr.Slider(10,50,value=15,step=1,label='Số bước xử lý')
                                 guidance=gr.Slider(1,12,value=7.0,step=0.5,label='Mức bám mô tả (CFG)')
-                                count=gr.Slider(1,4,value=2,step=1,label='Số phương án')
+                                count=gr.Slider(1,4,value=1,step=1,label='Số phương án')
                                 seed=gr.Number(value=-1,precision=0,label='Seed (-1 = ngẫu nhiên)')
                                 lora_name=gr.Dropdown(choices=installed_loras(),value='Không dùng LoRA',label='Bộ tinh chỉnh AI (LoRA) đã xác minh')
                                 refresh_lora=gr.Button('Làm mới danh sách LoRA')
@@ -313,6 +313,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V251 · Thiết kế kiến trúc'
                         result['photo_to_full_bim_model_bundled'] = False
                         return result
                     readiness_button.click(show_readiness, outputs=readiness_result)
+                    gr.Markdown('**Máy GPU nhỏ:** mặc định xem nhanh 1 phương án, 15 bước. Chế độ tiết kiệm bộ nhớ có thể xử lý chậm; muốn nhanh hơn cần GPU đủ bộ nhớ để chạy trực tiếp. Ảnh đầu ra chỉ được chấp nhận nếu qua kiểm tra chất lượng.')
                     preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
                     start.click(create,
                         inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
