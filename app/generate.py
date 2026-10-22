@@ -349,7 +349,11 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V236 · Thiết kế kiến trúc'
                                     model, 'W01_01', 'DOOR_01', 1.0, 0.0, 1.0, 2.1)
                                 model = add_wall_opening(
                                     model, 'W01_03', 'WINDOW_01', 2.0, 0.9, 1.5, 1.3)
+                                from app.schematic_delivery_audit import audit_schematic_building
+                                delivery_audit = audit_schematic_building(model)
                                 files = render_views(model)
+                                files['KIEM_TRA_HINH_HOC.json'] = json.dumps(
+                                    delivery_audit, ensure_ascii=False, indent=2)
                                 from app.schematic_multiview import schematic_multiview
                                 extra = schematic_multiview(model)
                                 meta = extra.pop('view_meta')
@@ -380,6 +384,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V236 · Thiết kế kiến trúc'
                                 return archive_path, {
                                     'entity_count': len(model['entities']), 'levels': len(model['levels']),
                                     'model_checksum': canonical_checksum(model),
+                                    'kiem_tra_hinh_hoc': delivery_audit,
                                     'source': 'explicit_user_constraints', 'ifc_export_ready': False,
                                     'limitations': 'Mô hình vỏ theo kích thước nhập, chưa suy ra mặt bằng từ ảnh',
                                 }
