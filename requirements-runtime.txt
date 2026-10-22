@@ -10,3 +10,6 @@ gradio==5.9.1
 numpy<2
 peft==0.14.0
 opencv-python-headless>=4.8,<5
+
+# Editable conceptual 3D mesh / GLB interchange
+trimesh>=4.4,<5
