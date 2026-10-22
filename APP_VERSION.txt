@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V106 — BIMAI360
-Batch V102–V106: canonical BIM transaction lifecycle, validated undo/redo, bounded history, cross-command regression, Windows Portable. IFC and LoRA training not verified.
+BIM AI Kiến Trúc 360 V111 — BIMAI360
+Batch V107–V111: canonical BIM atomic Save/Reopen with SHA256, Undo/Redo lifecycle tests and Windows Portable packaging. IFC and trained LoRA are not claimed.
