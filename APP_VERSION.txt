@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V221 — BIMAI360
+Workflow-first UI: horizontal primary and secondary tabs, shared export center, offline one-click local workspace, visible operation logs, no embedded plaintext credentials. Canonical GLB door/window hotfix inherited from V216 successful CI.
