@@ -1,0 +1,2 @@
+TBT360 AI V91 – Five-stage Hardening Consolidated
+Baseline V86; stronger LoRA integrity, BIM canonical handoff, regression. No unverified training/IFC claims.
