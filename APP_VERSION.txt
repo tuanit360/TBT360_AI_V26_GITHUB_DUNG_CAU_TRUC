@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V211 — BIMAI360
+V207–V211: audited RAR/ZIP training dataset intake, no fake BIM labels, VRAM CUDA training hardware preflight, GLB regression correction, Windows checks. Real trained photo-to-BIM checkpoint not yet present.
