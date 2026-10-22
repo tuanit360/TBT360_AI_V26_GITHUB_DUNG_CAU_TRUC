@@ -61,4 +61,6 @@ def export_handoff(image, output_folder, *, prompt, seed, project_id, floors_hin
         'next_step': 'Trace and scale in CAD/BIM modeler; confirm elements, levels and dimensions before exporting IFC.',
     }
     (target / 'handoff.json').write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    from app.canonical_bim_contract import build_handoff, save_handoff
+    save_handoff(target, build_handoff(project_id, units='m', level_ids=[], elements=[]))
     return data
