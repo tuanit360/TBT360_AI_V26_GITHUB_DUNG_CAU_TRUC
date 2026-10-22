@@ -968,22 +968,22 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V221 · Training & Architecture') 
                     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
                     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
                     check.click(preflight,outputs=report)
-                        gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
-                        gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
-                        gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
-                        readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
-                        def inspect_readiness():
-                            from app.cpu_readiness import inspect_local_assets
-                            try:
-                                import torch
-                                has_cuda = torch.cuda.is_available()
-                            except (ImportError, RuntimeError):
-                                has_cuda = False
-                            return inspect_local_assets(ROOT, cuda_available=has_cuda)
-                        gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
-                            inspect_readiness, outputs=readiness)
-                        gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
-                                    'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
+                    gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
+                    gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+                    gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+                    readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+                    def inspect_readiness():
+                        from app.cpu_readiness import inspect_local_assets
+                        try:
+                            import torch
+                            has_cuda = torch.cuda.is_available()
+                        except (ImportError, RuntimeError):
+                            has_cuda = False
+                        return inspect_local_assets(ROOT, cuda_available=has_cuda)
+                    gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                        inspect_readiness, outputs=readiness)
+                    gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                                'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
                         gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
         with gr.Tab("06 · TÀI KHOẢN"):
             with gr.Tabs():
