@@ -272,7 +272,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         with gr.Column(scale=1, min_width=360):
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
-                                value='Modern two-story villa, white facade, dark tiled hip roof, large glass windows, architectural photography, daylight',
+                                value='Contemporary office building, dark vertical facade fins, rooftop garden, urban corner site, realistic architectural visualization, daylight',
                                 placeholder='Nhập mô tả phương án hoặc chọn nội dung mẫu')
                             preset=gr.Dropdown(choices=list(PRESETS),value='Xem nhanh · ít VRAM',label='Chọn mức chất lượng')
                             style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
@@ -296,7 +296,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 sharpness=gr.Slider(0,1,value=0.2,step=0.1,label='Làm nét nhẹ')
                             start=gr.Button('TẠO PHƯƠNG ÁN',variant='primary',size='lg')
                         with gr.Column(scale=2,min_width=380):
-                            gallery=gr.Gallery(label='Ảnh các phương án kiến trúc',columns=2,height=630,object_fit='contain')
+                            gallery=gr.Gallery(label='Ảnh các phương án kiến trúc · chưa có ảnh cho đến khi AI chạy thành công',columns=2,height=630,object_fit='contain')
                             export=gr.File(label='Tải gói ảnh và thông số tạo ảnh (ZIP)')
                             status=gr.Textbox(label='Tiến trình và thông báo',lines=3,interactive=False)
                     gr.Markdown('**Bắt đầu:** Nạp ảnh → Chọn cấu hình → Tạo phương án → Xem kết quả. Nếu thiếu checkpoint, phần mềm phải báo thiếu thay vì xuất ảnh giả.')
