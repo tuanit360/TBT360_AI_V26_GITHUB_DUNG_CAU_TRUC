@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V201 — BIMAI360
+V197–V201: fix GLB world-coordinate regression check and add VLM holdout evaluation with accuracy, coverage and abstention. Real VLM checkpoint/training not included.
