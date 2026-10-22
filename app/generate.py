@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V116 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V116 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V121 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V121 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -539,6 +539,45 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V116 · Training & Architecture') 
         observation_button.click(observe_architecture,
                                  inputs=[observation_image, observation_project, observation_role],
                                  outputs=[observation_report, observation_file])
+    with gr.Accordion('BIMAI360 · TẠO MẶT BẰNG / MẶT ĐỨNG SƠ BỘ TỪ KÍCH THƯỚC', open=True):
+        gr.Markdown('Tạo vỏ công trình chữ nhật từ kích thước **bạn nhập**, cùng ID tường và tầng cho BIM. '
+                    '**Chưa suy diễn mặt bằng từ ảnh, chưa bố trí phòng/cửa/MEP hay xuất IFC.**')
+        with gr.Row():
+            scheme_project = gr.Textbox(value='office_121', label='Mã công trình')
+            scheme_width = gr.Number(value=12, label='Ngang (m)')
+            scheme_depth = gr.Number(value=8, label='Sâu (m)')
+            scheme_height = gr.Number(value=3.2, label='Cao mỗi tầng (m)')
+            scheme_floors = gr.Number(value=3, precision=0, label='Số tầng')
+        scheme_button = gr.Button('TẠO PHƯƠNG ÁN VỎ BIM / MẶT BẰNG / MẶT ĐỨNG', variant='primary')
+        scheme_archive = gr.File(label='ZIP gồm BIM canonical JSON + 2 bản vẽ SVG')
+        scheme_report = gr.JSON(label='Thông tin mô hình vỏ sơ bộ')
+        def export_schematic(project, width, depth, height, floors):
+            from app.schematic_architecture import create_schematic, render_views
+            from app.bim_transaction import canonical_checksum
+            try:
+                model = create_schematic(project, width, depth, height, floors)
+                files = render_views(model)
+                target = OUTPUT / ('schematic_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+                target.mkdir()
+                (target / 'canonical_bim_handoff.json').write_text(
+                    json.dumps(model, ensure_ascii=False, indent=2), encoding='utf-8')
+                for file_name, contents in files.items():
+                    (target / file_name).write_text(contents, encoding='utf-8')
+                archive_path = str(target) + '.zip'
+                with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    for path in sorted(target.iterdir()):
+                        archive.write(path, path.name)
+                return archive_path, {
+                    'entity_count': len(model['entities']), 'levels': len(model['levels']),
+                    'model_checksum': canonical_checksum(model),
+                    'source': 'explicit_user_constraints', 'ifc_export_ready': False,
+                    'limitations': 'Only empty rectangular building shell, not floorplan layout inferred from images',
+                }
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        scheme_button.click(export_schematic,
+                            inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
+                            outputs=[scheme_archive, scheme_report])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
