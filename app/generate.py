@@ -422,7 +422,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 }
                         def generate_native_sample():
                             return export_schematic('OFFICE_001_DEMO', 12.0, 9.0, 3.2, 2)
-                        sample_button.click(generate_native_sample, outputs=[scheme_archive, scheme_report])
+                        sample_button.click(generate_native_sample, outputs=[scheme_archive, scheme_report], api_name='tao_bim_mau')
                         gr.Markdown('**Trước khi tạo BIM:** đây là mô hình từ kích thước nhập, không phải AI suy luận từ ảnh. Nếu xuất tệp thất bại, báo cáo bên dưới sẽ ghi trạng thái bằng tiếng Việt thay vì chỉ hiển thị Error.')
                         scheme_button.click(export_schematic,
                                             inputs=[scheme_project, scheme_width, scheme_depth, scheme_height, scheme_floors],
