@@ -1,38 +1,11 @@
-# TBT360 AI V96 – Portable Windows x64
+# BIM AI Kiến Trúc 360 V96 — BIMAI360 Windows x64
 
-## Run V96 without installing Python
-Extract the full V96 artifact `TBT360_AI_V96_PORTABLE_WINDOWS_X64_CPU.zip` into a new writable directory, such as `C:\\TBT360_AI_V96`. Do NOT launch from inside ZIP or copy the EXE alone.
-Double-click `TBT360_AI.exe` (or `START_V96_DIAGNOSTIC.bat` for persistent error logs).
-The Gradio Studio opens at http://127.0.0.1:7861/ (local only, share=False).
-Do not reuse old V26/V78 folders to avoid mixing DLLs, data and scripts.
+Ứng dụng hiển thị: **BIM AI Kiến Trúc 360**. Tên dùng để lưu/chạy offline: **BIMAI360**.
 
-## One-screen training data intake
-Use `NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET` at the top of the screen to select multiple images or a ZIP of images; select/enter the project ID and draft caption, then press **LƯU ẢNH** or **NẠP ẢNH TỪ ZIP**. The built-in gallery shows the saved images.
+Giải nén toàn bộ `BIMAI360_V96_PORTABLE_WINDOWS_X64_CPU.zip` vào một thư mục mới, ví dụ `C:\BIMAI360`. Mở `BIMAI360.exe` hoặc `START_BIMAI360_DIAGNOSTIC.bat` nếu cần ghi log. Không chạy ngay trong ZIP, không chỉ sao chép EXE.
 
-To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V96 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V96_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
-Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
+Dữ liệu dự án trong các thư mục `dataset`, `models`, `loras`, `output` vẫn giữ nguyên cấu trúc, không tự xóa hoặc thay đổi dữ liệu TBT360 AI cũ. Nếu đã có dữ liệu trong bộ cũ, **sao chép thủ công các thư mục dữ liệu** vào bộ BIMAI360 mới sau khi kiểm tra bản sao lưu. Không ghi đè trực tiếp lên bản cũ.
 
-## Runtime and model limitations
-- Windows x64 CPU build includes PyTorch CPU. NVIDIA CUDA is not available unless a separate compatible GPU build is supplied.
-- Pretrained Stable Diffusion weights are NOT bundled. For true offline generation, provide a valid model in `models/sd15` before starting, with all required weights and config. Model files may be several GB.
-- No training happened when importing images. True SD1.5 LoRA training requires reviewed split data and CUDA GPU.
-- The `--self-test` probes package imports, not real image generation. CI additionally launches the UI and checks localhost readiness.
+Tại một màn hình, sử dụng **NẠP ẢNH HUẤN LUYỆN**, kiểm tra ảnh, crop, QA và xuất tham chiếu BIM. Nhập ảnh chỉ lưu và gắn nhãn nháp; không được coi là đã huấn luyện LoRA. Muốn sinh ảnh offline phải có mô hình SD1.5 được tải hợp lệ trong `models/sd15`; không kèm model weights. Bản CPU có thể sinh ảnh chậm. IFC/RVT chưa được xuất trực tiếp từ ảnh vì cần mô hình BIM ngữ nghĩa có hình học, kích thước và xác minh thực tế.
 
-## Diagnostics
-Run `START_V96_DIAGNOSTIC.bat` and send `logs/startup_console.log` / `logs/startup_error.log` on failure.
-`manifest.json` and `SHA256SUMS.txt` allow verification of packaged file integrity.
-
-## Smart ZIP Import
-Choose an image ZIP or V81 bundle; the new **NẠP ZIP TỰ ĐỘNG** control recognizes both and one-layer wrapped GitHub artifacts. An original RAR archive cannot be opened by this ZIP-only control. Importing does NOT initiate LoRA training. User images are a separate data overlay, not bundled in the portable executable.
-
-V96 adds crop-by-user-selected-grid, prompt composition and concept image+JSON handoff. It does not provide true BIM geometry, IFC, trained LoRA, or automatic semantic recognition. Use approved GPU training data for future verified fine-tune.
-
-V96 adds local edge-control previews and reproducible source/control/seed bundle. This is preparation for ControlNet, not proof of ControlNet inference or verified BIM.
-
-V96 adds before/after pixel and edge comparison, exports reproducible images, JSON and SHA256. Image-quality differences do not certify fidelity or BIM.
-
-V96 adds architecture input preflight, collage-likelihood warnings, CPU setting advice and records review information in generation manifest. Preflight does not guarantee clean generations.
-
-V87–V96 internal workstream: shared LoRA verification, data consistency, canonical BIM entity contract for 2D/3D, regression, Windows packaging. The conceptual BIM handoff has zero fabricated elements, IFC is not exported and AI training is not asserted.
-
-V92–V96 reinforces BIM concept handoff: finite coordinates, valid host IDs, cycle detection, roundtrip validation and regression. BIM conversion remains concept-only until engineering geometry is actually modeled and verified.
+Bộ file cần chạy: `BIMAI360.exe`, `_internal`, README, launcher, manifest/checksums. GitHub Actions kiểm thử khởi động giao diện local trước khi xuất artifact.
