@@ -1,2 +1,2 @@
-BIM AI Kiến Trúc 360 V196 — BIMAI360
-Batch V192–V196: fix GLB wall opening geometry regression, VLM checkpoint preflight requiring real local model files, image processor and safe shard maps; reject placeholder checkpoints. GPU/VLM inference or trained image-to-BIM still not proven or bundled.
+BIM AI Kiến Trúc 360 V201 — BIMAI360
+V197–V201: fix GLB world-coordinate regression check and add VLM holdout evaluation with accuracy, coverage and abstention. Real VLM checkpoint/training not included.
