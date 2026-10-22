@@ -257,49 +257,49 @@ def machine_info():
 
 with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') as ui:
     gr.Markdown('# BIM AI Kiến Trúc 360 V216 · WORKSPACE')
-    gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn tab chức năng ngay bên dưới. Các kết quả sơ bộ không phải BIM kỹ thuật đã xác minh.')
+    gr.Markdown('**QUY TRÌNH:** Tạo phương án → Kiểm tra → Bàn giao → Dữ liệu → Đào tạo. Chọn tab ngang, sau đó chọn chức năng bên dưới.')
     from app.local_workspace import setup_runtime_log
     setup_runtime_log(ROOT)
     with gr.Tabs():
-        with gr.Tab('01 · TẠO PHƯƠNG ÁN'):
+        with gr.Tab("01 · TẠO PHƯƠNG ÁN"):
             with gr.Tabs():
-                with gr.Tab('Thiết kế và sinh ảnh'):
-        with gr.Row():
-            with gr.Column(scale=1, min_width=360):
-                reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
-                brief=gr.Textbox(label='Mô tả phương án (tiếng Anh cho SD1.5)',lines=3,
-                    placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
-                preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Cấu hình nhanh')
-                style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
-                preserve=gr.Slider(0.15,0.85,value=0.55,step=0.05,label='Giữ cấu trúc ảnh gốc (cao = ít thay đổi)')
-                with gr.Accordion('Thông số kỹ thuật',open=False):
-                    aspect=gr.Dropdown(choices=list(['Vuông 1:1','Ngang 4:3','Ngang 3:2','Dọc 3:4','Dọc 2:3']),
-                        value='Ngang 4:3',label='Tỷ lệ ảnh')
-                    fit_mode=gr.Radio(choices=['Giữ đủ ảnh (thêm viền)','Cắt đầy khung'],
-                        value='Giữ đủ ảnh (thêm viền)',label='Khớp ảnh')
-                    memory_mode=gr.Radio(choices=['Cân bằng','Tiết kiệm VRAM tối đa'],
-                        value='Tiết kiệm VRAM tối đa',label='Quản lý GPU')
-                    steps=gr.Slider(10,50,value=28,step=1,label='Số bước xử lý')
-                    guidance=gr.Slider(1,12,value=7.0,step=0.5,label='Mức bám mô tả (CFG)')
-                    count=gr.Slider(1,4,value=2,step=1,label='Số phương án')
-                    seed=gr.Number(value=-1,precision=0,label='Seed (-1 = ngẫu nhiên)')
-                    lora_name=gr.Dropdown(choices=installed_loras(),value='Không dùng LoRA',label='LoRA đã xác minh')
-                    refresh_lora=gr.Button('Làm mới danh sách LoRA')
-                    refresh_lora.click(lambda: gr.update(choices=installed_loras(),value='Không dùng LoRA'),outputs=lora_name)
-                with gr.Accordion('Hậu xử lý ảnh · không phải AI upscale',open=False):
-                    scale=gr.Radio(choices=[1,2,4],value=1,label='Hệ số phóng Lanczos')
-                    sharpness=gr.Slider(0,1,value=0.2,step=0.1,label='Làm nét nhẹ')
-                start=gr.Button('TẠO PHƯƠNG ÁN',variant='primary',size='lg')
-            with gr.Column(scale=2,min_width=380):
-                gallery=gr.Gallery(label='Các phương án kiến trúc',columns=2,height=630,object_fit='contain')
-                export=gr.File(label='Tải ZIP ảnh, seed và cấu hình')
-                status=gr.Textbox(label='Trạng thái / thông báo',lines=3,interactive=False)
-        preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
-        start.click(create,
-            inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
-                style,guidance,scale,sharpness],
-            outputs=[gallery,export,status],concurrency_limit=1,show_progress='full')
-                with gr.Tab('Mô hình 2D / 3D'):
+                with gr.Tab("Thiết kế và sinh ảnh"):
+                    with gr.Row():
+                        with gr.Column(scale=1, min_width=360):
+                            reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
+                            brief=gr.Textbox(label='Mô tả phương án (tiếng Anh cho SD1.5)',lines=3,
+                                placeholder='Contemporary office, natural materials, coherent glazing, real-world proportions')
+                            preset=gr.Dropdown(choices=list(PRESETS),value='Cân bằng · mặc định',label='Cấu hình nhanh')
+                            style=gr.Dropdown(choices=list(STYLE),value='Kiến trúc chân thực',label='Phong cách')
+                            preserve=gr.Slider(0.15,0.85,value=0.55,step=0.05,label='Giữ cấu trúc ảnh gốc (cao = ít thay đổi)')
+                            with gr.Accordion('Thông số kỹ thuật',open=False):
+                                aspect=gr.Dropdown(choices=list(['Vuông 1:1','Ngang 4:3','Ngang 3:2','Dọc 3:4','Dọc 2:3']),
+                                    value='Ngang 4:3',label='Tỷ lệ ảnh')
+                                fit_mode=gr.Radio(choices=['Giữ đủ ảnh (thêm viền)','Cắt đầy khung'],
+                                    value='Giữ đủ ảnh (thêm viền)',label='Khớp ảnh')
+                                memory_mode=gr.Radio(choices=['Cân bằng','Tiết kiệm VRAM tối đa'],
+                                    value='Tiết kiệm VRAM tối đa',label='Quản lý GPU')
+                                steps=gr.Slider(10,50,value=28,step=1,label='Số bước xử lý')
+                                guidance=gr.Slider(1,12,value=7.0,step=0.5,label='Mức bám mô tả (CFG)')
+                                count=gr.Slider(1,4,value=2,step=1,label='Số phương án')
+                                seed=gr.Number(value=-1,precision=0,label='Seed (-1 = ngẫu nhiên)')
+                                lora_name=gr.Dropdown(choices=installed_loras(),value='Không dùng LoRA',label='LoRA đã xác minh')
+                                refresh_lora=gr.Button('Làm mới danh sách LoRA')
+                                refresh_lora.click(lambda: gr.update(choices=installed_loras(),value='Không dùng LoRA'),outputs=lora_name)
+                            with gr.Accordion('Hậu xử lý ảnh · không phải AI upscale',open=False):
+                                scale=gr.Radio(choices=[1,2,4],value=1,label='Hệ số phóng Lanczos')
+                                sharpness=gr.Slider(0,1,value=0.2,step=0.1,label='Làm nét nhẹ')
+                            start=gr.Button('TẠO PHƯƠNG ÁN',variant='primary',size='lg')
+                        with gr.Column(scale=2,min_width=380):
+                            gallery=gr.Gallery(label='Các phương án kiến trúc',columns=2,height=630,object_fit='contain')
+                            export=gr.File(label='Tải ZIP ảnh, seed và cấu hình')
+                            status=gr.Textbox(label='Trạng thái / thông báo',lines=3,interactive=False)
+                    preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
+                    start.click(create,
+                        inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
+                            style,guidance,scale,sharpness],
+                        outputs=[gallery,export,status],concurrency_limit=1,show_progress='full')
+                with gr.Tab("Mô hình 2D / 3D"):
                 with gr.Accordion('BIMAI360 · TẠO MẶT BẰNG / MẶT ĐỨNG SƠ BỘ TỪ KÍCH THƯỚC', open=True):
                     gr.Markdown('Tạo vỏ công trình chữ nhật từ kích thước **bạn nhập**, cùng ID tường và tầng cho BIM. '
                                 '**Chưa suy diễn mặt bằng từ ảnh, chưa bố trí phòng/cửa/MEP hay xuất IFC.**')
@@ -403,7 +403,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                             raise gr.Error(str(exc)) from exc
                     zone_button.click(export_zoning, inputs=[zone_project, zone_width, zone_depth, zone_height],
                                       outputs=[zone_file, zone_report])
-                with gr.Tab('Nhận dạng AI'):
+                with gr.Tab("Nhận dạng AI"):
                 with gr.Accordion('BIMAI360 · PHÂN TÍCH ẢNH CHO PHƯƠNG ÁN BIM', open=True):
                     gr.Markdown('Quan sát ảnh, gắn đúng mã công trình và tạo JSON cho bước mô hình lớn. '
                                 'Chưa chạy VLM/segmentation nên sẽ **không tự đoán** số tầng hoặc kích thước.')
@@ -562,41 +562,41 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                                 multi_floors, multi_approved, multi_acknowledge],
                         outputs=[multi_export_file, multi_export_report])
 
-                with gr.Tab('Ảnh nâng cao'):
-        gr.Markdown('**Pipeline thật khi có checkpoint**: SDXL hoặc SD1.5; ControlNet Canny giữ cạnh hình; x4 diffusion upscale. Cần NVIDIA GPU và tải model riêng. Khả năng chạy phụ thuộc VRAM; không có bảo đảm chất lượng kỹ thuật/BIM.')
-        with gr.Row():
-            with gr.Column():
-                adv_input = gr.Image(label='Ảnh gốc',type='pil')
-                adv_prompt = gr.Textbox(label='Prompt kiến trúc',value=DEFAULT_PROMPT,lines=3)
-                adv_model = gr.Radio(['SD 1.5','SDXL 1.0'],value='SD 1.5',label='Model nền')
-                adv_control = gr.Checkbox(label='ControlNet Canny: giữ biên hình khối',value=False)
-                adv_strength = gr.Slider(0.1,0.9,0.45,step=0.05,label='Mức thay đổi ảnh (strength)')
-                adv_control_strength = gr.Slider(0,2,0.9,step=0.1,label='Độ mạnh ControlNet')
-                adv_steps = gr.Slider(10,60,30,step=1,label='Số bước')
-                adv_cfg = gr.Slider(1,15,6.5,step=0.5,label='CFG')
-                adv_seed = gr.Number(value=42,precision=0,label='Seed')
-                adv_low = gr.Checkbox(value=True,label='Tiết kiệm VRAM bằng CPU offload')
-                adv_button = gr.Button('SINH ẢNH AI NÂNG CAO',variant='primary')
-            with gr.Column():
-                adv_output = gr.Image(label='Kết quả',type='pil')
-                adv_metadata = gr.JSON(label='Thông số và trạng thái thực thi')
-                upscale_button = gr.Button('AI SUPER-RESOLUTION x4 (nguồn: ảnh kết quả)')
-                upscale_output = gr.Image(label='Kết quả AI x4',type='pil')
-                upscale_metadata = gr.JSON(label='Thông tin upscale')
-        def run_advanced(image, prompt, model, control, strength, steps, cfg, control_strength, seed, low):
-            from app.advanced import generate_advanced
-            try:
-                return generate_advanced(image,prompt,model,control,strength,steps,cfg,control_strength,int(seed),low)
-            except Exception as exc:
-                raise gr.Error(f'Pipeline nâng cao chưa chạy thành công: {type(exc).__name__}: {exc}') from exc
-        def run_upscale(image, prompt, seed, low):
-            from app.advanced import upscale_ai
-            try:
-                return upscale_ai(image,prompt,int(seed),low)
-            except Exception as exc:
-                raise gr.Error(f'AI upscale chưa chạy thành công: {type(exc).__name__}: {exc}') from exc
-        adv_button.click(run_advanced,inputs=[adv_input,adv_prompt,adv_model,adv_control,adv_strength,adv_steps,adv_cfg,adv_control_strength,adv_seed,adv_low],outputs=[adv_output,adv_metadata],concurrency_limit=1)
-        upscale_button.click(run_upscale,inputs=[adv_output,adv_prompt,adv_seed,adv_low],outputs=[upscale_output,upscale_metadata],concurrency_limit=1)
+                with gr.Tab("Ảnh nâng cao"):
+                    gr.Markdown('**Pipeline thật khi có checkpoint**: SDXL hoặc SD1.5; ControlNet Canny giữ cạnh hình; x4 diffusion upscale. Cần NVIDIA GPU và tải model riêng. Khả năng chạy phụ thuộc VRAM; không có bảo đảm chất lượng kỹ thuật/BIM.')
+                    with gr.Row():
+                        with gr.Column():
+                            adv_input = gr.Image(label='Ảnh gốc',type='pil')
+                            adv_prompt = gr.Textbox(label='Prompt kiến trúc',value=DEFAULT_PROMPT,lines=3)
+                            adv_model = gr.Radio(['SD 1.5','SDXL 1.0'],value='SD 1.5',label='Model nền')
+                            adv_control = gr.Checkbox(label='ControlNet Canny: giữ biên hình khối',value=False)
+                            adv_strength = gr.Slider(0.1,0.9,0.45,step=0.05,label='Mức thay đổi ảnh (strength)')
+                            adv_control_strength = gr.Slider(0,2,0.9,step=0.1,label='Độ mạnh ControlNet')
+                            adv_steps = gr.Slider(10,60,30,step=1,label='Số bước')
+                            adv_cfg = gr.Slider(1,15,6.5,step=0.5,label='CFG')
+                            adv_seed = gr.Number(value=42,precision=0,label='Seed')
+                            adv_low = gr.Checkbox(value=True,label='Tiết kiệm VRAM bằng CPU offload')
+                            adv_button = gr.Button('SINH ẢNH AI NÂNG CAO',variant='primary')
+                        with gr.Column():
+                            adv_output = gr.Image(label='Kết quả',type='pil')
+                            adv_metadata = gr.JSON(label='Thông số và trạng thái thực thi')
+                            upscale_button = gr.Button('AI SUPER-RESOLUTION x4 (nguồn: ảnh kết quả)')
+                            upscale_output = gr.Image(label='Kết quả AI x4',type='pil')
+                            upscale_metadata = gr.JSON(label='Thông tin upscale')
+                    def run_advanced(image, prompt, model, control, strength, steps, cfg, control_strength, seed, low):
+                        from app.advanced import generate_advanced
+                        try:
+                            return generate_advanced(image,prompt,model,control,strength,steps,cfg,control_strength,int(seed),low)
+                        except Exception as exc:
+                            raise gr.Error(f'Pipeline nâng cao chưa chạy thành công: {type(exc).__name__}: {exc}') from exc
+                    def run_upscale(image, prompt, seed, low):
+                        from app.advanced import upscale_ai
+                        try:
+                            return upscale_ai(image,prompt,int(seed),low)
+                        except Exception as exc:
+                            raise gr.Error(f'AI upscale chưa chạy thành công: {type(exc).__name__}: {exc}') from exc
+                    adv_button.click(run_advanced,inputs=[adv_input,adv_prompt,adv_model,adv_control,adv_strength,adv_steps,adv_cfg,adv_control_strength,adv_seed,adv_low],outputs=[adv_output,adv_metadata],concurrency_limit=1)
+                    upscale_button.click(run_upscale,inputs=[adv_output,adv_prompt,adv_seed,adv_low],outputs=[upscale_output,upscale_metadata],concurrency_limit=1)
                 with gr.Accordion('V84 · GIỮ CẤU TRÚC KIẾN TRÚC / EDGE CONTROL', open=False):
                     gr.Markdown('Tạo ảnh biên và gói dữ liệu tham chiếu cùng seed. '
                                 '**Đây chưa phải ControlNet đã chạy; không tự khẳng định hình học được bảo toàn.**')
@@ -635,9 +635,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     structure_export.click(save_structure,
                                            inputs=[structure_input, edge_threshold, structure_seed],
                                            outputs=[structure_file, structure_status])
-        with gr.Tab('02 · KIỂM TRA'):
+        with gr.Tab("02 · KIỂM TRA"):
             with gr.Tabs():
-                with gr.Tab('Ảnh đầu vào'):
+                with gr.Tab("Ảnh đầu vào"):
                 with gr.Accordion('V86 · KIỂM TRA ẢNH TRƯỚC KHI SINH / CPU GUARD', open=True):
                     gr.Markdown('**Bước kiểm soát chất lượng ảnh:** kiểm tra cạnh, tỷ lệ khung và cảnh báo board/collage. '
                                 'Kết quả là quy tắc kỹ thuật, không phải AI đã hiểu BIM.')
@@ -675,19 +675,19 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     compare_button.click(compare_and_export,
                                          inputs=[before_img, after_img, comparison_seed],
                                          outputs=[compare_preview, compare_report, compare_file])
-        gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')
-        inspect_image = gr.Image(label='Ảnh cần kiểm tra', type='pil', sources=['upload'])
-        inspect_button = gr.Button('Phân tích ảnh', variant='primary')
-        inspect_report = gr.JSON(label='Chỉ số và cảnh báo')
-        def inspect(image):
-            if image is None:
-                return {'error': 'Chưa tải ảnh'}
-            metrics = image_diagnostics(image)
-            return {'metrics':metrics,'review_flags':diagnostic_notes(metrics),
-                    'disclaimer':'Không đánh giá độ đẹp, tính chính xác BIM hay độ giống ảnh gốc'}
-        inspect_button.click(inspect,inputs=inspect_image,outputs=inspect_report)
-        gr.Markdown('Khi sinh ảnh, mỗi kết quả được lưu chỉ số vào `generation.json` trong ZIP kết quả để đối chiếu giữa các lần chạy.')
-                with gr.Tab('Mô hình BIM'):
+                    gr.Markdown('**Đây là chỉ số chẩn đoán tự động, không phải điểm đẹp hoặc xác minh thiết kế.** Giúp phát hiện ảnh quá tối, cháy sáng hay độ phân giải thấp.')
+                    inspect_image = gr.Image(label='Ảnh cần kiểm tra', type='pil', sources=['upload'])
+                    inspect_button = gr.Button('Phân tích ảnh', variant='primary')
+                    inspect_report = gr.JSON(label='Chỉ số và cảnh báo')
+                    def inspect(image):
+                        if image is None:
+                            return {'error': 'Chưa tải ảnh'}
+                        metrics = image_diagnostics(image)
+                        return {'metrics':metrics,'review_flags':diagnostic_notes(metrics),
+                                'disclaimer':'Không đánh giá độ đẹp, tính chính xác BIM hay độ giống ảnh gốc'}
+                    inspect_button.click(inspect,inputs=inspect_image,outputs=inspect_report)
+                    gr.Markdown('Khi sinh ảnh, mỗi kết quả được lưu chỉ số vào `generation.json` trong ZIP kết quả để đối chiếu giữa các lần chạy.')
+                with gr.Tab("Mô hình BIM"):
                 with gr.Accordion('BIMAI360 · KIỂM TRA FILE BÀN GIAO BIM', open=False):
                     gr.Markdown('Nạp **canonical_bim_handoff.json** để kiểm tra ID, tầng, host, '
                                 'tọa độ và ràng buộc 2D/3D. Kiểm tra dữ liệu, không biến ảnh thành IFC.')
@@ -714,50 +714,49 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                             return {'valid': False, 'reason': str(exc)[:250]}
                     bim_audit_button.click(inspect_bim_handoff, inputs=bim_audit_file,
                                            outputs=bim_audit_report)
-        gr.Markdown('**Có sự đồng ý của người dùng:** phản hồi được ghi chờ duyệt; không tự đưa ảnh xấu/ảnh sai vào huấn luyện. Kiểm BIM chỉ kiểm tra subset hình học có tọa độ mét, không xác nhận thiết kế kỹ thuật.')
-        with gr.Row():
-            with gr.Column():
-                fb_project = gr.Textbox(label='Mã công trình', placeholder='office_A01')
-                fb_hash = gr.Textbox(label='SHA256 ảnh đầu ra (64 ký tự hex)')
-                fb_rating = gr.Slider(1, 5, value=3, step=1, label='Chấm điểm 1–5')
-                fb_comment = gr.Textbox(label='Góp ý / lỗi hình học', lines=3)
-                fb_consent = gr.Checkbox(label='Đồng ý lưu phản hồi để con người xem xét', value=False)
-                fb_submit = gr.Button('GHI NHẬN PHẢN HỒI')
-                fb_result = gr.JSON(label='Trạng thái đánh giá')
-                def collect_feedback(project, image_hash, rating, comment, consent):
-                    from learning.core import append_feedback
-                    try:
-                        return append_feedback(ROOT/'feedback'/'review_queue.jsonl', {'project_id': project, 'output_sha256':image_hash, 'rating':int(rating), 'comment':comment, 'consent':consent})
-                    except ValueError as exc:
-                        return {'error':str(exc)}
-                fb_submit.click(collect_feedback, inputs=[fb_project, fb_hash, fb_rating, fb_comment, fb_consent], outputs=fb_result)
-            with gr.Column():
-                bim_json = gr.File(label='Tệp canonical BIM JSON', file_types=['.json'])
-                bim_button = gr.Button('KIỂM TRA HÌNH HỌC BIM')
-                bim_result = gr.JSON(label='Các lỗi nhận diện')
-                def check_bim_file(path):
-                    from learning.core import validate_bim
-                    if not path:
-                        return {'error':'Chưa có file BIM JSON'}
-                    try:
-                        return validate_bim(json.loads(Path(path).read_text(encoding='utf-8')))
-                    except (ValueError,OSError) as exc:
-                        return {'error':str(exc)}
-                bim_button.click(check_bim_file, inputs=bim_json, outputs=bim_result)
-                with gr.Tab('Chất lượng và giới hạn'):
-        gr.Markdown("""### Những gì ứng dụng thực sự làm
-        oncept theo ảnh tham chiếu bằng mô hình SD1.5 image-to-image.
-        ảnh cùng seed, mô tả, thông số, nguồn và trạng thái LoRA để tái lập.
-         độ sáng, tỷ lệ gần đen/trắng, độ tương phản và độ phân giải cho từng ảnh; chỉ là chẩn đoán, không phải AI chấm đẹp.
-        bằng Lanczos và làm nét truyền thống; **không** tăng chi tiết thực bằng AI super-resolution.
-         hoặc kiểm chứng mô hình BIM, kích thước kỹ thuật, mặt bằng hay số tầng.
-        p phụ thuộc ảnh huấn luyện, caption, GPU, mô hình nền và cách kiểm định; tăng steps không bảo đảm đẹp hơn.
-        bố LoRA đã huấn luyện nếu có checkpoint và hash khớp.""")
+                    gr.Markdown('**Có sự đồng ý của người dùng:** phản hồi được ghi chờ duyệt; không tự đưa ảnh xấu/ảnh sai vào huấn luyện. Kiểm BIM chỉ kiểm tra subset hình học có tọa độ mét, không xác nhận thiết kế kỹ thuật.')
+                    with gr.Row():
+                        with gr.Column():
+                            fb_project = gr.Textbox(label='Mã công trình', placeholder='office_A01')
+                            fb_hash = gr.Textbox(label='SHA256 ảnh đầu ra (64 ký tự hex)')
+                            fb_rating = gr.Slider(1, 5, value=3, step=1, label='Chấm điểm 1–5')
+                            fb_comment = gr.Textbox(label='Góp ý / lỗi hình học', lines=3)
+                            fb_consent = gr.Checkbox(label='Đồng ý lưu phản hồi để con người xem xét', value=False)
+                            fb_submit = gr.Button('GHI NHẬN PHẢN HỒI')
+                            fb_result = gr.JSON(label='Trạng thái đánh giá')
+                            def collect_feedback(project, image_hash, rating, comment, consent):
+                                from learning.core import append_feedback
+                                try:
+                                    return append_feedback(ROOT/'feedback'/'review_queue.jsonl', {'project_id': project, 'output_sha256':image_hash, 'rating':int(rating), 'comment':comment, 'consent':consent})
+                                except ValueError as exc:
+                                    return {'error':str(exc)}
+                            fb_submit.click(collect_feedback, inputs=[fb_project, fb_hash, fb_rating, fb_comment, fb_consent], outputs=fb_result)
+                        with gr.Column():
+                            bim_json = gr.File(label='Tệp canonical BIM JSON', file_types=['.json'])
+                            bim_button = gr.Button('KIỂM TRA HÌNH HỌC BIM')
+                            bim_result = gr.JSON(label='Các lỗi nhận diện')
+                            def check_bim_file(path):
+                                from learning.core import validate_bim
+                                if not path:
+                                    return {'error':'Chưa có file BIM JSON'}
+                                try:
+                                    return validate_bim(json.loads(Path(path).read_text(encoding='utf-8')))
+                                except (ValueError,OSError) as exc:
+                                    return {'error':str(exc)}
+                            bim_button.click(check_bim_file, inputs=bim_json, outputs=bim_result)
+                with gr.Tab("Chất lượng và giới hạn"):
+                    gr.Markdown("""### Những gì ứng dụng thực sự làm
+                    oncept theo ảnh tham chiếu bằng mô hình SD1.5 image-to-image.
+                    ảnh cùng seed, mô tả, thông số, nguồn và trạng thái LoRA để tái lập.
+                     độ sáng, tỷ lệ gần đen/trắng, độ tương phản và độ phân giải cho từng ảnh; chỉ là chẩn đoán, không phải AI chấm đẹp.
+                    bằng Lanczos và làm nét truyền thống; **không** tăng chi tiết thực bằng AI super-resolution.
+                     hoặc kiểm chứng mô hình BIM, kích thước kỹ thuật, mặt bằng hay số tầng.
+                    p phụ thuộc ảnh huấn luyện, caption, GPU, mô hình nền và cách kiểm định; tăng steps không bảo đảm đẹp hơn.
+                    bố LoRA đã huấn luyện nếu có checkpoint và hash khớp.""")
 
-        ='__main__':
-        with gr.Tab('03 · BÀN GIAO'):
+        with gr.Tab("03 · BÀN GIAO"):
             with gr.Tabs():
-                with gr.Tab('Trung tâm xuất file'):
+                with gr.Tab("Trung tâm xuất file"):
                     gr.Markdown('### Trung tâm xuất và nhận dữ liệu\nTệp đã tạo nằm trong thư mục **output/**; nút này chỉ hiển thị tệp sẵn có, không tạo kết quả giả.')
                     export_refresh = gr.Button('LÀM MỚI DANH SÁCH KẾT QUẢ')
                     export_items = gr.Dropdown(label='Tệp kết quả đã tạo', choices=[], interactive=True)
@@ -780,7 +779,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     export_refresh.click(list_existing_exports, outputs=export_items)
                     export_button.click(choose_existing_export, inputs=export_items, outputs=export_file)
 
-                with gr.Tab('Chuẩn bị dữ liệu BIM'):
+
+                with gr.Tab("Chuẩn bị bàn giao BIM"):
                 with gr.Accordion('V83 · CROP BOARD / CHUẨN PROMPT / BÀN GIAO BIM (một màn hình)', open=False):
                     gr.Markdown('**Tách ảnh board theo lưới do bạn chọn, xem trước, xuất ảnh tham chiếu và JSON cho BIM.** '
                                 'Không tự xóa logo/chữ, không đoán kích thước thực hoặc xuất IFC giả.')
@@ -841,9 +841,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                             raise gr.Error(str(exc)) from exc
                     handoff_button.click(handoff_export, inputs=[handoff_img, handoff_project, handoff_prompt, handoff_seed],
                                          outputs=[handoff_file, handoff_report])
-        with gr.Tab('04 · DỮ LIỆU'):
+        with gr.Tab("04 · DỮ LIỆU"):
             with gr.Tabs():
-                with gr.Tab('Nạp và xem ảnh'):
+                with gr.Tab("Nạp và xem ảnh"):
                 with gr.Accordion('NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET (chỉ thao tác tại đây)', open=True):
                     gr.Markdown('**1. Chọn ảnh → 2. Nhập mã công trình và mô tả → 3. Nhấn LƯU ẢNH → 4. XEM ẢNH.** '
                                 'Ảnh được lưu bên cạnh EXE; không tự huấn luyện, không yêu cầu tìm thư mục Windows.')
@@ -927,17 +927,17 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                     gr.Markdown('**Lưu ý:** Đây là bước thu thập và gán nhãn nháp. Để LoRA học thật cần duyệt dữ liệu, '
                                 'chia tập theo công trình và chạy bộ huấn luyện trên NVIDIA CUDA. '
                                 'Không tự động đưa ảnh mới vào model.')
-                with gr.Tab('Kiểm tra dữ liệu'):
-        gr.Markdown('Phát hiện ảnh trùng chính xác và ảnh gần trùng (perceptual hash), caption đơn điệu và cảnh báo nguy cơ overfit. Báo cáo dữ liệu không tự chứng minh mô hình tổng quát hóa.')
-        audit_button = gr.Button('KIỂM TRA DATASET ĐÃ CHUẨN BỊ')
-        audit_report = gr.JSON(label='Audit dataset/ prepared')
-        def audit_data():
-            from tools.audit_training import audit
-            return audit(ROOT/'dataset'/'prepared')
-        audit_button.click(audit_data,outputs=audit_report)
-        with gr.Tab('05 · ĐÀO TẠO'):
+                with gr.Tab("Kiểm tra dữ liệu"):
+                    gr.Markdown('Phát hiện ảnh trùng chính xác và ảnh gần trùng (perceptual hash), caption đơn điệu và cảnh báo nguy cơ overfit. Báo cáo dữ liệu không tự chứng minh mô hình tổng quát hóa.')
+                    audit_button = gr.Button('KIỂM TRA DATASET ĐÃ CHUẨN BỊ')
+                    audit_report = gr.JSON(label='Audit dataset/ prepared')
+                    def audit_data():
+                        from tools.audit_training import audit
+                        return audit(ROOT/'dataset'/'prepared')
+                    audit_button.click(audit_data,outputs=audit_report)
+        with gr.Tab("05 · ĐÀO TẠO"):
             with gr.Tabs():
-                with gr.Tab('Checkpoint LoRA'):
+                with gr.Tab("Checkpoint LoRA"):
                 with gr.Accordion('V83 · KIỂM TRA LO RA ĐÃ HUẤN LUYỆN THẬT', open=False):
                     gr.Markdown('**Nạp ảnh không có nghĩa mô hình đã học.** Chỉ công nhận checkpoint có trạng thái '
                                 'SUCCEEDED và SHA256/size đúng. LoRA SD1.5 hiện phải chạy huấn luyện bằng '
@@ -948,31 +948,31 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                         from app.lora_evidence import training_evidence
                         return training_evidence(ROOT)
                     lora_check_button.click(check_train_evidence, outputs=lora_check_report)
-                with gr.Tab('Môi trường AI'):
+                with gr.Tab("Môi trường AI"):
                 info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
                 check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
                 report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
                 check.click(preflight,outputs=report)
-        gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
-        gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
-        gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
-        readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
-        def inspect_readiness():
-            from app.cpu_readiness import inspect_local_assets
-            try:
-                import torch
-                has_cuda = torch.cuda.is_available()
-            except (ImportError, RuntimeError):
-                has_cuda = False
-            return inspect_local_assets(ROOT, cuda_available=has_cuda)
-        gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
-            inspect_readiness, outputs=readiness)
-        gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
-                    'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
-        gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
-        with gr.Tab('06 · TÀI KHOẢN'):
+                    gr.Markdown('Kiểm tra GPU, CUDA, thư viện và LoRA trước khi huấn luyện/sinh ảnh.')
+                    gr.Button('Kiểm tra lại môi trường').click(preflight,outputs=report)
+                    gr.Markdown('### V79 · Khả năng chạy trên CPU và model offline')
+                    readiness = gr.JSON(label='Kiểm tra model SD1.5, LoRA và cấu hình đề xuất')
+                    def inspect_readiness():
+                        from app.cpu_readiness import inspect_local_assets
+                        try:
+                            import torch
+                            has_cuda = torch.cuda.is_available()
+                        except (ImportError, RuntimeError):
+                            has_cuda = False
+                        return inspect_local_assets(ROOT, cuda_available=has_cuda)
+                    gr.Button('Kiểm tra tài nguyên cục bộ (không tải model)').click(
+                        inspect_readiness, outputs=readiness)
+                    gr.Markdown('Nếu chỉ có CPU: ưu tiên preset Xem nhanh, 15 bước, 1 ảnh; thời gian chạy phụ thuộc CPU. '
+                                'Model hợp lệ trong danh mục chưa chứng minh sinh ảnh thành công.')
+                    gr.Markdown('**LoRA:** chuẩn bị dữ liệu bằng `KIEM_TRA_DU_LIEU_WINDOWS.bat`, sau đó chạy `TRAIN_LORA_WINDOWS.bat` trên máy build có GPU NVIDIA đủ VRAM. Kết quả huấn luyện được xác minh SHA256.')
+        with gr.Tab("06 · TÀI KHOẢN"):
             with gr.Tabs():
-                with gr.Tab('Truy cập cục bộ'):
+                with gr.Tab("Truy cập cục bộ"):
                     gr.Markdown('### Truy cập nhanh trên máy này\n**Chế độ cục bộ** không cần mật khẩu; đây không phải tài khoản máy chủ. Không lưu mật khẩu trong EXE.')
                     profile_name = gr.Textbox(value='Người dùng cục bộ', label='Tên hiển thị')
                     profile_open = gr.Button('MỞ WORKSPACE TRÊN MÁY NÀY', variant='primary')
@@ -982,7 +982,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                         return save_local_profile(ROOT, name)
                     profile_open.click(open_local_workspace, inputs=profile_name, outputs=profile_status)
 
-                with gr.Tab('Nhật ký hoạt động'):
+
+                with gr.Tab("Nhật ký hoạt động"):
                     gr.Markdown('### Nhật ký trực tiếp · không chứa mật khẩu')
                     refresh_logs = gr.Button('LÀM MỚI LOG')
                     runtime_logs = gr.Textbox(label='Nhật ký gần nhất', lines=14, interactive=False)
@@ -991,6 +992,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V211 · Training & Architecture') 
                         return read_runtime_log(ROOT)
                     refresh_logs.click(load_runtime_logs, outputs=runtime_logs)
 
+
+
+if __name__ == '__main__':
     ui.queue(default_concurrency_limit=1,max_size=4).launch(
       server_name='127.0.0.1',server_port=7861,inbrowser=True,share=False,
       allowed_paths=[str(OUTPUT)])
