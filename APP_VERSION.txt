@@ -1,2 +1,2 @@
-TBT360 AI V83 – Architecture Crop, Prompt and BIM Handoff
-Inherits V78–V82; LoRA from user images NOT trained; IFC not generated.
+TBT360 AI V84 – Architectural Edge Control Reference and Handoff
+Baseline V78-V83 retained. No claim of trained LoRA or active ControlNet model.
