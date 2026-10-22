@@ -26,6 +26,10 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--diagnostics' in sys.argv:
+        from app.diagnostic_bundle import build_diagnostic_zip
+        print(build_diagnostic_zip(root), flush=True)
+        return 0
     if '--self-test' in sys.argv:
         from tools.runtime_diagnostics import diagnostic_report
         import json
