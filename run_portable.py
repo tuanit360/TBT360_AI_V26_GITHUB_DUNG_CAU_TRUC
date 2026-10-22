@@ -38,6 +38,18 @@ def main():
         return 0 if report['ok'] else 2
     for name in ('models', 'output', 'loras', 'dataset', 'logs'):
         (root / name).mkdir(parents=True, exist_ok=True)
+    import logging
+    from logging.handlers import RotatingFileHandler
+    runtime_logger = logging.getLogger('bimai360')
+    runtime_logger.setLevel(logging.INFO)
+    runtime_handler = RotatingFileHandler(
+        root / 'logs' / 'runtime_errors.log', maxBytes=512 * 1024,
+        backupCount=2, encoding='utf-8',
+    )
+    runtime_handler.setFormatter(logging.Formatter(
+        '%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+    ))
+    runtime_logger.addHandler(runtime_handler)
     from app.gradio_compat import install_boolean_schema_support
     install_boolean_schema_support()
     try:
