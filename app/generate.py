@@ -268,8 +268,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='TBT360 AI Studio V83 · Training & Architecture') as ui:
-    gr.Markdown('# TBT360 AI V83 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='TBT360 AI Studio V84 · Training & Architecture') as ui:
+    gr.Markdown('# TBT360 AI V84 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -426,6 +426,44 @@ with gr.Blocks(title='TBT360 AI Studio V83 · Training & Architecture') as ui:
             from app.lora_evidence import training_evidence
             return training_evidence(ROOT)
         lora_check_button.click(check_train_evidence, outputs=lora_check_report)
+    with gr.Accordion('V84 · GIỮ CẤU TRÚC KIẾN TRÚC / EDGE CONTROL', open=False):
+        gr.Markdown('Tạo ảnh biên và gói dữ liệu tham chiếu cùng seed. '
+                    '**Đây chưa phải ControlNet đã chạy; không tự khẳng định hình học được bảo toàn.**')
+        with gr.Row():
+            structure_input = gr.Image(label='Ảnh kiến trúc gốc', type='pil')
+            structure_output = gr.Image(label='Ảnh cạnh kiến trúc', type='pil', interactive=False)
+        with gr.Row():
+            edge_threshold = gr.Slider(10, 240, value=80, step=5, label='Ngưỡng phát hiện cạnh')
+            structure_seed = gr.Number(value=42, precision=0, label='Seed đối chiếu')
+        structure_preview = gr.Button('TẠO BIÊN THAM CHIẾU', variant='primary')
+        structure_export = gr.Button('XUẤT GÓI CONTROL + SEED')
+        structure_file = gr.File(label='Gói ZIP ảnh gốc, biên và manifest')
+        structure_status = gr.JSON(label='Kiểm tra cấu trúc')
+        def edge_preview(image, threshold):
+            from app.structure_guidance import structure_reference
+            try:
+                return structure_reference(image, threshold)
+            except ValueError as exc:
+                raise gr.Error(str(exc)) from exc
+        structure_preview.click(edge_preview, inputs=[structure_input, edge_threshold],
+                                outputs=structure_output)
+        def save_structure(image, threshold, seed):
+            from app.structure_guidance import export_structure_package
+            if image is None:
+                raise gr.Error('Nạp một ảnh để xuất cấu trúc')
+            folder = OUTPUT / ('control_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            try:
+                _, report = export_structure_package(image, folder, threshold, seed)
+                archive = str(folder) + '.zip'
+                with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output_zip:
+                    for path in sorted(folder.iterdir()):
+                        output_zip.write(path, path.name)
+                return archive, report
+            except (ValueError, OSError) as exc:
+                raise gr.Error(str(exc)) from exc
+        structure_export.click(save_structure,
+                               inputs=[structure_input, edge_threshold, structure_seed],
+                               outputs=[structure_file, structure_status])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
