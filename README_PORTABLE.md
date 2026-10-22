@@ -1,15 +1,15 @@
-# TBT360 AI V86 – Portable Windows x64
+# TBT360 AI V91 – Portable Windows x64
 
-## Run V86 without installing Python
-Extract the full V86 artifact `TBT360_AI_V86_PORTABLE_WINDOWS_X64_CPU.zip` into a new writable directory, such as `C:\\TBT360_AI_V86`. Do NOT launch from inside ZIP or copy the EXE alone.
-Double-click `TBT360_AI.exe` (or `START_V86_DIAGNOSTIC.bat` for persistent error logs).
+## Run V91 without installing Python
+Extract the full V91 artifact `TBT360_AI_V91_PORTABLE_WINDOWS_X64_CPU.zip` into a new writable directory, such as `C:\\TBT360_AI_V91`. Do NOT launch from inside ZIP or copy the EXE alone.
+Double-click `TBT360_AI.exe` (or `START_V91_DIAGNOSTIC.bat` for persistent error logs).
 The Gradio Studio opens at http://127.0.0.1:7861/ (local only, share=False).
 Do not reuse old V26/V78 folders to avoid mixing DLLs, data and scripts.
 
 ## One-screen training data intake
 Use `NẠP ẢNH HUẤN LUYỆN – IMPORT DATASET` at the top of the screen to select multiple images or a ZIP of images; select/enter the project ID and draft caption, then press **LƯU ẢNH** or **NẠP ẢNH TỪ ZIP**. The built-in gallery shows the saved images.
 
-To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V86 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V86_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
+To preload the user-supplied curated dataset, click the visible **NẠP BỘ DATASET V91 (GIỮ ĐÚNG TỪNG CÔNG TRÌNH)** button after choosing the separate `TBT360_AI_V91_ARCHITECTURAL_IMAGES_ALL_RASTER_PRELOADED.zip` in the ZIP selector. The app validates the pixel hashes and keeps the original seven image groups. Alternatively extract that data overlay into the EXE directory, preserving `dataset/raw/<project>/`. Click **XEM TẤT CẢ DATASET CÓ SẴN** to browse up to 80 images and see group counts. The 168 draft-labeled images are supplied separately in ChatGPT, not embedded in EXE / GitHub source because of size and provenance.
 Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
 
 ## Runtime and model limitations
@@ -19,16 +19,18 @@ Each record is marked `NEEDS_REVIEW`; importing data does not train AI.
 - The `--self-test` probes package imports, not real image generation. CI additionally launches the UI and checks localhost readiness.
 
 ## Diagnostics
-Run `START_V86_DIAGNOSTIC.bat` and send `logs/startup_console.log` / `logs/startup_error.log` on failure.
+Run `START_V91_DIAGNOSTIC.bat` and send `logs/startup_console.log` / `logs/startup_error.log` on failure.
 `manifest.json` and `SHA256SUMS.txt` allow verification of packaged file integrity.
 
 ## Smart ZIP Import
 Choose an image ZIP or V81 bundle; the new **NẠP ZIP TỰ ĐỘNG** control recognizes both and one-layer wrapped GitHub artifacts. An original RAR archive cannot be opened by this ZIP-only control. Importing does NOT initiate LoRA training. User images are a separate data overlay, not bundled in the portable executable.
 
-V86 adds crop-by-user-selected-grid, prompt composition and concept image+JSON handoff. It does not provide true BIM geometry, IFC, trained LoRA, or automatic semantic recognition. Use approved GPU training data for future verified fine-tune.
+V91 adds crop-by-user-selected-grid, prompt composition and concept image+JSON handoff. It does not provide true BIM geometry, IFC, trained LoRA, or automatic semantic recognition. Use approved GPU training data for future verified fine-tune.
 
-V86 adds local edge-control previews and reproducible source/control/seed bundle. This is preparation for ControlNet, not proof of ControlNet inference or verified BIM.
+V91 adds local edge-control previews and reproducible source/control/seed bundle. This is preparation for ControlNet, not proof of ControlNet inference or verified BIM.
 
-V86 adds before/after pixel and edge comparison, exports reproducible images, JSON and SHA256. Image-quality differences do not certify fidelity or BIM.
+V91 adds before/after pixel and edge comparison, exports reproducible images, JSON and SHA256. Image-quality differences do not certify fidelity or BIM.
 
-V86 adds architecture input preflight, collage-likelihood warnings, CPU setting advice and records review information in generation manifest. Preflight does not guarantee clean generations.
+V91 adds architecture input preflight, collage-likelihood warnings, CPU setting advice and records review information in generation manifest. Preflight does not guarantee clean generations.
+
+V87–V91 internal workstream: shared LoRA verification, data consistency, canonical BIM entity contract for 2D/3D, regression, Windows packaging. The conceptual BIM handoff has zero fabricated elements, IFC is not exported and AI training is not asserted.
