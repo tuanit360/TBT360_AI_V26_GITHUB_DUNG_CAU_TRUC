@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V166 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V166 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V171 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V171 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -570,6 +570,14 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V166 · Training & Architecture') 
                     json.dumps(model, ensure_ascii=False, indent=2), encoding='utf-8')
                 for file_name, contents in files.items():
                     (target / file_name).write_text(contents, encoding='utf-8')
+                from app.canonical_3d_export import export_wall_glb
+                wall_mesh = export_wall_glb(model, target / 'schematic_walls.glb')
+                (target / 'schematic_wall_id_mapping.json').write_text(
+                    json.dumps({'canonical_wall_entity_ids': wall_mesh['wall_entity_ids'],
+                                'geometry_source': wall_mesh['geometry_source'],
+                                'geometry_verified': wall_mesh['verified'],
+                                'triangle_count': len(wall_mesh['triangles'])},
+                               ensure_ascii=False, indent=2), encoding='utf-8')
                 archive_path = str(target) + '.zip'
                 with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
                     for path in sorted(target.iterdir()):
@@ -578,7 +586,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V166 · Training & Architecture') 
                     'entity_count': len(model['entities']), 'levels': len(model['levels']),
                     'model_checksum': canonical_checksum(model),
                     'source': 'explicit_user_constraints', 'ifc_export_ready': False,
-                    'limitations': 'Only empty rectangular building shell, not floorplan layout inferred from images',
+                    'limitations': 'Only user-dimensioned shell with real wall GLB, not floorplan inferred from images',
                 }
             except (ValueError, OSError) as exc:
                 raise gr.Error(str(exc)) from exc
