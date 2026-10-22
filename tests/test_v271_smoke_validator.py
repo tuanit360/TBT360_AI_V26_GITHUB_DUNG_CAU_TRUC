@@ -3,9 +3,11 @@ import hashlib
 import io
 import json
 import unittest
+from unittest.mock import patch
+import urllib.error
 import zipfile
 
-from tools.smoke_bim_ui import checked_download_url, verify_delivery
+from tools.smoke_bim_ui import checked_download_url, download_bim_archive, verify_delivery
 
 
 def make_archive(overrides=None):
@@ -104,6 +106,33 @@ class RealEXESmokeValidatorTests(unittest.TestCase):
         report = dict(self.report, ifc_export_ready=True)
         with self.assertRaisesRegex(AssertionError, 'IFC'):
             verify_delivery(report, make_archive())
+
+    def test_real_http_download_404_falls_back_to_gradio_api(self):
+        class DownloadResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, size):
+                return b'PK\\x03\\x04sample archive'
+
+        seen = []
+
+        def fake_urlopen(url, timeout):
+            seen.append(url)
+            if len(seen) == 1:
+                raise urllib.error.HTTPError(url, 404, 'Not Found', {}, None)
+            return DownloadResponse()
+
+        with patch('tools.smoke_bim_ui.urllib.request.urlopen', side_effect=fake_urlopen):
+            payload = download_bim_archive({
+                'url': '/file=/tmp/test.zip',
+                'path': '/tmp/test.zip',
+            })
+        self.assertTrue(payload.startswith(b'PK'))
+        self.assertTrue(any('/gradio_api/file=' in url for url in seen))
 
     def test_only_local_file_endpoint_is_accepted(self):
         self.assertEqual(
