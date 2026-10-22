@@ -325,7 +325,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                             if os.environ.get('TBT360_OFFLINE') == '1':
                                 from app.cpu_readiness import inspect_local_assets
                                 readiness = inspect_local_assets(ROOT)
-                                if not readiness['model_valid_index']:
+                                if not readiness['model_files_complete']:
                                     record_operation(ROOT, 'generate', 'blocked_missing_model')
                                     return (
                                         [],
@@ -341,7 +341,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                             if os.environ.get('TBT360_OFFLINE') != '1':
                                 from app.cpu_readiness import inspect_local_assets
                                 model_check = inspect_local_assets(ROOT)
-                                if not model_check['model_valid_index']:
+                                if not model_check['model_files_complete']:
                                     record_operation(ROOT, 'generate', 'blocked_missing_model')
                                     return (
                                         [],
