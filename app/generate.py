@@ -255,8 +255,8 @@ def machine_info():
         return f'Chưa thiết lập PyTorch: {exc}'
 
 
-with gr.Blocks(title='BIM AI Kiến Trúc 360 V141 · Training & Architecture') as ui:
-    gr.Markdown('# BIM AI Kiến Trúc 360 V141 · Kiến trúc, dữ liệu & chuyển giao BIM')
+with gr.Blocks(title='BIM AI Kiến Trúc 360 V146 · Training & Architecture') as ui:
+    gr.Markdown('# BIM AI Kiến Trúc 360 V146 · Kiến trúc, dữ liệu & chuyển giao BIM')
     gr.Markdown('**Ảnh tham chiếu → nhiều phương án concept; ưu tiên nhất quán, kiểm soát VRAM và xuất kết quả có thể tái lập.** '
       'Không đăng nhập. Không cần BIM. Lần đầu cần tải mô hình qua Internet. '
       '**LoRA chỉ được coi là đã huấn luyện riêng sau khi chạy TRAIN_LORA_WINDOWS.bat thành công.**')
@@ -624,6 +624,30 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V141 · Training & Architecture') 
                 raise gr.Error(str(exc)) from exc
         zone_button.click(export_zoning, inputs=[zone_project, zone_width, zone_depth, zone_height],
                           outputs=[zone_file, zone_report])
+    with gr.Accordion('BIMAI360 · THỬ NGHIỆM AI NHẬN DIỆN KIẾN TRÚC (VLM)', open=False):
+        gr.Markdown('Chỉ chạy khi bạn có **checkpoint VLM tương thích lưu trên máy và GPU CUDA**. '
+                    'Đây là suy luận hình ảnh thực, không phải tạo BIM/IFC và chưa có model huấn luyện sẵn.')
+        with gr.Row():
+            vlm_image = gr.Image(type='pil', label='Ảnh phối cảnh')
+            with gr.Column():
+                vlm_project = gr.Textbox(value='office_146', label='Mã công trình')
+                vlm_model_path = gr.Textbox(label='Thư mục checkpoint VLM trên máy',
+                                             placeholder='models/architecture_vlm')
+                vlm_button = gr.Button('CHẠY VLM THẬT / XUẤT JSON')
+        vlm_report = gr.JSON(label='Quan sát và độ xác minh')
+        vlm_file = gr.File(label='Tải kết quả suy luận JSON')
+        def run_architecture_vlm(image, model_path, project):
+            from app.architecture_vlm import infer_architecture
+            try:
+                observation = infer_architecture(image, model_path, project)
+                output_path = OUTPUT / ('vlm_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+                output_path.write_text(json.dumps(observation, ensure_ascii=False, indent=2), encoding='utf-8')
+                return observation, str(output_path)
+            except (OSError, ValueError, RuntimeError, ImportError) as exc:
+                raise gr.Error(str(exc)[:400]) from exc
+        vlm_button.click(run_architecture_vlm,
+                         inputs=[vlm_image, vlm_model_path, vlm_project],
+                         outputs=[vlm_report, vlm_file])
     info=gr.Textbox(value=machine_info,label='Cấu hình máy',interactive=False)
     check=gr.Button('KIỂM TRA MÔI TRƯỜNG / LoRA')
     report=gr.Textbox(label='Báo cáo tiền kiểm',lines=5,interactive=False)
