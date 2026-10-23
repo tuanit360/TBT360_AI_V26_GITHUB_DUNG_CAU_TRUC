@@ -271,6 +271,25 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                     with gr.Row():
                         with gr.Column(scale=1, min_width=360):
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
+                            check_reference_button = gr.Button('KIỂM TRA ẢNH ĐẦU VÀO (KHÔNG CẦN AI)')
+                            reference_check_status = gr.Textbox(
+                                label='Kết quả kiểm tra ảnh đầu vào',
+                                interactive=False,
+                            )
+                            reference_check_preview = gr.Image(
+                                label='Ảnh kiểm tra đọc được',
+                                interactive=False,
+                                type='pil',
+                            )
+                            def check_reference_image(image):
+                                from app.reference_image_check import inspect_reference_image
+                                return inspect_reference_image(image)
+                            check_reference_button.click(
+                                check_reference_image,
+                                inputs=reference,
+                                outputs=[reference_check_preview, reference_check_status],
+                                api_name='kiem_tra_anh_dau_vao',
+                            )
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 value='Contemporary office building, dark vertical facade fins, rooftop garden, urban corner site, realistic architectural visualization, daylight',
                                 placeholder='Nhập mô tả phương án hoặc chọn nội dung mẫu')
