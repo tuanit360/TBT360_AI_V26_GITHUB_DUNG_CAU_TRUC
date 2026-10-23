@@ -392,48 +392,26 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                     gr.Markdown('**Máy GPU nhỏ:** mặc định xem nhanh 1 phương án, 15 bước. Chế độ tiết kiệm bộ nhớ có thể xử lý chậm; muốn nhanh hơn cần GPU đủ bộ nhớ để chạy trực tiếp. Ảnh đầu ra chỉ được chấp nhận nếu qua kiểm tra chất lượng.')
                     preset.change(apply_preset,inputs=preset,outputs=[steps,guidance,preserve,count])
                     def create_with_feedback(*arguments, progress=gr.Progress()):
-                        from app.generation_failures import explain_generation_failure
-                        from app.local_workspace import record_operation
-                        import logging
-                        record_operation(ROOT, 'generate', 'started')
-                        try:
-                            if os.environ.get('TBT360_OFFLINE') == '1':
-                                from app.cpu_readiness import inspect_local_assets
-                                readiness = inspect_local_assets(ROOT)
-                                if not readiness['model_files_complete']:
-                                    record_operation(ROOT, 'generate', 'blocked_missing_model')
-                                    return (
-                                        '<p>Chưa thể tạo ảnh. Xem trạng thái model.</p>',
-                                        None,
-                                        'CHƯA THỂ SINH ẢNH: Thiếu checkpoint SD1.5 '
-                                        'cục bộ hợp lệ. Mở 05 · ĐÀO TẠO → '
-                                        'Môi trường AI hoặc bấm KIỂM TRA GPU / '
-                                        'MODEL TRƯỚC KHI TẠO. Cài checkpoint '
-                                        'Diffusers hợp lệ vào models/sd15 rồi '
-                                        'thử lại. Ảnh tham chiếu không phải '
-                                        'ảnh AI đầu ra.',
-                                    )
-                            result = create(*arguments, progress=progress)
-                            record_operation(ROOT, 'generate', 'completed')
-                            from app.diagnostic_image_render import render_image_gallery
-                            images, archive, message = result
-                            return render_image_gallery(images), archive, message
-                        except Exception as exc:
-                            record_operation(ROOT, 'generate', 'failed')
-                            logging.getLogger('bimai360').exception(
-                                'Sinh ảnh thất bại tại callback; loại lỗi: %s',
-                                type(exc).__name__,
-                            )
-                            return (
-                                '<p>Không sinh được ảnh; xem thông báo.</p>',
-                                None,
-                                'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: '
-                                + explain_generation_failure(exc),
-                            )
-                    start.click(create_with_feedback,
-                        inputs=[reference,brief,preserve,steps,count,seed,aspect,fit_mode,memory_mode,lora_name,
-                            style,guidance,scale,sharpness],
-                        outputs=[gallery,export,status],concurrency_limit=1,show_progress='full')
+                        from app.image_generation_contract import image_generation_contract
+                        from app.cpu_readiness import inspect_local_assets
+                        offline = os.environ.get('TBT360_OFFLINE') == '1'
+                        readiness = inspect_local_assets(ROOT) if offline else None
+                        return image_generation_contract(
+                            ROOT, create, arguments,
+                            progress=progress, offline=offline,
+                            readiness=readiness,
+                        )
+                    start.click(
+                        create_with_feedback,
+                        inputs=[
+                            reference, brief, preserve, steps, count, seed,
+                            aspect, fit_mode, memory_mode, lora_name, style,
+                            guidance, scale, sharpness,
+                        ],
+                        outputs=[gallery, export, status, image_debug_log],
+                        concurrency_limit=1,
+                        show_progress='full',
+                    )
                 with gr.Tab("Mô hình 2D / 3D"):
                     with gr.Accordion('BIMAI360 · TẠO MẶT BẰNG / MẶT ĐỨNG SƠ BỘ TỪ KÍCH THƯỚC', open=True):
                         gr.Markdown('Tạo vỏ công trình chữ nhật từ kích thước **bạn nhập**, cùng ID tường và tầng cho BIM. '
