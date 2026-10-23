@@ -54,6 +54,20 @@ class V271TrainingLeakageTests(unittest.TestCase):
         self.assertEqual(report['status'], 'SPLIT_VALID_NOT_TRAINED')
         self.assertFalse(report['cross_split_pixel_duplicates'])
 
+    def test_different_brightness_flat_images_not_false_duplicate(self):
+        first = check_training_leakage(self.manifest, self.root)
+        train_project = first['train_projects'][0]
+        validation_project = first['validation_projects'][0]
+        Image.new('RGB', (80, 64), (30, 30, 30)).save(
+            self.root / f'{train_project}.png'
+        )
+        Image.new('RGB', (80, 64), (220, 220, 220)).save(
+            self.root / f'{validation_project}.png'
+        )
+        report = check_training_leakage(self.manifest, self.root)
+        self.assertEqual(report['status'], 'SPLIT_VALID_NOT_TRAINED')
+        self.assertFalse(report['cross_split_near_duplicates'])
+
     def test_same_pixels_with_different_png_metadata_are_blocked(self):
         first = check_training_leakage(self.manifest, self.root)
         train_project = first['train_projects'][0]
