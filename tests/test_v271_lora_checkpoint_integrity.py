@@ -44,6 +44,28 @@ class V271AdapterIntegrityTests(unittest.TestCase):
         self.write_status(save({'x.lora_down.weight': torch.ones((2, 2))}))
         self.assertFalse(validate_adapter(self.folder)['valid'])
 
+    def test_mismatched_lora_ranks_are_rejected(self):
+        import torch
+        from safetensors.torch import save
+        data = save({
+            'module.lora_down.weight': torch.ones((3, 8)),
+            'module.lora_up.weight': torch.ones((12, 2)),
+        })
+        self.write_status(data, tensor_count=2)
+        result = validate_adapter(self.folder)
+        self.assertFalse(result['valid'])
+        self.assertIn('shapes', result['reason'])
+
+    def test_matching_nonsquare_lora_factors_accepted(self):
+        import torch
+        from safetensors.torch import save
+        data = save({
+            'module.lora_down.weight': torch.ones((3, 8)),
+            'module.lora_up.weight': torch.ones((12, 3)),
+        })
+        self.write_status(data, tensor_count=2)
+        self.assertTrue(validate_adapter(self.folder)['valid'])
+
     def test_real_tensor_file_and_count_verified(self):
         import torch
         from safetensors.torch import save
