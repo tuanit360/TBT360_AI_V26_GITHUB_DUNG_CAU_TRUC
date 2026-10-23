@@ -72,6 +72,7 @@ def main():
     shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
     shutil.copy2(ROOT / 'START_BIMAI360_DIAGNOSTIC.bat', target / 'START_BIMAI360_DIAGNOSTIC.bat')
     shutil.copy2(ROOT / 'XUAT_LOG_CHAN_DOAN.bat', target / 'XUAT_LOG_CHAN_DOAN.bat')
+    shutil.copy2(ROOT / 'MO_LOG_KHONG_CAN_UI.bat', target / 'MO_LOG_KHONG_CAN_UI.bat')
     shutil.copy2(ROOT / 'KIEM_TRA_GPU_MODEL.bat', target / 'KIEM_TRA_GPU_MODEL.bat')
     shutil.copy2(ROOT / 'VERIFY_SHA256_WINDOWS.ps1', target / 'VERIFY_SHA256_WINDOWS.ps1')
     shutil.copy2(ROOT / 'CHAY_OFFLINE_WINDOWS.bat', target / 'CHAY_OFFLINE_WINDOWS.bat')
