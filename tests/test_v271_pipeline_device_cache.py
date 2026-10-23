@@ -15,7 +15,7 @@ class DeviceCacheRegressionTests(unittest.TestCase):
     def test_lora_state_follows_pipeline_device(self):
         source = (Path(__file__).resolve().parents[1] / 'app' /
                   'generate.py').read_text(encoding='utf-8')
-        self.assertIn('device_key = (memory_mode, str(pipe.device))', source)
+        self.assertIn('device_key = id(pipe)', source)
         self.assertIn('ACTIVE_LORA[device_key] = adapter_name', source)
 
 
