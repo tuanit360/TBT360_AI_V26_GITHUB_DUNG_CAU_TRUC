@@ -117,25 +117,7 @@ jobs:
         run: |
           if (!(Test-Path 'BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip')) { throw 'Portable ZIP missing' }
           python -m tools.verify_portable dist/BIMAI360
-          @'
-import pathlib
-import tempfile
-import zipfile
-from tools.verify_portable import verify, verify_release_structure
-
-archive = pathlib.Path('BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip')
-with zipfile.ZipFile(archive) as bundle:
-    with tempfile.TemporaryDirectory() as directory:
-        folder = pathlib.Path(directory)
-        bundle.extractall(folder)
-        root = folder / 'BIMAI360'
-        problems = verify(root) + verify_release_structure(root)
-        if problems:
-            raise SystemExit('Extracted Portable failed verification: ' + repr(problems))
-        if not (root / 'BIMAI360.exe').is_file():
-            raise SystemExit('Extracted Portable does not include BIMAI360.exe')
-        print('PASS: extracted ZIP checksum, executable and launcher structure')
-'@ | python -
+          python -c "import pathlib,tempfile,zipfile; from tools.verify_portable import verify,verify_release_structure; archive=pathlib.Path('BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip'); t=tempfile.TemporaryDirectory(); zipfile.ZipFile(archive).extractall(t.name); root=pathlib.Path(t.name)/'BIMAI360'; issues=verify(root)+verify_release_structure(root); print('EXTRACTED ZIP VERIFY:',issues or 'PASS'); assert not issues,issues; assert (root/'BIMAI360.exe').is_file(); t.cleanup()"
           if ($LASTEXITCODE -ne 0) { throw 'Extracted Portable verification failed' }
           Get-FileHash BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
