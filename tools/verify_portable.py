@@ -9,6 +9,24 @@ def verify(root):
     root = Path(root)
     manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
     failures = []
+    required = (
+        'BIMAI360.exe',
+        'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+        'MO_LOG_KHONG_CAN_UI.bat',
+        'README_PORTABLE.md',
+    )
+    for filename in required:
+        if not (root / filename).is_file():
+            failures.append(f'Portable missing required entry point: {filename}')
+    allowed_bats = {
+        'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+        'MO_LOG_KHONG_CAN_UI.bat',
+    }
+    for script in root.glob('*.bat'):
+        if script.name not in allowed_bats:
+            failures.append(f'Obsolete script shipped: {script.name}')
+    if not (root / 'manifest.json').is_file():
+        return failures + ['Missing manifest.json']
     for name, record in manifest['files'].items():
         candidate = (root / name).resolve()
         if not candidate.is_relative_to(root.resolve()):
