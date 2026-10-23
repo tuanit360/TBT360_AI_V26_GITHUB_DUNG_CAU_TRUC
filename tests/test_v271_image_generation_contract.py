@@ -48,6 +48,22 @@ class ImageGenerationContractTests(unittest.TestCase):
             self.assertIsNone(result[1])
             self.assertIn('FAIL', result[3])
 
+    def test_missing_image_in_zip_fails_without_false_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / 'render.png'
+            Image.new('RGB', (128, 96)).save(image_path)
+            archive = Path(directory) / 'incomplete.zip'
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                bundle.writestr('different.png', b'not image')
+            def generated(*args, **kwargs):
+                return [(str(image_path), 'Ảnh thử')], str(archive), 'Đã tạo'
+            with patch('app.local_workspace.record_operation'), patch(
+                'app.image_generation_contract.logging.getLogger'
+            ):
+                result = image_generation_contract(directory, generated, ())
+            self.assertIsNone(result[1])
+            self.assertIn('FAIL', result[3])
+
     def test_success_renders_image_and_keeps_zip(self):
         with tempfile.TemporaryDirectory() as directory:
             image_path = Path(directory) / 'render.png'
