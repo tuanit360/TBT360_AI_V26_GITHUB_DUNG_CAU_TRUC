@@ -20,11 +20,13 @@ CACHE = ROOT / 'models'
 OUTPUT.mkdir(exist_ok=True)
 CACHE.mkdir(exist_ok=True)
 MODEL_ID = str(ROOT / 'models' / 'sd15') if (ROOT / 'models' / 'sd15' / 'model_index.json').is_file() else 'stable-diffusion-v1-5/stable-diffusion-v1-5'
-DEFAULT_PROMPT = ('professional architectural photography, contemporary office building, '
-    'realistic facade design, coherent windows and volumes, sustainable architecture, '
-    'detailed materials, high quality architectural visualization')
+DEFAULT_PROMPT = ('professional architectural photography, physically plausible building geometry, '
+    'straight vertical walls, consistent floor heights and window spacing, '
+    'aligned facade grid, realistic materials and scale, natural daylight, '
+    'detailed architecture, crisp but natural architectural visualization')
 NEGATIVE = ('watermark, text, captions, logo, oversaturated, low quality, '
-    'crooked lines, warped perspective, blurry facade, duplicated buildings')
+    'crooked lines, warped perspective, distorted window grids, duplicate floors, '
+    'floating stairs, blurry facade, duplicated buildings, oversharpening halos')
 PIPELINES = {}
 GPU_DISABLED_FOR_SESSION = False
 ACTIVE_LORA = {}
@@ -60,8 +62,10 @@ def postprocess_image(image, scale, sharpness):
             Image.Resampling.LANCZOS,
         )
     if float(sharpness) > 0:
+        # Light edge enhancement only: repeated strong sharpening creates
+        # false facade edges and halos around window grids.
         result = result.filter(ImageFilter.UnsharpMask(
-            radius=1.2, percent=int(75 * float(sharpness)), threshold=3))
+            radius=0.9, percent=int(45 * float(sharpness)), threshold=4))
     return result
 
 
