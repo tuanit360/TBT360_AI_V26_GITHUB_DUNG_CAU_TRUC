@@ -98,6 +98,8 @@ class V271EvidenceVerificationTests(unittest.TestCase):
             record = {
                 'status': 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED',
                 'generation_mode': 'img2img',
+                'steps': 4,
+                'strength': 0.5,
                 'reference_image': str(source),
                 'reference_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
                 'reference_geometry_verified': False,
@@ -112,6 +114,14 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 verify_inference_evidence(report_path, image_path)['status'],
                 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN',
             )
+            record['strength'] = 0.1
+            report_path.write_text(json.dumps(record), encoding='utf-8')
+            self.assertEqual(
+                verify_inference_evidence(report_path, image_path)['status'],
+                'BLOCKED',
+            )
+            record['strength'] = 0.5
+            report_path.write_text(json.dumps(record), encoding='utf-8')
             source.write_bytes(b'modified reference')
             self.assertEqual(
                 verify_inference_evidence(report_path, image_path)['status'],
