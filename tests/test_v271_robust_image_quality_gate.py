@@ -20,6 +20,24 @@ class V271ImageQualityGateTests(unittest.TestCase):
         self.assertGreaterEqual(evidence['robust_luminance_range'], 5)
         self.assertFalse(evidence['visual_design_verified'])
 
+    def test_upscaled_output_wrong_size_is_rejected(self):
+        generated = Image.new('RGB', (512, 512), (110, 120, 130))
+        ImageDraw.Draw(generated).rectangle(
+            (80, 80, 430, 430), fill=(190, 200, 210)
+        )
+        with self.assertRaisesRegex(ValueError, 'requested export dimensions'):
+            validate_generated_image(generated, expected_size=(1024, 1024))
+
+    def test_upscaled_output_correct_size_is_accepted(self):
+        generated = Image.new('RGB', (1024, 1024), (110, 120, 130))
+        ImageDraw.Draw(generated).rectangle(
+            (120, 120, 830, 830), fill=(190, 200, 210)
+        )
+        evidence = validate_generated_image(
+            generated, expected_size=(1024, 1024)
+        )
+        self.assertEqual(evidence['width'], 1024)
+
     def test_wrong_dimensions_are_rejected(self):
         generated = Image.new('RGB', (512, 512), (100, 120, 130))
         ImageDraw.Draw(generated).rectangle((50, 50, 450, 450), fill=(190, 200, 210))
