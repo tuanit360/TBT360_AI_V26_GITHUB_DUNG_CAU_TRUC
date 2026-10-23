@@ -53,14 +53,14 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         image_evidence = validate_generated_image(generated, expected_size=(512, 512))
         output.parent.mkdir(parents=True, exist_ok=True)
         # Do not leave incomplete outputs claiming a successful inference.
-        with output.open('xb') as stream:
-            try:
+        try:
+            with output.open('xb') as stream:
                 generated.save(stream, format='PNG')
-            except Exception:
-                output.unlink(missing_ok=True)
-                raise
-        with Image.open(output) as verified:
-            verified.verify()
+            with Image.open(output) as verified:
+                verified.verify()
+        except Exception:
+            output.unlink(missing_ok=True)
+            raise
     finally:
         del pipeline
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
