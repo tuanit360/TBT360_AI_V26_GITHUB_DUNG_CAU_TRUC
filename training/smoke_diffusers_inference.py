@@ -53,9 +53,17 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         image_evidence = validate_generated_image(generated, expected_size=(512, 512))
         output.parent.mkdir(parents=True, exist_ok=True)
         # Do not leave incomplete outputs claiming a successful inference.
-        try:
-            with output.open('xb') as stream:
+        # Exclusive creation must happen outside cleanup handling: if another
+        # process created the destination meanwhile, never delete its file.
+        with output.open('xb') as stream:
+            try:
                 generated.save(stream, format='PNG')
+            except Exception:
+                # On Windows the handle must be closed before unlinking.
+                stream.close()
+                output.unlink(missing_ok=True)
+                raise
+        try:
             with Image.open(output) as verified:
                 verified.verify()
         except Exception:
