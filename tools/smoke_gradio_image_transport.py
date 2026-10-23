@@ -46,7 +46,7 @@ def check_image_transport():
         try:
             with urllib.request.urlopen(url, timeout=30) as response:
                 data = response.read(32)
-            if data[:8] == b'\\x89PNG\\r\\n\\x1a\\n':
+            if data[:8] == bytes.fromhex('89504e470d0a1a0a'):
                 header = data
                 break
             failures.append('not PNG')
