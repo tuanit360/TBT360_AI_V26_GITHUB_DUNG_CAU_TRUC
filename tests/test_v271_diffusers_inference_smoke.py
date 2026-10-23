@@ -53,6 +53,26 @@ class InferenceSafetyTests(unittest.TestCase):
             self.assertEqual(report.read_text(encoding='utf-8'),
                              'previous verified evidence')
 
+    def test_missing_img2img_reference_fails_before_loading_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            reference = Path(temp) / 'missing.png'
+            with self.assertRaises(FileNotFoundError):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'out.png', reference=reference,
+                )
+
+    def test_tiny_img2img_reference_is_rejected(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as temp:
+            reference = Path(temp) / 'tiny.png'
+            Image.new('RGB', (32, 32), 'white').save(reference)
+            with self.assertRaisesRegex(ValueError, 'too small'):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'out.png', reference=reference,
+                )
+
     def test_invalid_img2img_strength_fails_before_model_load(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'strength'):
