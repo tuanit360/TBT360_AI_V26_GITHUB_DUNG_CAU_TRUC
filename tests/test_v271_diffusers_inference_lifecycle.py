@@ -106,6 +106,49 @@ class InferenceLifecycleTests(unittest.TestCase):
                     self.invoke(folder, image)
             self.assertFalse((folder / 'result.png').exists())
 
+    def test_img2img_mock_pipeline_preserves_reference_provenance(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            reference = folder / 'reference.png'
+            Image.new('RGB', (640, 480), 'white').save(reference)
+            original_hash = hashlib.sha256(reference.read_bytes()).hexdigest()
+            output = folder / 'output.png'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            pipeline = StubPipeline(image)
+            stub = types.ModuleType('diffusers')
+            stub.StableDiffusionPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: self.fail(
+                    'text2img pipeline must not be used for reference input'
+                )
+            )
+            stub.StableDiffusionImg2ImgPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: pipeline
+            )
+            with patch.dict(sys.modules, {'diffusers': stub}):
+                with patch(
+                    'app.lora_validation.validate_adapter',
+                    return_value={'valid': True, 'sha256': 'fixture-hash'},
+                ):
+                    result = infer(
+                        folder / 'adapter', 'mock-model-not-real', output,
+                        reference=reference, strength=0.5, steps=4,
+                    )
+            self.assertEqual(result['generation_mode'], 'img2img')
+            self.assertEqual(result['reference_sha256'], original_hash)
+            self.assertEqual(result['reference_image'], str(reference.resolve()))
+            self.assertFalse(result['reference_geometry_verified'])
+            self.assertEqual(result['strength'], 0.5)
+            self.assertEqual(
+                hashlib.sha256(output.read_bytes()).hexdigest(),
+                result['image_sha256'],
+            )
+            self.assertEqual(hashlib.sha256(reference.read_bytes()).hexdigest(),
+                             original_hash)
+
     def test_reference_modified_during_inference_blocks_output(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
