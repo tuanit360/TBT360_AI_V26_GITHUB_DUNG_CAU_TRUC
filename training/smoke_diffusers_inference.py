@@ -30,6 +30,7 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     if device not in ('cpu', 'cuda'):
         raise ValueError('Unsupported device')
     import torch
+    from PIL import Image
     from diffusers import StableDiffusionPipeline
 
     if device == 'cuda' and not torch.cuda.is_available():
@@ -48,10 +49,18 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             prompt=prompt, num_inference_steps=steps, generator=generator,
             width=512, height=512,
         ).images[0]
-        if generated.size != (512, 512):
-            raise RuntimeError('Unexpected generated image size')
+        from app.generated_image_gate import validate_generated_image
+        image_evidence = validate_generated_image(generated, expected_size=(512, 512))
         output.parent.mkdir(parents=True, exist_ok=True)
-        generated.save(output, format='PNG')
+        # Do not leave incomplete outputs claiming a successful inference.
+        with output.open('xb') as stream:
+            try:
+                generated.save(stream, format='PNG')
+            except Exception:
+                output.unlink(missing_ok=True)
+                raise
+        with Image.open(output) as verified:
+            verified.verify()
     finally:
         del pipeline
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
@@ -66,6 +75,7 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         'steps': steps,
         'device': device,
         'quality_evaluated': False,
+        'basic_image_gate': image_evidence,
     }
 
 
