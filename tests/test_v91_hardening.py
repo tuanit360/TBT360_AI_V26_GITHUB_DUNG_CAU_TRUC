@@ -45,7 +45,9 @@ class V91HardeningTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / 'architecture_v91'
             folder.mkdir()
-            payload = b'test-weights-not-an-actual-model'
+            import torch
+            from safetensors.torch import save
+            payload = save({'lora_unet_weight': torch.ones((2, 2))})
             (folder / 'pytorch_lora_weights.safetensors').write_bytes(payload)
             status = {'status': 'SUCCEEDED', 'weights_bytes': len(payload),
                       'weights_sha256': hashlib.sha256(payload).hexdigest()}
