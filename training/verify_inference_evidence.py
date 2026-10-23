@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from PIL import Image
@@ -53,10 +54,14 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
             source = Path(source_name)
             if not source.is_file():
                 raise ValueError('Reference must be a regular file')
-            if not 0 < record.get('strength', 0) <= 1:
+            strength = record.get('strength')
+            steps = record.get('steps')
+            if (type(strength) not in (float, int) or
+                    not math.isfinite(strength) or not 0 < strength <= 1):
                 raise ValueError('Invalid image-to-image strength')
-            if not isinstance(record.get('steps'), int) or int(record['steps'] * record['strength']) < 1:
-                raise ValueError('Image-to-image evidence has zero effective denoising steps')
+            if (type(steps) is not int or not 1 <= steps <= 100 or
+                    int(steps * strength) < 1):
+                raise ValueError('Invalid image-to-image denoising steps')
             with source.open('rb') as stream:
                 source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
             if source_digest != record.get('reference_sha256'):
