@@ -18,6 +18,15 @@ class DiffusersLoadSmokeTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'structural gate'):
                     smoke_load(folder, 'not-a-real-model')
 
+    def test_missing_model_identifier_is_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / 'named_adapter'
+            folder.mkdir()
+            with patch('training.smoke_diffusers_lora.validate_adapter',
+                       return_value={'valid': True, 'sha256': 'test'}):
+                with self.assertRaisesRegex(ValueError, 'base model'):
+                    smoke_load(folder, '  ', 'cpu')
+
     def test_invalid_device_rejected_before_model_loading(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / 'named_adapter'
