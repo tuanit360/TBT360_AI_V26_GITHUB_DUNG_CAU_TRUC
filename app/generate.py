@@ -221,8 +221,10 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
             return generated, str(archive_path), status
         except torch.cuda.OutOfMemoryError as exc:
             raise gr.Error('Không đủ VRAM. Hãy chọn Tiết kiệm VRAM tối đa, 1 phương án, 10–15 bước, và đóng các ứng dụng GPU khác.') from exc
-        except Exception as exc:
-            raise gr.Error(f'Không tạo được ảnh: {type(exc).__name__}: {exc}. Xem README_RUN.md để xử lý.') from exc
+        except Exception:
+            # Preserve the original exception and traceback for diagnostics.
+            # The image generation contract owns user-friendly classification.
+            raise
 
 
 def preflight():
