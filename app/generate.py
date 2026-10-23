@@ -101,12 +101,33 @@ def get_pipeline(memory_mode):
         MODEL_ID, torch_dtype=dtype, use_safetensors=True, cache_dir=str(CACHE),
         local_files_only=os.environ.get('TBT360_OFFLINE') == '1')
     if use_cuda:
-        if memory_mode == 'Tiết kiệm VRAM tối đa':
-            pipe.enable_sequential_cpu_offload()
-            placement = 'CUDA sequential CPU offload (rất chậm nhưng tiết kiệm VRAM)'
-        else:
-            pipe.to('cuda')
-            placement = 'CUDA trực tiếp (nhanh hơn, dùng nhiều VRAM hơn)'
+        try:
+            if memory_mode == 'Tiết kiệm VRAM tối đa':
+                pipe.enable_sequential_cpu_offload()
+                placement = 'CUDA sequential CPU offload (rất chậm nhưng tiết kiệm VRAM)'
+            else:
+                pipe.to('cuda')
+                placement = 'CUDA trực tiếp (nhanh hơn, dùng nhiều VRAM hơn)'
+        except (RuntimeError, AssertionError) as exc:
+            # A visible GPU can fail during device placement. Recreate a clean
+            # fp32 CPU pipeline rather than reuse a partially offloaded instance.
+            import logging
+            logging.getLogger('bimai360').warning(
+                'GPU initialization failed; retrying clean CPU pipeline: %s',
+                type(exc).__name__,
+            )
+            del pipe
+            use_cuda = False
+            cache_key = (memory_mode, 'cpu')
+            if cache_key in PIPELINES:
+                return PIPELINES[cache_key]
+            pipe = AutoPipelineForImage2Image.from_pretrained(
+                MODEL_ID, torch_dtype=torch.float32, use_safetensors=True,
+                cache_dir=str(CACHE),
+                local_files_only=os.environ.get('TBT360_OFFLINE') == '1',
+            )
+            pipe.to('cpu')
+            placement = 'CPU dự phòng (GPU khởi tạo thất bại)'
     else:
         pipe.to('cpu')
         placement = 'CPU (có thể rất chậm)'
