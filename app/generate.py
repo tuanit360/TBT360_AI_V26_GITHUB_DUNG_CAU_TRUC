@@ -281,6 +281,16 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 interactive=False,
                                 type='pil',
                             )
+                            def gradio_image_transport_smoke():
+                                from PIL import Image
+                                return Image.new('RGB', (128, 96), (60, 120, 180))
+                            gr.Button(
+                                'KIỂM TRA KÊNH HIỂN THỊ ẢNH (KHÔNG CẦN AI)'
+                            ).click(
+                                gradio_image_transport_smoke,
+                                outputs=reference_check_preview,
+                                api_name='kiem_tra_truyen_anh',
+                            )
                             def check_reference_image(image):
                                 from app.reference_image_check import inspect_reference_image
                                 return inspect_reference_image(image)
