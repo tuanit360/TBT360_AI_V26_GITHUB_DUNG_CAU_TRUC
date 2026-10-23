@@ -22,6 +22,7 @@ class V271ImageQualityGateTests(unittest.TestCase):
 
     def test_wrong_dimensions_are_rejected(self):
         generated = Image.new('RGB', (512, 512), (100, 120, 130))
+        ImageDraw.Draw(generated).rectangle((50, 50, 450, 450), fill=(190, 200, 210))
         reference = Image.new('RGB', (448, 576), (100, 120, 130))
         with self.assertRaisesRegex(ValueError, 'size does not match'):
             validate_generated_image(generated, reference)
