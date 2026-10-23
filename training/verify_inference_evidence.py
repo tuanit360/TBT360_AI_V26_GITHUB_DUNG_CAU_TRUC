@@ -43,6 +43,22 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
             evidence = validate_generated_image(decoded, expected_size=(512, 512))
         if evidence != record.get('basic_image_gate'):
             raise ValueError('Recorded image gate metrics differ from actual image')
+        mode = record.get('generation_mode')
+        if mode not in ('text2img', 'img2img'):
+            raise ValueError('Missing or invalid generation mode')
+        if mode == 'img2img':
+            source_name = record.get('reference_image')
+            if not isinstance(source_name, str) or not source_name:
+                raise ValueError('Missing image-to-image reference')
+            source = Path(source_name)
+            with source.open('rb') as stream:
+                source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if source_digest != record.get('reference_sha256'):
+                raise ValueError('Reference image checksum mismatch')
+            if record.get('reference_geometry_verified') is not False:
+                raise ValueError('Geometry verification cannot be inferred from image integrity')
+        elif record.get('reference_image') is not None or record.get('reference_sha256') is not None:
+            raise ValueError('Text-to-image evidence contains unexpected reference')
         return {
             'status': 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN',
             'image_sha256': digest,
