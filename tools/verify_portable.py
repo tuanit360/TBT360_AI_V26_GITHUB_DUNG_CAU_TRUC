@@ -9,7 +9,6 @@ def verify(root):
     root = Path(root)
     manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
     failures = []
-    failures = []
     for name, record in manifest['files'].items():
         candidate = (root / name).resolve()
         if not candidate.is_relative_to(root.resolve()):
