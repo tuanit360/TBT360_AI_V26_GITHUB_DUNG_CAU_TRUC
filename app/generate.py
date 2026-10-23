@@ -26,6 +26,7 @@ DEFAULT_PROMPT = ('professional architectural photography, contemporary office b
 NEGATIVE = ('watermark, text, captions, logo, oversaturated, low quality, '
     'crooked lines, warped perspective, blurry facade, duplicated buildings')
 PIPELINES = {}
+GPU_DISABLED_FOR_SESSION = False
 ACTIVE_LORA = {}
 LORA_DIR = ROOT / 'loras'
 LORA_DIR.mkdir(exist_ok=True)
@@ -90,9 +91,14 @@ def prepare_image(image, aspect, fit_mode):
 
 
 def get_pipeline(memory_mode):
+    global GPU_DISABLED_FOR_SESSION
     import torch
     from diffusers import AutoPipelineForImage2Image
-    use_cuda = (os.environ.get('BIMAI360_FORCE_CPU') != '1' and torch.cuda.is_available())
+    use_cuda = (
+        not GPU_DISABLED_FOR_SESSION
+        and os.environ.get('BIMAI360_FORCE_CPU') != '1'
+        and torch.cuda.is_available()
+    )
     cache_key = (memory_mode, 'cuda' if use_cuda else 'cpu')
     if cache_key in PIPELINES:
         return PIPELINES[cache_key]
@@ -117,6 +123,7 @@ def get_pipeline(memory_mode):
                 type(exc).__name__,
             )
             del pipe
+            GPU_DISABLED_FOR_SESSION = True
             use_cuda = False
             cache_key = (memory_mode, 'cpu')
             if cache_key in PIPELINES:
