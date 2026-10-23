@@ -176,6 +176,7 @@ def select_lora(pipe, memory_mode, adapter_name):
 
 
 def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, memory_mode, lora_name, style, guidance, scale, sharpness, progress=gr.Progress()):
+    global GPU_DISABLED_FOR_SESSION
     if source_image is None:
         raise gr.Error('Hãy nạp một ảnh phối cảnh tham chiếu.')
     if not isinstance(source_image, Image.Image):
@@ -255,7 +256,6 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
             # Evict the failed CUDA pipeline. Never silently retry the same
             # diffusion operation: explicit user action preserves seed/output.
             import logging
-            global GPU_DISABLED_FOR_SESSION
             GPU_DISABLED_FOR_SESSION = True
             for key in tuple(PIPELINES):
                 if key[1] == 'cuda':
