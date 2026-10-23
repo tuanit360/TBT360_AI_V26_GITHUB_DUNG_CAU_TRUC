@@ -37,6 +37,10 @@ on:
       - 'APP_VERSION.txt'
       - 'requirements.txt'
       - 'requirements-runtime.txt'
+concurrency:
+  group: v271-windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows-v106:
     runs-on: windows-2022
