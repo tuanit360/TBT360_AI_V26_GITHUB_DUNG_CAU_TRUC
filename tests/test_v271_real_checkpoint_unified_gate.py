@@ -32,6 +32,14 @@ class RealCheckpointVerificationTests(unittest.TestCase):
             self.assertTrue(result['verified_checkpoint'])
             self.assertFalse(result['accuracy_evaluated'])
 
+    def test_corrupt_or_nonobject_training_metadata_is_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            status = Path(temp) / 'training_status.json'
+            for payload in ('[]', 'null', '"SUCCEEDED"', '{bad JSON'):
+                status.write_text(payload, encoding='utf-8')
+                with self.assertRaises(ValueError):
+                    verify_checkpoint(Path(temp))
+
     def test_invalid_training_status_fails_before_checkpoint_claim(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
