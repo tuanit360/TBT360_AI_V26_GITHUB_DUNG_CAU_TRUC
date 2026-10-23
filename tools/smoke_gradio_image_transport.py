@@ -49,11 +49,16 @@ def check_image_transport():
             if data[:8] == bytes.fromhex('89504e470d0a1a0a'):
                 header = data
                 break
-            failures.append('not PNG')
+            failures.append('not PNG: ' + repr(data[:16]))
         except (urllib.error.HTTPError, urllib.error.URLError) as exc:
             failures.append(str(exc))
     if header is None:
-        raise AssertionError('No accessible PNG file endpoint: ' + '; '.join(failures))
+        safe_location = image.get('url', '')
+        # Avoid putting user data, absolute paths or query strings into logs.
+        from urllib.parse import urlsplit
+        route = urlsplit(safe_location).path.split('=')[0][:80]
+        raise AssertionError('No accessible PNG file endpoint; route=' + route
+                             + '; ' + '; '.join(failures))
     if header[:8] != b'\x89PNG\r\n\x1a\n':
         raise AssertionError('Image URL was not served as PNG')
     width, height = struct.unpack('>II', header[16:24])
