@@ -252,10 +252,24 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 ('Đây là ảnh concept, không phải BIM. LoRA hợp lệ đã được áp dụng.' if lora_name != 'Không dùng LoRA' else 'Đây là ảnh concept pretrained, chưa fine-tune trên ảnh riêng.'))
             return generated, str(archive_path), status
         except torch.cuda.OutOfMemoryError as exc:
-            raise gr.Error('Không đủ VRAM. Hãy chọn Tiết kiệm VRAM tối đa, 1 phương án, 10–15 bước, và đóng các ứng dụng GPU khác.') from exc
+            # Evict the failed CUDA pipeline. Never silently retry the same
+            # diffusion operation: explicit user action preserves seed/output.
+            import logging
+            global GPU_DISABLED_FOR_SESSION
+            GPU_DISABLED_FOR_SESSION = True
+            for key in tuple(PIPELINES):
+                if key[1] == 'cuda':
+                    failed_pipe, _ = PIPELINES.pop(key)
+                    ACTIVE_LORA.pop(id(failed_pipe), None)
+            logging.getLogger('bimai360').warning(
+                'CUDA OOM; GPU disabled for this session. Next attempt uses CPU.'
+            )
+            raise gr.Error(
+                'GPU hết VRAM. Lần thử tiếp theo sẽ dùng CPU; '
+                'hãy chọn 1 ảnh, 10–15 bước.'
+            ) from exc
         except Exception:
             # Preserve the original exception and traceback for diagnostics.
-            # The image generation contract owns user-friendly classification.
             raise
 
 
