@@ -15,9 +15,13 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
           prompt: str = 'Architectural photograph of a modern office facade',
           seed: int = 42, steps: int = 15,
           reference: Path | None = None, strength: float = 0.4) -> dict:
-    if reference is not None and not 0 < strength <= 1:
-        raise ValueError('img2img strength must be in (0, 1]')
-    if not 1 <= steps <= 100:
+    import math
+    if reference is not None and (
+        type(strength) not in (int, float) or
+        not math.isfinite(strength) or not 0 < strength <= 1
+    ):
+        raise ValueError('img2img strength must be a finite number in (0, 1]')
+    if type(steps) is not int or not 1 <= steps <= 100:
         raise ValueError('steps must be 1..100')
     # Diffusers img2img truncates steps * strength to an integer. A zero
     # denoising-step run must not be reported as successful inference.
