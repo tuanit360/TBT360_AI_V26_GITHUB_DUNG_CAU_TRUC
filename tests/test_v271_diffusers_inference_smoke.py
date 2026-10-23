@@ -73,6 +73,23 @@ class InferenceSafetyTests(unittest.TestCase):
                     Path(temp) / 'out.png', reference=reference,
                 )
 
+    def test_img2img_zero_effective_denoising_steps_are_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, 'at least one denoising step'):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'image.png',
+                    reference=Path(temp) / 'reference.png',
+                    steps=1, strength=0.4,
+                )
+            with self.assertRaisesRegex(ValueError, 'at least one denoising step'):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'image.png',
+                    reference=Path(temp) / 'reference.png',
+                    steps=15, strength=0.05,
+                )
+
     def test_invalid_img2img_strength_fails_before_model_load(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'strength'):
