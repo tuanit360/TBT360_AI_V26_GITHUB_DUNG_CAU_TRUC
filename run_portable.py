@@ -16,6 +16,9 @@ def root_directory():
 def main():
     root = root_directory()
     os.environ['BIMAI360_HOME'] = str(root)
+    temp_folder = root / 'output' / 'gradio_temp'
+    temp_folder.mkdir(parents=True, exist_ok=True)
+    os.environ['GRADIO_TEMP_DIR'] = str(temp_folder)
     # Legacy environment alias retained for existing integrations.
     os.environ['TBT360_HOME'] = str(root)
     # Gradio's localhost readiness probe must bypass HTTP(S) proxies.
