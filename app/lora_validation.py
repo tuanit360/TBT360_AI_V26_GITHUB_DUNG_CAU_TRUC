@@ -29,27 +29,38 @@ def validate_adapter(folder):
         # usable LoRA. Read the safetensors index without allocating tensors.
         with safe_open(str(weights), framework='pt', device='cpu') as adapter:
             tensor_keys = list(adapter.keys())
-        if not tensor_keys:
-            return {'valid': False, 'reason': 'LoRA checkpoint has no tensors'}
-        # Check common Diffusers/PEFT LoRA pair names. Arbitrary tensors
-        # should never be advertised as a trained LoRA adapter.
-        keys = {key.lower() for key in tensor_keys}
-        pairs = 0
-        for normalized in keys:
-            substitutions = (
-                ('.lora_down.', '.lora_up.'),
-                ('.lora_a.', '.lora_b.'),
-                ('.lora_a.default.', '.lora_b.default.'),
-            )
-            for down, up in substitutions:
-                position = normalized.find(down)
-                if position >= 0:
-                    partner = normalized[:position] + up + normalized[position + len(down):]
-                    if partner in keys:
-                        pairs += 1
-                    break
-        if pairs == 0:
-            return {'valid': False, 'reason': 'No matching LoRA up/down tensor pair'}
+            if not tensor_keys:
+                return {'valid': False, 'reason': 'LoRA checkpoint has no tensors'}
+            # Inspect headers only: no tensor payloads are loaded into memory.
+            key_lookup = {name.lower(): name for name in tensor_keys}
+            paired = 0
+            seen_down = False
+            for lower_name, actual_name in key_lookup.items():
+                marker = next((
+                    (down, up) for down, up in (
+                        ('.lora_down.', '.lora_up.'),
+                        ('.lora_a.', '.lora_b.'),
+                    ) if down in lower_name
+                ), None)
+                if marker is None:
+                    continue
+                seen_down = True
+                down, up = marker
+                partner_lower = lower_name.replace(down, up, 1)
+                partner_name = key_lookup.get(partner_lower)
+                if partner_name is None:
+                    return {'valid': False, 'reason': 'Unpaired LoRA down tensor'}
+                shape_down = adapter.get_slice(actual_name).get_shape()
+                shape_up = adapter.get_slice(partner_name).get_shape()
+                if (
+                    len(shape_down) != 2 or len(shape_up) != 2
+                    or any(dim <= 0 for dim in (*shape_down, *shape_up))
+                    or shape_down[0] != shape_up[1]
+                ):
+                    return {'valid': False, 'reason': 'Incompatible LoRA up/down tensor shapes'}
+                paired += 1
+            if not seen_down or not paired:
+                return {'valid': False, 'reason': 'No matching LoRA up/down tensor pair'}
         if isinstance(record.get('tensor_count'), int) and record['tensor_count'] != len(tensor_keys):
             return {'valid': False, 'reason': 'LoRA tensor count mismatch'}
         return {'valid': True, 'sha256': digest, 'bytes': expected_size,
