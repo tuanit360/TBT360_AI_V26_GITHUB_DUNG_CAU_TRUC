@@ -1,5 +1,7 @@
 """CPU CI verifies GPU preflight fails safely without claiming GPU work."""
 import unittest
+import types
+import sys
 from unittest.mock import patch
 
 from training.preflight_real_gpu import check_gpu_environment
@@ -16,6 +18,20 @@ class RealGPUPreflightTests(unittest.TestCase):
             result = check_gpu_environment()
         self.assertFalse(result['ready'])
         self.assertIn('diffusers unavailable', result['reason'])
+
+    def test_low_vram_rejected_before_dataset_verification(self):
+        fake_torch = types.ModuleType('torch')
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            get_device_properties=lambda index: types.SimpleNamespace(
+                total_memory=4 * 1024 ** 3
+            ),
+        )
+        with patch.dict(sys.modules, {'torch': fake_torch}):
+            with patch('importlib.import_module', return_value=fake_torch):
+                result = check_gpu_environment()
+        self.assertFalse(result['ready'])
+        self.assertIn('VRAM', result['reason'])
 
     def test_workflow_requires_preflight_before_training(self):
         from pathlib import Path
