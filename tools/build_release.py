@@ -95,6 +95,29 @@ def main():
         for path in sorted(target.rglob('*')):
             if path.is_file():
                 dst.write(path, arcname=Path('BIMAI360') / path.relative_to(target))
+    # Validate the actual distributable, not only the staging directory.
+    with zipfile.ZipFile(archive) as packaged:
+        if packaged.testzip() is not None:
+            raise RuntimeError('Portable ZIP failed CRC verification')
+        entries = set(packaged.namelist())
+        required = {
+            'BIMAI360/BIMAI360.exe',
+            'BIMAI360/CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+            'BIMAI360/MO_LOG_KHONG_CAN_UI.bat',
+            'BIMAI360/manifest.json',
+            'BIMAI360/SHA256SUMS.txt',
+        }
+        missing = required - entries
+        unexpected = [
+            name for name in entries
+            if name.startswith('BIMAI360/') and name.endswith('.bat')
+            and name not in required
+        ]
+        if missing or unexpected:
+            raise RuntimeError(
+                f'Portable archive invalid: missing={sorted(missing)}, '
+                f'unexpected_scripts={unexpected}'
+            )
     print('[OK] Created:', archive)
     print('[INFO] SHA256:', file_hash(archive))
     print('[INFO] Offline model included:', (target / 'models' / 'sd15' / 'model_index.json').is_file())
