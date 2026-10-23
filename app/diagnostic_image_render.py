@@ -8,11 +8,11 @@ import html
 import io
 from PIL import Image
 
-def render_diagnostic_image(image):
+def render_diagnostic_image(image, max_side=640):
     if not isinstance(image, Image.Image):
         raise ValueError('Không có ảnh PIL hợp lệ')
     frame = image.convert('RGB')
-    frame.thumbnail((640, 480))
+    frame.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
     buffer = io.BytesIO()
     frame.save(buffer, format='PNG')
     payload = base64.b64encode(buffer.getvalue()).decode('ascii')
@@ -37,10 +37,13 @@ def render_image_gallery(items):
             raise ValueError('Missing generated PNG')
         with Image.open(path) as source:
             source.load()
-            rendered = render_diagnostic_image(source)
+            rendered = render_diagnostic_image(source, max_side=1024)
         cards.append(
             '<section style="min-width:240px;max-width:640px;flex:1">'
             + '<strong>' + html.escape(str(label)) + '</strong>'
             + rendered + '</section>'
         )
-    return '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ''.join(cards) + '</div>'
+    note = ('<p><strong>Ảnh AI concept:</strong> Đây chỉ là góc nhìn đã sinh thực. '
+            'Không tự suy diễn mặt sau, mặt hông hoặc mặt bằng từ ảnh này. '
+            'Muốn các góc nhìn có hình học nhất quán cần mô hình 3D/BIM.</p>')
+    return note + '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ''.join(cards) + '</div>'
