@@ -89,6 +89,20 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     }
 
 
+def write_evidence(report_path: Path, result: dict) -> None:
+    """Exclusive report write; incomplete reports are never kept as evidence."""
+    report_path = Path(report_path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with report_path.open('x', encoding='utf-8') as stream:
+        try:
+            json.dump(result, stream, ensure_ascii=False, indent=2)
+            stream.flush()
+        except Exception:
+            stream.close()
+            report_path.unlink(missing_ok=True)
+            raise
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--adapter', required=True, type=Path)
@@ -109,9 +123,7 @@ def main():
                        args.prompt, args.seed, args.steps)
     except Exception as exc:
         result = {'status': 'FAILED', 'error': f'{type(exc).__name__}: {exc}'[:300]}
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-    with args.report.open('x', encoding='utf-8') as report_stream:
-        json.dump(result, report_stream, ensure_ascii=False, indent=2)
+    write_evidence(args.report, result)
     print(json.dumps(result, ensure_ascii=False))
     if result['status'] != 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED':
         raise SystemExit(2)
