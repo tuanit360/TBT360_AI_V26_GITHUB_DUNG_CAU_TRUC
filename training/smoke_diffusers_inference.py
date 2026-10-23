@@ -25,6 +25,18 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         raise ValueError('A real base model is required')
     if output.exists():
         raise FileExistsError('Refusing to overwrite an existing image')
+    # Validate the reference before loading multi-GB model weights.
+    if reference is not None:
+        from PIL import Image, ImageOps
+        reference = Path(reference).resolve()
+        with Image.open(reference) as source:
+            source.verify()
+        with Image.open(reference) as source:
+            if source.width < 128 or source.height < 128:
+                raise ValueError('Reference image is too small for architectural img2img')
+            prepared_reference = ImageOps.pad(
+                ImageOps.exif_transpose(source).convert('RGB'), (512, 512),
+            )
     # Validate adapter before model loading. Only actual output is a success.
     from app.lora_validation import validate_adapter
     certificate = validate_adapter(adapter)
@@ -64,11 +76,9 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             reference = Path(reference)
             with reference.open('rb') as stream:
                 reference_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
-            from PIL import ImageOps
-            with Image.open(reference) as source:
-                prepared = ImageOps.exif_transpose(source).convert('RGB')
-                prepared = ImageOps.pad(prepared, (512, 512))
-            generation_args.update({'image': prepared, 'strength': strength})
+            generation_args.update({
+                'image': prepared_reference, 'strength': strength,
+            })
         else:
             generation_args.update({'width': 512, 'height': 512})
         generated = pipeline(**generation_args).images[0]
