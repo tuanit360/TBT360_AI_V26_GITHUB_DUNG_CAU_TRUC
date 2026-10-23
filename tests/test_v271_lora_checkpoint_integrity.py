@@ -57,6 +57,18 @@ class V271AdapterIntegrityTests(unittest.TestCase):
         self.assertFalse(result['valid'])
         self.assertIn('Unpaired LoRA up', result['reason'])
 
+    def test_integer_lora_factors_cannot_be_loaded(self):
+        import torch
+        from safetensors.torch import save
+        data = save({
+            'layer.lora_down.weight': torch.ones((3, 8), dtype=torch.int32),
+            'layer.lora_up.weight': torch.ones((12, 3), dtype=torch.int32),
+        })
+        self.write_status(data, tensor_count=2)
+        report = validate_adapter(self.folder)
+        self.assertFalse(report['valid'])
+        self.assertIn('floating-point', report['reason'])
+
     def test_mismatched_lora_ranks_are_rejected(self):
         import torch
         from safetensors.torch import save
