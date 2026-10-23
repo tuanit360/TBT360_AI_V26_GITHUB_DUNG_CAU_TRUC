@@ -30,6 +30,7 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 'image_sha256': digest,
                 'adapter_sha256': 'example-adapter-hash',
                 'quality_evaluated': False,
+                'generation_mode': 'text2img',
                 'basic_image_gate': validate_generated_image(
                     image, expected_size=(512, 512)
                 ),
@@ -80,6 +81,42 @@ class V271EvidenceVerificationTests(unittest.TestCase):
             result = verify_inference_evidence(report_path, image_path)
             self.assertEqual(result['status'], 'BLOCKED')
             self.assertIn('PNG', result['reason'])
+
+    def test_changed_img2img_source_is_blocked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            source = folder / 'reference.png'
+            source.write_bytes(b'initial reference')
+            image_path = folder / 'image.png'
+            report_path = folder / 'report.json'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            image.save(image_path)
+            record = {
+                'status': 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED',
+                'generation_mode': 'img2img',
+                'reference_image': str(source),
+                'reference_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+                'reference_geometry_verified': False,
+                'image': str(image_path),
+                'image_sha256': hashlib.sha256(image_path.read_bytes()).hexdigest(),
+                'adapter_sha256': 'test-only-checksum',
+                'quality_evaluated': False,
+                'basic_image_gate': validate_generated_image(image, expected_size=(512, 512)),
+            }
+            report_path.write_text(json.dumps(record), encoding='utf-8')
+            self.assertEqual(
+                verify_inference_evidence(report_path, image_path)['status'],
+                'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN',
+            )
+            source.write_bytes(b'modified reference')
+            self.assertEqual(
+                verify_inference_evidence(report_path, image_path)['status'],
+                'BLOCKED',
+            )
 
     def test_failed_report_cannot_pass_integrity_gate(self):
         with tempfile.TemporaryDirectory() as directory:
