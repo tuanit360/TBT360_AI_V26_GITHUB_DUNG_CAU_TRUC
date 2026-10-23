@@ -13,6 +13,10 @@ on:
       - 'tests/**'
       - 'demo_data/**'
       - 'run_portable.py'
+      - 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat'
+      - 'MO_LOG_KHONG_CAN_UI.bat'
+      - 'README_PORTABLE.md'
+      - 'APP_VERSION.txt'
       - 'requirements.txt'
       - 'requirements-runtime.txt'
   pull_request:
@@ -27,6 +31,10 @@ on:
       - 'tests/**'
       - 'demo_data/**'
       - 'run_portable.py'
+      - 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat'
+      - 'MO_LOG_KHONG_CAN_UI.bat'
+      - 'README_PORTABLE.md'
+      - 'APP_VERSION.txt'
       - 'requirements.txt'
       - 'requirements-runtime.txt'
 jobs:
