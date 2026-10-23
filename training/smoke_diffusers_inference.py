@@ -71,7 +71,9 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             raise
     finally:
         del pipeline
-    digest = hashlib.sha256(output.read_bytes()).hexdigest()
+    # Stream the generated output for large files; do not load it all into RAM.
+    with output.open('rb') as stream:
+        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     return {
         'status': 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED',
         'image': str(output),
