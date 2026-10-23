@@ -45,10 +45,18 @@ def image_generation_contract(root, generator, arguments, *, progress=None,
             record_operation(root, 'generate', 'failed')
         except (OSError, ValueError):
             logging.getLogger('bimai360').exception('Operation log unavailable')
-        log('FAIL | ' + type(exc).__name__)
+        root_cause = exc
+        seen = set()
+        while (root_cause.__cause__ or root_cause.__context__) and id(root_cause) not in seen:
+            seen.add(id(root_cause))
+            root_cause = root_cause.__cause__ or root_cause.__context__
+        from app.generation_failures import explain_generation_failure
+        classified = explain_generation_failure(root_cause)
+        log('FAIL | ' + type(exc).__name__ + ' | ROOT_CAUSE=' + type(root_cause).__name__)
+        log('PUBLIC_REASON | ' + classified)
         return (
             '<p>Không tạo được ảnh AI. Xem thông báo và log bên dưới.</p>',
             None,
-            explain_generation_failure(exc),
+            classified,
             '\n'.join(events) + '\nChi tiết kỹ thuật: logs/runtime_errors.log',
         )
