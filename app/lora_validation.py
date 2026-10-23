@@ -26,7 +26,7 @@ def validate_adapter(folder):
             return {'valid': False, 'reason': 'SHA256 mismatch'}
         # A matching checksum proves file integrity, not that bytes encode a
         # usable LoRA. Read the safetensors index without allocating tensors.
-        from safetensors import safe_open
+        from safetensors import safe_open, SafetensorError
         with safe_open(str(weights), framework='pt', device='cpu') as adapter:
             tensor_keys = list(adapter.keys())
         if not tensor_keys:
@@ -35,7 +35,7 @@ def validate_adapter(folder):
             return {'valid': False, 'reason': 'LoRA tensor count mismatch'}
         return {'valid': True, 'sha256': digest, 'bytes': expected_size,
                 'tensor_count': len(tensor_keys)}
-    except (OSError, ValueError, TypeError, ImportError) as exc:
+    except (OSError, ValueError, TypeError, ImportError, SafetensorError) as exc:
         return {'valid': False, 'reason': str(exc)[:160]}
 
 
