@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from training.smoke_diffusers_inference import infer
+from training.smoke_diffusers_inference import infer, write_evidence
 
 
 class InferenceSafetyTests(unittest.TestCase):
@@ -19,6 +19,22 @@ class InferenceSafetyTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 infer(Path(temp) / 'adapter', 'sd15', output)
             self.assertEqual(output.read_bytes(), b'important image')
+
+    def test_partial_evidence_serialization_cleans_report(self):
+        with tempfile.TemporaryDirectory() as temp:
+            report = Path(temp) / 'evidence.json'
+            with self.assertRaises(TypeError):
+                write_evidence(report, {'status': 'FAILED', 'bad': object()})
+            self.assertFalse(report.exists())
+
+    def test_exclusive_evidence_never_overwrites_existing_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            report = Path(temp) / 'evidence.json'
+            write_evidence(report, {'status': 'FAILED'})
+            original = report.read_bytes()
+            with self.assertRaises(FileExistsError):
+                write_evidence(report, {'status': 'SUCCESS'})
+            self.assertEqual(report.read_bytes(), original)
 
     def test_existing_report_is_never_overwritten_by_cli(self):
         import sys
