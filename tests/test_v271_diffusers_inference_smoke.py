@@ -101,6 +101,22 @@ class InferenceSafetyTests(unittest.TestCase):
                     steps=15, strength=0.05,
                 )
 
+    def test_invalid_direct_call_parameters_fail_before_inference(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            for bad in (float('nan'), float('inf'), True, '0.5'):
+                with self.assertRaises(ValueError):
+                    infer(
+                        folder / 'adapter', 'sd15', folder / 'out.png',
+                        reference=folder / 'reference.png', strength=bad,
+                    )
+            for bad_steps in (True, 1.5, '15', 0, 101):
+                with self.assertRaises(ValueError):
+                    infer(
+                        folder / 'adapter', 'sd15', folder / 'out.png',
+                        steps=bad_steps,
+                    )
+
     def test_invalid_img2img_strength_fails_before_model_load(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'strength'):
