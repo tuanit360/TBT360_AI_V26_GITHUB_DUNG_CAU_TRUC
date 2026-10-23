@@ -47,7 +47,7 @@ class V91HardeningTests(unittest.TestCase):
             folder.mkdir()
             import torch
             from safetensors.torch import save
-            payload = save({'lora_unet_test.lora_down.weight': torch.ones((2, 2))})
+            payload = save({'lora_unet_test.lora_down.weight': torch.ones((2, 2)), 'lora_unet_test.lora_up.weight': torch.ones((2, 2))})
             (folder / 'pytorch_lora_weights.safetensors').write_bytes(payload)
             status = {'status': 'SUCCEEDED', 'weights_bytes': len(payload),
                       'weights_sha256': hashlib.sha256(payload).hexdigest()}
