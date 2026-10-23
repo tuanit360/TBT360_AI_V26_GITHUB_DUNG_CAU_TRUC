@@ -106,6 +106,44 @@ class InferenceLifecycleTests(unittest.TestCase):
                     self.invoke(folder, image)
             self.assertFalse((folder / 'result.png').exists())
 
+    def test_reference_modified_during_inference_blocks_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            reference = folder / 'reference.png'
+            Image.new('RGB', (512, 512), 'white').save(reference)
+            output = folder / 'output.png'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+
+            class ChangingPipeline(StubPipeline):
+                def __call__(self, **kwargs):
+                    reference.write_bytes(b'changed during generation')
+                    return super().__call__(**kwargs)
+
+            pipeline = ChangingPipeline(image)
+            stub = types.ModuleType('diffusers')
+            stub.StableDiffusionPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: pipeline
+            )
+            stub.StableDiffusionImg2ImgPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: pipeline
+            )
+            with patch.dict(sys.modules, {'diffusers': stub}):
+                with patch(
+                    'app.lora_validation.validate_adapter',
+                    return_value={'valid': True, 'sha256': 'fixture-hash'},
+                ):
+                    with self.assertRaisesRegex(ValueError, 'during img2img inference'):
+                        infer(
+                            folder / 'adapter', 'mock-model-not-real',
+                            output, steps=4, strength=0.5,
+                            reference=reference,
+                        )
+            self.assertFalse(output.exists())
+
     def test_blank_output_rejected_without_writing_a_file(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
