@@ -48,10 +48,9 @@ def run(args):
         raise RuntimeError('Trainer không hợp lệ')
     print('[TRAINER] SHA256:',hashlib.sha256(script.read_bytes()).hexdigest(),flush=True)
     out=ROOT/'loras'/args.name
-    out.mkdir(parents=True,exist_ok=True)
-    prior = out/'pytorch_lora_weights.safetensors'
-    if prior.exists():
-        raise RuntimeError('Tên LoRA đã có trọng số trước đó. Đặt --name mới để không ghi đè hoặc trộn phiên huấn luyện.')
+    # Never re-use a prior run directory, even when a failed run produced no
+    # weights. This protects logs, status and partial checkpoints from mixing.
+    out.mkdir(parents=True,exist_ok=False)
     command=[sys.executable,str(script),'--pretrained_model_name_or_path',MODEL,
         '--train_data_dir',str(prepared),'--caption_column','text','--image_column','image',
         '--resolution','512','--center_crop','--random_flip','--train_batch_size','1',
@@ -62,10 +61,16 @@ def run(args):
     env=os.environ.copy()
     env['HF_HOME']=str(ROOT/'models'/'hf_home')
     env['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
+    dataset_sha256=hashlib.sha256((certified/'certificate.json').read_bytes()).hexdigest()
+    trainer_sha256=hashlib.sha256(script.read_bytes()).hexdigest()
     print('Huấn luyện LoRA thật, không dùng mô hình phân loại. Checkpoint:',out,flush=True)
-    (out/'training_status.json').write_text(json.dumps({'status':'RUNNING','start_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'images':len(records),'steps':args.steps},indent=2),encoding='utf-8')
+    (out/'training_status.json').write_text(json.dumps({'status':'RUNNING','start_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'images':len(records),'steps':args.steps,
+        'dataset_certificate_sha256':dataset_sha256,
+        'trainer_sha256':trainer_sha256},indent=2),encoding='utf-8')
     with (out/'training_command.json').open('w',encoding='utf-8') as f:
-        json.dump({'argv':command,'source':REPO_URL,'images':len(records),'gpu_vram_gib':round(mem,2),'dataset_audit':str(certified/'certificate.json')},f,ensure_ascii=False,indent=2)
+        json.dump({'argv':command,'source':REPO_URL,'images':len(records),'gpu_vram_gib':round(mem,2),'dataset_audit':str(certified/'certificate.json'),
+            'dataset_certificate_sha256':dataset_sha256,
+            'trainer_sha256':trainer_sha256},f,ensure_ascii=False,indent=2)
     log_path=out/'training_console.log'
     try:
         with log_path.open('w',encoding='utf-8',errors='replace') as log:
@@ -85,7 +90,9 @@ def run(args):
             key_count=len(wf.keys())
         if key_count==0:
             raise RuntimeError('Trọng số LoRA không chứa tensor')
-        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':hashlib.sha256(weights.read_bytes()).hexdigest(),'tensor_count':key_count}
+        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':hashlib.sha256(weights.read_bytes()).hexdigest(),'tensor_count':key_count,
+            'dataset_certificate_sha256':dataset_sha256,
+            'trainer_sha256':trainer_sha256}
         (out/'training_status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
         print('SUCCESS LoRA:',out,flush=True)
     except Exception as exc:
