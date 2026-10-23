@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.verify_portable import verify
+from tools.verify_portable import verify, verify_release_structure
 
 
 class V271PortableIntegrityGateTests(unittest.TestCase):
@@ -11,7 +11,7 @@ class V271PortableIntegrityGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             (root / 'manifest.json').write_text('{"files": {}}', encoding='utf-8')
-            failures = verify(root)
+            failures = verify_release_structure(root)
             self.assertTrue(any('BIMAI360.exe' in item for item in failures))
 
     def test_fails_when_old_bat_is_accidentally_shipped(self):
@@ -24,7 +24,7 @@ class V271PortableIntegrityGateTests(unittest.TestCase):
             ):
                 (root / filename).write_bytes(b'test')
             (root / 'CHAY_OFFLINE_WINDOWS.bat').write_bytes(b'legacy')
-            self.assertTrue(any('Obsolete script' in item for item in verify(root)))
+            self.assertTrue(any('Obsolete script' in item for item in verify_release_structure(root)))
 
     def test_minimal_valid_structure_is_accepted(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -35,7 +35,7 @@ class V271PortableIntegrityGateTests(unittest.TestCase):
                 'MO_LOG_KHONG_CAN_UI.bat', 'README_PORTABLE.md'
             ):
                 (root / filename).write_bytes(b'test')
-            self.assertEqual(verify(root), [])
+            self.assertEqual(verify_release_structure(root), [])
 
 
 if __name__ == '__main__':
