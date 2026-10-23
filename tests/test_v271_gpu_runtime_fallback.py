@@ -26,6 +26,35 @@ class FakePipeline:
 
 
 class DeviceFallbackRuntimeTests(unittest.TestCase):
+    def test_cpu_pipeline_starts_without_optional_attention_slicing(self):
+        fake_torch = types.ModuleType('torch')
+        fake_torch.float16 = object()
+        fake_torch.float32 = object()
+        fake_torch.cuda = types.SimpleNamespace(is_available=lambda: False)
+        fake_diffusers = types.ModuleType('diffusers')
+        class NoSlicingPipeline(FakePipeline):
+            def enable_attention_slicing(self):
+                raise AttributeError('Optional optimization unavailable')
+        pipe = NoSlicingPipeline()
+        fake_diffusers.AutoPipelineForImage2Image = types.SimpleNamespace(
+            from_pretrained=lambda *_args, **_kwargs: pipe
+        )
+        previous_disabled = generate.GPU_DISABLED_FOR_SESSION
+        previous_pipelines = generate.PIPELINES
+        try:
+            generate.GPU_DISABLED_FOR_SESSION = False
+            generate.PIPELINES = {}
+            with patch.dict(sys.modules, {
+                'torch': fake_torch, 'diffusers': fake_diffusers
+            }):
+                result, label = generate.get_pipeline('Cân bằng')
+            self.assertIs(result, pipe)
+            self.assertEqual(result.location, 'cpu')
+            self.assertIn('CPU', label)
+        finally:
+            generate.GPU_DISABLED_FOR_SESSION = previous_disabled
+            generate.PIPELINES = previous_pipelines
+
     def test_gpu_failure_disables_retry_and_keeps_cpu_cached(self):
         pipelines = []
         def from_pretrained(*_args, **kwargs):
