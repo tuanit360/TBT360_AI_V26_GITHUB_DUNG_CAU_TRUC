@@ -91,6 +91,8 @@ jobs:
             Write-Host 'PASS: V271 EXE launched Gradio UI and served HTTP 200'
             python tools/smoke_bim_ui.py
             if ($LASTEXITCODE -ne 0) { throw 'V271 real BIM button smoke failed' }
+            python tools/smoke_gradio_image_transport.py
+            if ($LASTEXITCODE -ne 0) { throw 'V271 frozen Gradio PNG transport failed' }
           } finally {
             if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
             if (Test-Path $stdout) { Get-Content $stdout -Tail 120 }
