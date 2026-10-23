@@ -124,6 +124,35 @@ jobs:
           Expand-Archive -Path BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip -DestinationPath $extractedExe -Force
           & (Join-Path $extractedExe 'BIMAI360/BIMAI360.exe') --self-test
           if ($LASTEXITCODE -ne 0) { throw 'EXE self-test failed after ZIP extraction' }
+      - name: Smoke test extracted Portable EXE serves real UI
+        run: |
+          $exe = (Resolve-Path (Join-Path $env:RUNNER_TEMP 'bimai360-extracted-smoke/BIMAI360/BIMAI360.exe')).Path
+          $stdout = Join-Path $env:RUNNER_TEMP 'v271-extracted-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'v271-extracted-stderr.log'
+          $env:NO_PROXY = '127.0.0.1,localhost,::1'
+          $env:no_proxy = $env:NO_PROXY
+          $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 45; $i++) {
+              Start-Sleep -Seconds 2
+              $proc.Refresh()
+              if ($proc.HasExited) { throw "Extracted EXE exited early: $($proc.ExitCode)" }
+              try {
+                $response = Invoke-WebRequest -Uri 'http://127.0.0.1:7861/' -UseBasicParsing -TimeoutSec 3
+                if ($response.StatusCode -eq 200 -and $response.Content -match 'gradio') {
+                  $ready = $true
+                  break
+                }
+              } catch { }
+            }
+            if (!$ready) { throw 'Extracted EXE did not serve Gradio HTTP 200' }
+            Write-Host 'PASS: extracted Portable EXE serves real UI'
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+            if (Test-Path $stdout) { Get-Content $stdout -Tail 80 }
+            if (Test-Path $stderr) { Get-Content $stderr -Tail 80 }
+          }
           Get-FileHash BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
