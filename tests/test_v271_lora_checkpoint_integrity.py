@@ -44,6 +44,19 @@ class V271AdapterIntegrityTests(unittest.TestCase):
         self.write_status(save({'x.lora_down.weight': torch.ones((2, 2))}))
         self.assertFalse(validate_adapter(self.folder)['valid'])
 
+    def test_orphan_up_factor_is_rejected_alongside_valid_pair(self):
+        import torch
+        from safetensors.torch import save
+        data = save({
+            'layer.lora_down.weight': torch.ones((3, 8)),
+            'layer.lora_up.weight': torch.ones((12, 3)),
+            'other.lora_up.weight': torch.ones((12, 3)),
+        })
+        self.write_status(data, tensor_count=3)
+        result = validate_adapter(self.folder)
+        self.assertFalse(result['valid'])
+        self.assertIn('Unpaired LoRA up', result['reason'])
+
     def test_mismatched_lora_ranks_are_rejected(self):
         import torch
         from safetensors.torch import save
