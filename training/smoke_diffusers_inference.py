@@ -13,7 +13,10 @@ from pathlib import Path
 
 def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
           prompt: str = 'Architectural photograph of a modern office facade',
-          seed: int = 42, steps: int = 15) -> dict:
+          seed: int = 42, steps: int = 15,
+          reference: Path | None = None, strength: float = 0.4) -> dict:
+    if reference is not None and not 0 < strength <= 1:
+        raise ValueError('img2img strength must be in (0, 1]')
     if not 1 <= steps <= 100:
         raise ValueError('steps must be 1..100')
     if not prompt.strip():
@@ -32,11 +35,17 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     import torch
     from PIL import Image
     from diffusers import StableDiffusionPipeline
+    if reference is not None:
+        from diffusers import StableDiffusionImg2ImgPipeline
 
     if device == 'cuda' and not torch.cuda.is_available():
         raise RuntimeError('CUDA unavailable')
     generator = torch.Generator(device=device).manual_seed(seed)
-    pipeline = StableDiffusionPipeline.from_pretrained(
+    pipeline_class = (
+        StableDiffusionImg2ImgPipeline if reference is not None
+        else StableDiffusionPipeline
+    )
+    pipeline = pipeline_class.from_pretrained(
         model, torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
     )
     try:
@@ -45,10 +54,24 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             str(Path(adapter).resolve()),
             weight_name='pytorch_lora_weights.safetensors',
         )
-        generated = pipeline(
-            prompt=prompt, num_inference_steps=steps, generator=generator,
-            width=512, height=512,
-        ).images[0]
+        generation_args = {
+            'prompt': prompt,
+            'num_inference_steps': steps,
+            'generator': generator,
+        }
+        reference_sha256 = None
+        if reference is not None:
+            reference = Path(reference)
+            with reference.open('rb') as stream:
+                reference_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
+            from PIL import ImageOps
+            with Image.open(reference) as source:
+                prepared = ImageOps.exif_transpose(source).convert('RGB')
+                prepared = ImageOps.pad(prepared, (512, 512))
+            generation_args.update({'image': prepared, 'strength': strength})
+        else:
+            generation_args.update({'width': 512, 'height': 512})
+        generated = pipeline(**generation_args).images[0]
         from app.generated_image_gate import validate_generated_image
         image_evidence = validate_generated_image(generated, expected_size=(512, 512))
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -86,6 +109,11 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         'device': device,
         'quality_evaluated': False,
         'basic_image_gate': image_evidence,
+        'generation_mode': 'img2img' if reference is not None else 'text2img',
+        'reference_sha256': reference_sha256,
+        'reference_image': str(reference.resolve()) if reference is not None else None,
+        'strength': strength if reference is not None else None,
+        'reference_geometry_verified': False,
     }
 
 
@@ -113,6 +141,8 @@ def main():
     parser.add_argument('--prompt', default='Architectural photograph of a modern office facade')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--steps', type=int, default=15)
+    parser.add_argument('--reference', type=Path)
+    parser.add_argument('--strength', type=float, default=0.4)
     args = parser.parse_args()
     if args.image.resolve() == args.report.resolve():
         parser.error('--image and --report must be different paths')
@@ -120,7 +150,8 @@ def main():
         parser.error('--report already exists; use a new path to preserve prior evidence')
     try:
         result = infer(args.adapter, args.model, args.image, args.device,
-                       args.prompt, args.seed, args.steps)
+                       args.prompt, args.seed, args.steps,
+                       args.reference, args.strength)
     except Exception as exc:
         result = {'status': 'FAILED', 'error': f'{type(exc).__name__}: {exc}'[:300]}
     write_evidence(args.report, result)
