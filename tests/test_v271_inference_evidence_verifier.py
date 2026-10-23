@@ -120,6 +120,22 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 verify_inference_evidence(report_path, image_path)['status'],
                 'BLOCKED',
             )
+            for invalid_strength in (True, float('nan'), float('inf'), -1, '0.5'):
+                record['strength'] = invalid_strength
+                report_path.write_text(json.dumps(record), encoding='utf-8')
+                self.assertEqual(
+                    verify_inference_evidence(report_path, image_path)['status'],
+                    'BLOCKED',
+                )
+            record['strength'] = 0.5
+            for invalid_steps in (True, 0, 101, 4.5, '4'):
+                record['steps'] = invalid_steps
+                report_path.write_text(json.dumps(record), encoding='utf-8')
+                self.assertEqual(
+                    verify_inference_evidence(report_path, image_path)['status'],
+                    'BLOCKED',
+                )
+            record['steps'] = 4
             record['strength'] = 0.5
             report_path.write_text(json.dumps(record), encoding='utf-8')
             # Even a matching SHA is not enough if the image cannot decode.
