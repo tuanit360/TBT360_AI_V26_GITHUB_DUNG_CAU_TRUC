@@ -66,17 +66,22 @@ def main():
                 shutil.copytree(model, target / 'models' / model_name, dirs_exist_ok=True)
             else:
                 print(f'[WARN] {model_name} missing model_index.json; offline model not included')
-    shutil.copy2(ROOT / 'README_PORTABLE.md', target / 'README_PORTABLE.md')
-    shutil.copy2(ROOT / 'APP_VERSION.txt', target / 'APP_VERSION.txt')
-    shutil.copy2(ROOT / 'README_START_HERE.md', target / 'README_START_HERE.md')
-    shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
-    shutil.copy2(ROOT / 'START_BIMAI360_DIAGNOSTIC.bat', target / 'START_BIMAI360_DIAGNOSTIC.bat')
-    shutil.copy2(ROOT / 'XUAT_LOG_CHAN_DOAN.bat', target / 'XUAT_LOG_CHAN_DOAN.bat')
-    shutil.copy2(ROOT / 'MO_LOG_KHONG_CAN_UI.bat', target / 'MO_LOG_KHONG_CAN_UI.bat')
-    shutil.copy2(ROOT / 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat', target / 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat')
-    shutil.copy2(ROOT / 'KIEM_TRA_GPU_MODEL.bat', target / 'KIEM_TRA_GPU_MODEL.bat')
-    shutil.copy2(ROOT / 'VERIFY_SHA256_WINDOWS.ps1', target / 'VERIFY_SHA256_WINDOWS.ps1')
-    shutil.copy2(ROOT / 'CHAY_OFFLINE_WINDOWS.bat', target / 'CHAY_OFFLINE_WINDOWS.bat')
+    # Shipping surface: one executable, one CPU recovery launcher,
+    # one offline log viewer, documentation, manifest and checksums.
+    for filename in (
+        'README_PORTABLE.md',
+        'APP_VERSION.txt',
+        'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+        'MO_LOG_KHONG_CAN_UI.bat',
+    ):
+        shutil.copy2(ROOT / filename, target / filename)
+    # Clear obsolete helper scripts from reusable onedir build output.
+    for script in target.glob('*.bat'):
+        if script.name not in (
+            'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+            'MO_LOG_KHONG_CAN_UI.bat',
+        ):
+            script.unlink()
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
     if result.returncode != 0:
         raise RuntimeError(f'Frozen self-test failed with code {result.returncode}; release withheld')
