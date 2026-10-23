@@ -53,6 +53,34 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 'BLOCKED',
             )
 
+    def test_jpeg_renamed_png_is_blocked_even_with_matching_digest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            image_path = folder / 'fake.png'
+            report_path = folder / 'evidence.json'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            image.save(image_path, format='JPEG')
+            with Image.open(image_path) as decoded:
+                metrics = validate_generated_image(
+                    decoded, expected_size=(512, 512)
+                )
+            record = {
+                'status': 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED',
+                'image': str(image_path),
+                'image_sha256': hashlib.sha256(image_path.read_bytes()).hexdigest(),
+                'adapter_sha256': 'example-adapter-hash',
+                'quality_evaluated': False,
+                'basic_image_gate': metrics,
+            }
+            report_path.write_text(json.dumps(record), encoding='utf-8')
+            result = verify_inference_evidence(report_path, image_path)
+            self.assertEqual(result['status'], 'BLOCKED')
+            self.assertIn('PNG', result['reason'])
+
     def test_failed_report_cannot_pass_integrity_gate(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
