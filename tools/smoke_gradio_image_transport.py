@@ -2,6 +2,8 @@
 import json
 import struct
 import urllib.request
+import urllib.error
+from urllib.parse import quote
 
 from tools.smoke_bim_ui import BASE, checked_download_url
 
@@ -30,9 +32,28 @@ def check_image_transport():
     image = data[-1][0]
     if not isinstance(image, dict) or not image.get('url'):
         raise AssertionError('Gradio did not return image URL')
-    url = checked_download_url(image['url'])
-    with urllib.request.urlopen(url, timeout=30) as response:
-        header = response.read(32)
+    candidates = [checked_download_url(image['url'])]
+    path = image.get('path') or image.get('name')
+    if isinstance(path, str):
+        encoded = quote(path, safe='/:')
+        candidates += [
+            BASE + '/gradio_api/file=' + encoded,
+            BASE + '/file=' + encoded,
+        ]
+    failures = []
+    header = None
+    for url in dict.fromkeys(candidates):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                data = response.read(32)
+            if data[:8] == b'\\x89PNG\\r\\n\\x1a\\n':
+                header = data
+                break
+            failures.append('not PNG')
+        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            failures.append(str(exc))
+    if header is None:
+        raise AssertionError('No accessible PNG file endpoint: ' + '; '.join(failures))
     if header[:8] != b'\x89PNG\r\n\x1a\n':
         raise AssertionError('Image URL was not served as PNG')
     width, height = struct.unpack('>II', header[16:24])
