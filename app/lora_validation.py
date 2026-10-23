@@ -61,6 +61,18 @@ def validate_adapter(folder):
                 paired += 1
             if not seen_down or not paired:
                 return {'valid': False, 'reason': 'No matching LoRA up/down tensor pair'}
+            # Reject orphaned up factors as well: a partially written adapter
+            # can otherwise pass when at least one other pair is complete.
+            for lower_name in key_lookup:
+                for down, up in (
+                    ('.lora_down.', '.lora_up.'),
+                    ('.lora_a.', '.lora_b.'),
+                ):
+                    if up in lower_name:
+                        counterpart = lower_name.replace(up, down, 1)
+                        if counterpart not in key_lookup:
+                            return {'valid': False, 'reason': 'Unpaired LoRA up tensor'}
+                        break
         if isinstance(record.get('tensor_count'), int) and record['tensor_count'] != len(tensor_keys):
             return {'valid': False, 'reason': 'LoRA tensor count mismatch'}
         return {'valid': True, 'sha256': digest, 'bytes': expected_size,
