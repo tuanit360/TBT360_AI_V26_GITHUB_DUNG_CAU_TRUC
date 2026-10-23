@@ -9,7 +9,8 @@ import shutil
 from pathlib import Path
 
 
-def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15):
+def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15,
+                          min_vram_gib=8):
     checks = {}
     for module in ('torch', 'diffusers', 'transformers', 'accelerate',
                    'safetensors', 'PIL', 'datasets'):
@@ -22,6 +23,11 @@ def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15):
     import torch
     if not torch.cuda.is_available():
         return {'ready': False, 'reason': 'CUDA GPU not available', 'checks': checks}
+    vram_gib = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    if vram_gib < min_vram_gib:
+        return {'ready': False,
+                'reason': f'CUDA GPU VRAM {vram_gib:.1f} GiB below {min_vram_gib} GiB minimum',
+                'checks': checks}
     free = shutil.disk_usage(Path.cwd()).free / (1024 ** 3)
     if free < min_free_gib:
         return {'ready': False, 'reason': f'Insufficient disk space: {free:.1f} GiB free',
@@ -36,6 +42,7 @@ def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15):
         'ready': True, 'checks': checks,
         'gpu_name': torch.cuda.get_device_name(0),
         'free_disk_gib': round(free, 2),
+        'gpu_vram_gib': round(vram_gib, 2),
         'dataset_verified': True,
         'real_inference_performed': False,
         'real_training_performed': False,
