@@ -102,14 +102,16 @@ def main():
     args = parser.parse_args()
     if args.image.resolve() == args.report.resolve():
         parser.error('--image and --report must be different paths')
+    if args.report.exists():
+        parser.error('--report already exists; use a new path to preserve prior evidence')
     try:
         result = infer(args.adapter, args.model, args.image, args.device,
                        args.prompt, args.seed, args.steps)
     except Exception as exc:
         result = {'status': 'FAILED', 'error': f'{type(exc).__name__}: {exc}'[:300]}
     args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(result, ensure_ascii=False, indent=2),
-                           encoding='utf-8')
+    with args.report.open('x', encoding='utf-8') as report_stream:
+        json.dump(result, report_stream, ensure_ascii=False, indent=2)
     print(json.dumps(result, ensure_ascii=False))
     if result['status'] != 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED':
         raise SystemExit(2)
