@@ -53,6 +53,17 @@ class InferenceSafetyTests(unittest.TestCase):
             self.assertEqual(report.read_text(encoding='utf-8'),
                              'previous verified evidence')
 
+    def test_corrupt_img2img_reference_fails_before_model_loading(self):
+        with tempfile.TemporaryDirectory() as temp:
+            reference = Path(temp) / 'corrupt.png'
+            reference.write_bytes(b'not a decodable image')
+            with self.assertRaises((OSError, ValueError)):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'output.png', reference=reference,
+                )
+            self.assertFalse((Path(temp) / 'output.png').exists())
+
     def test_missing_img2img_reference_fails_before_loading_model(self):
         with tempfile.TemporaryDirectory() as temp:
             reference = Path(temp) / 'missing.png'
