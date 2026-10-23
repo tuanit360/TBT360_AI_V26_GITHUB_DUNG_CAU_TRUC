@@ -30,7 +30,9 @@ def image_fingerprint(path: Path):
             for column in range(8)
             if values[row * 9 + column] > values[row * 9 + column + 1]
         )
-        return pixel_hash, difference_hash
+        # dHash alone is ambiguous for featureless or globally lit images.
+        mean_luminance = sum(gray.getdata()) / (gray.width * gray.height)
+        return pixel_hash, difference_hash, mean_luminance
 
 
 def check_training_leakage(manifest: Path, root: Path):
@@ -47,7 +49,7 @@ def check_training_leakage(manifest: Path, root: Path):
         'errors': list(split['errors']),
         'note': (
             'A PASS checks split separation only, not labels, image licenses, '
-            'training quality, or actual LoRA learning.'
+            'training quality, or actual LoRA learning. Near duplicates are heuristics.'
         ),
     }
     if split['status'] != 'PASS':
@@ -63,19 +65,22 @@ def check_training_leakage(manifest: Path, root: Path):
             if Path(name).suffix.lower() not in IMAGE_SUFFIXES:
                 continue
             try:
-                pixel_hash, difference_hash = image_fingerprint(root / name)
+                pixel_hash, difference_hash, mean_luminance = image_fingerprint(root / name)
             except (OSError, ValueError) as exc:
                 result['errors'].append({
                     'file': name,
                     'reason': type(exc).__name__,
                 })
                 continue
-            collection.append((name, pixel_hash, difference_hash))
-    for name, pixel_hash, difference_hash in train:
-        for other_name, other_hash, other_difference in validation:
+            collection.append((name, pixel_hash, difference_hash, mean_luminance))
+    for name, pixel_hash, difference_hash, mean_luminance in train:
+        for other_name, other_hash, other_difference, other_luminance in validation:
             if pixel_hash == other_hash:
                 result['cross_split_pixel_duplicates'].append([name, other_name])
-            elif (difference_hash ^ other_difference).bit_count() <= 5:
+            elif (
+                (difference_hash ^ other_difference).bit_count() <= 5
+                and abs(mean_luminance - other_luminance) <= 12
+            ):
                 result['cross_split_near_duplicates'].append([name, other_name])
     if result['cross_split_pixel_duplicates']:
         result['errors'].append('Same image pixels present in train and validation')
