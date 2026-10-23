@@ -16,12 +16,22 @@ def explain_generation_failure(error):
         or 'no nvidia driver' in lowered or 'cuda driver' in lowered
     )):
         return 'CUDA chưa sẵn sàng. Kiểm tra trình điều khiển NVIDIA hoặc chạy chế độ CPU.'
+    if any(value in lowered for value in (
+        'generated zip', 'zip archive', 'output image',
+    )):
+        return ('Ảnh hoặc gói ZIP kết quả bị thiếu/hỏng. '
+                'Kết quả không được đánh dấu thành công; hãy thử tạo lại '
+                'và xem logs/runtime_errors.log nếu lỗi tiếp diễn.')
+    if 'permission denied' in lowered or 'access is denied' in lowered:
+        return ('Không có quyền ghi thư mục dữ liệu. '
+                'Hãy giải nén Portable ra thư mục cá nhân có quyền ghi '
+                'và không chạy trực tiếp trong ZIP.')
     if any(value in lowered for value in ('nearly black', 'visually blank')):
         return 'AI trả về ảnh đen hoặc trống. Kết quả đã bị loại; cần kiểm tra VAE, checkpoint và độ chính xác số.'
     if 'ảnh' in lowered or 'tham số' in lowered:
         return message[:350]
     # Do not leak internal filesystem paths, tokens, URLs or traceback to UI.
-    return 'Không thể tạo phương án. Mở Tài khoản → Nhật ký hoạt động để xem mã lỗi. Kiểm tra ảnh, GPU và mô hình.'
+    return 'Không thể tạo phương án. Xem logs/runtime_errors.log hoặc dùng MO_LOG_KHONG_CAN_UI.bat; kiểm tra ảnh, GPU và mô hình.'
 
 
 def has_prompt(brief):
