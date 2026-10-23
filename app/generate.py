@@ -1160,6 +1160,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
 
 
 if __name__ == '__main__':
+    gradio_temp = ROOT / 'output' / 'gradio_temp'
+    gradio_temp.mkdir(parents=True, exist_ok=True)
+    os.environ['GRADIO_TEMP_DIR'] = str(gradio_temp)
     ui.queue(default_concurrency_limit=2,max_size=32).launch(
       server_name='127.0.0.1',server_port=7861,inbrowser=True,share=False,
-      allowed_paths=[str(OUTPUT), str(ROOT / 'logs')])
+      allowed_paths=[str(OUTPUT), str(ROOT / 'logs'), str(gradio_temp)])
