@@ -1,0 +1,66 @@
+"""Independently audit saved SD1.5 inference evidence without loading a model.
+
+A PASS verifies image/report integrity and the basic image gate only.
+It never certifies that inference actually ran, nor architectural accuracy.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+from PIL import Image
+
+from app.generated_image_gate import validate_generated_image
+
+EXPECTED_STATUS = 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED'
+
+
+def verify_inference_evidence(report: Path, image: Path) -> dict:
+    report, image = Path(report), Path(image)
+    try:
+        record = json.loads(report.read_text(encoding='utf-8'))
+        if not isinstance(record, dict) or record.get('status') != EXPECTED_STATUS:
+            raise ValueError('Report is not a successful inference declaration')
+        if record.get('quality_evaluated') is not False:
+            raise ValueError('Report must not claim architecture quality verification')
+        if not isinstance(record.get('image_sha256'), str):
+            raise ValueError('Missing image checksum')
+        if not isinstance(record.get('adapter_sha256'), str):
+            raise ValueError('Missing adapter checksum')
+        if Path(record.get('image', '')).resolve() != image.resolve():
+            raise ValueError('Image path differs from the saved report')
+        with image.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        if digest != record['image_sha256']:
+            raise ValueError('Generated PNG checksum mismatch')
+        with Image.open(image) as decoded:
+            decoded.verify()
+        with Image.open(image) as decoded:
+            evidence = validate_generated_image(decoded, expected_size=(512, 512))
+        if evidence != record.get('basic_image_gate'):
+            raise ValueError('Recorded image gate metrics differ from actual image')
+        return {
+            'status': 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN',
+            'image_sha256': digest,
+            'architecture_quality_verified': False,
+            'real_model_execution_proven_by_artifacts_alone': False,
+        }
+    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return {'status': 'BLOCKED', 'reason': f'{type(exc).__name__}: {exc}'[:300]}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--report', required=True, type=Path)
+    parser.add_argument('--image', required=True, type=Path)
+    args = parser.parse_args()
+    result = verify_inference_evidence(args.report, args.image)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    if result['status'] != 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN':
+        raise SystemExit(2)
+
+
+if __name__ == '__main__':
+    main()
