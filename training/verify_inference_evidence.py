@@ -59,6 +59,10 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
                 source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
             if source_digest != record.get('reference_sha256'):
                 raise ValueError('Reference image checksum mismatch')
+            with Image.open(source) as reference_image:
+                if reference_image.width < 128 or reference_image.height < 128:
+                    raise ValueError('Reference image is too small')
+                reference_image.verify()
             if record.get('reference_geometry_verified') is not False:
                 raise ValueError('Geometry verification cannot be inferred from image integrity')
         elif record.get('reference_image') is not None or record.get('reference_sha256') is not None:
