@@ -51,6 +51,8 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
             if not isinstance(source_name, str) or not source_name:
                 raise ValueError('Missing image-to-image reference')
             source = Path(source_name)
+            if not source.is_file():
+                raise ValueError('Reference must be a regular file')
             if not 0 < record.get('strength', 0) <= 1:
                 raise ValueError('Invalid image-to-image strength')
             if not isinstance(record.get('steps'), int) or int(record['steps'] * record['strength']) < 1:
@@ -59,8 +61,6 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
                 source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
             if source_digest != record.get('reference_sha256'):
                 raise ValueError('Reference image checksum mismatch')
-            if not source.is_file():
-                raise ValueError('Reference must be a regular file')
             with Image.open(source) as reference_image:
                 if reference_image.width < 128 or reference_image.height < 128:
                     raise ValueError('Reference image is too small')
