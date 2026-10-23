@@ -52,6 +52,37 @@ jobs:
         run: python -m training.verify_real_checkpoint --path "loras/$RUN_NAME"
         env:
           RUN_NAME: ${{ inputs.run_name }}
+      - name: Run genuine SD1.5 + freshly trained LoRA image inference
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -m training.smoke_diffusers_inference \
+            --adapter "loras/$RUN_NAME" \
+            --model stable-diffusion-v1-5/stable-diffusion-v1-5 \
+            --image "loras/$RUN_NAME/inference_real.png" \
+            --report "loras/$RUN_NAME/inference_evidence.json" \
+            --device cuda \
+            --steps 25 \
+            --seed 42 \
+            --prompt "High quality realistic architecture photograph of a modern office facade, coherent windows and floor divisions, daylight"
+      - name: Independently audit actual generated PNG and recorded provenance
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+        run: |
+          python -m training.verify_inference_evidence \
+            --report "loras/$RUN_NAME/inference_evidence.json" \
+            --image "loras/$RUN_NAME/inference_real.png"
+      - name: Upload real inference artifacts even when verification fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bimai360-gpu-inference-evidence-${{ inputs.run_name }}
+          path: |
+            loras/${{ inputs.run_name }}/inference_real.png
+            loras/${{ inputs.run_name }}/inference_evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload checkpoint and provenance if complete
         uses: actions/upload-artifact@v4
         with:
