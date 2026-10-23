@@ -92,9 +92,10 @@ def prepare_image(image, aspect, fit_mode):
 def get_pipeline(memory_mode):
     import torch
     from diffusers import AutoPipelineForImage2Image
-    if memory_mode in PIPELINES:
-        return PIPELINES[memory_mode]
     use_cuda = (os.environ.get('BIMAI360_FORCE_CPU') != '1' and torch.cuda.is_available())
+    cache_key = (memory_mode, 'cuda' if use_cuda else 'cpu')
+    if cache_key in PIPELINES:
+        return PIPELINES[cache_key]
     dtype = torch.float16 if use_cuda else torch.float32
     pipe = AutoPipelineForImage2Image.from_pretrained(
         MODEL_ID, torch_dtype=dtype, use_safetensors=True, cache_dir=str(CACHE),
@@ -115,8 +116,8 @@ def get_pipeline(memory_mode):
         pipe.enable_vae_slicing()
     except (AttributeError, ValueError):
         pass
-    PIPELINES[memory_mode] = (pipe, placement)
-    return PIPELINES[memory_mode]
+    PIPELINES[cache_key] = (pipe, placement)
+    return PIPELINES[cache_key]
 
 
 def installed_loras():
@@ -125,7 +126,8 @@ def installed_loras():
 
 
 def select_lora(pipe, memory_mode, adapter_name):
-    current = ACTIVE_LORA.get(memory_mode, 'Không dùng LoRA')
+    device_key = (memory_mode, str(pipe.device))
+    current = ACTIVE_LORA.get(device_key, 'Không dùng LoRA')
     if current == adapter_name:
         return
     if current != 'Không dùng LoRA':
@@ -140,7 +142,7 @@ def select_lora(pipe, memory_mode, adapter_name):
         if not (path / 'pytorch_lora_weights.safetensors').is_file():
             raise ValueError('Không tìm thấy trọng số LoRA')
         pipe.load_lora_weights(str(path), weight_name='pytorch_lora_weights.safetensors')
-    ACTIVE_LORA[memory_mode] = adapter_name
+    ACTIVE_LORA[device_key] = adapter_name
 
 
 def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, memory_mode, lora_name, style, guidance, scale, sharpness, progress=gr.Progress()):
