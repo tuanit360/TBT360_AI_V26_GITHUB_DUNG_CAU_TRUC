@@ -54,6 +54,25 @@ class V271TrainingLeakageTests(unittest.TestCase):
         self.assertEqual(report['status'], 'SPLIT_VALID_NOT_TRAINED')
         self.assertFalse(report['cross_split_pixel_duplicates'])
 
+    def test_nonimage_manifest_record_blocks_training_gate(self):
+        first = self.rows[0]
+        first['file_name'] = 'notes.txt'
+        (self.root / 'notes.txt').write_text('architectural annotations', encoding='utf-8')
+        self.write_manifest()
+        report = check_training_leakage(self.manifest, self.root)
+        self.assertEqual(report['status'], 'BLOCKED')
+        self.assertTrue(any(
+            isinstance(error, dict)
+            and error.get('reason') == 'Unsupported/non-image training file'
+            for error in report['errors']
+        ))
+
+    def test_valid_dataset_reports_images_in_both_splits(self):
+        report = check_training_leakage(self.manifest, self.root)
+        self.assertEqual(report['status'], 'SPLIT_VALID_NOT_TRAINED')
+        self.assertGreater(report['train_image_count'], 0)
+        self.assertGreater(report['validation_image_count'], 0)
+
     def test_different_brightness_flat_images_not_false_duplicate(self):
         first = check_training_leakage(self.manifest, self.root)
         train_project = first['train_projects'][0]
