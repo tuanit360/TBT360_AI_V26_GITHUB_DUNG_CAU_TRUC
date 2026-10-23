@@ -136,7 +136,7 @@ def get_pipeline(memory_mode):
                 type(exc).__name__,
             )
             del pipe
-            GPU_DISABLED_FOR_SESSION = True
+            disable_gpu_after_failure()
             use_cuda = False
             cache_key = (memory_mode, 'cpu')
             if cache_key in PIPELINES:
