@@ -17,7 +17,7 @@ def _percentile_level(histogram, fraction, total):
 
 
 
-def validate_generated_image(image, prepared_input=None):
+def validate_generated_image(image, prepared_input=None, expected_size=None):
     if not isinstance(image, Image.Image):
         raise ValueError('AI returned no usable image')
     rgb = image.convert('RGB')
@@ -41,6 +41,8 @@ def validate_generated_image(image, prepared_input=None):
             'AI output is nearly black or visually blank. '
             'Check VAE, model weights, numerical precision and CUDA driver; '
             'the result was rejected rather than delivered as a valid design.')
+    if expected_size is not None and rgb.size != tuple(expected_size):
+        raise ValueError('Generated image size does not match requested export dimensions')
     if prepared_input is not None:
         reference = prepared_input.convert('RGB')
         if reference.size != rgb.size:
