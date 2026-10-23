@@ -19,6 +19,10 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         raise ValueError('img2img strength must be in (0, 1]')
     if not 1 <= steps <= 100:
         raise ValueError('steps must be 1..100')
+    # Diffusers img2img truncates steps * strength to an integer. A zero
+    # denoising-step run must not be reported as successful inference.
+    if reference is not None and int(steps * strength) < 1:
+        raise ValueError('img2img needs at least one denoising step; increase strength or steps')
     if not prompt.strip():
         raise ValueError('A nonempty architectural prompt is required')
     if not model or not model.strip():
