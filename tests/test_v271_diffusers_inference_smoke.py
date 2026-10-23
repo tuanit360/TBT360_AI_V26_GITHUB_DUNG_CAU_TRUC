@@ -53,6 +53,16 @@ class InferenceSafetyTests(unittest.TestCase):
             self.assertEqual(report.read_text(encoding='utf-8'),
                              'previous verified evidence')
 
+    def test_invalid_img2img_strength_fails_before_model_load(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, 'strength'):
+                infer(
+                    Path(temp) / 'adapter', 'sd15',
+                    Path(temp) / 'out.png',
+                    reference=Path(temp) / 'reference.png',
+                    strength=0,
+                )
+
     def test_reject_invalid_inference_arguments(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'image.png'
