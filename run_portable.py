@@ -48,7 +48,12 @@ def main():
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if report['ok'] else 2
     for name in ('models', 'output', 'loras', 'dataset', 'logs'):
-        (root / name).mkdir(parents=True, exist_ok=True)
+        folder = root / name
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print(f'[BIMAI360] Cannot prepare {name}: {exc}', file=sys.stderr, flush=True)
+            return 3
     import logging
     from logging.handlers import RotatingFileHandler
     runtime_logger = logging.getLogger('bimai360')
