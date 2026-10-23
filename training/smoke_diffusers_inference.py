@@ -30,9 +30,12 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     if output.exists():
         raise FileExistsError('Refusing to overwrite an existing image')
     # Validate the reference before loading multi-GB model weights.
+    reference_sha256 = None
     if reference is not None:
         from PIL import Image, ImageOps
         reference = Path(reference).resolve()
+        with reference.open('rb') as stream:
+            reference_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
         with Image.open(reference) as source:
             source.verify()
         with Image.open(reference) as source:
@@ -41,6 +44,9 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             prepared_reference = ImageOps.pad(
                 ImageOps.exif_transpose(source).convert('RGB'), (512, 512),
             )
+        with reference.open('rb') as stream:
+            if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                raise ValueError('Reference changed during preparation')
     # Validate adapter before model loading. Only actual output is a success.
     from app.lora_validation import validate_adapter
     certificate = validate_adapter(adapter)
@@ -75,11 +81,10 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             'num_inference_steps': steps,
             'generator': generator,
         }
-        reference_sha256 = None
         if reference is not None:
-            reference = Path(reference)
             with reference.open('rb') as stream:
-                reference_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                    raise ValueError('Reference changed before img2img inference')
             generation_args.update({
                 'image': prepared_reference, 'strength': strength,
             })
