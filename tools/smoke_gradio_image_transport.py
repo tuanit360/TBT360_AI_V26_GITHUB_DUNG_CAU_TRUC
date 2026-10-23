@@ -1,70 +1,49 @@
-"""Check frozen EXE Gradio can return and serve a real PNG without model weights."""
+"""Verify frozen Gradio can deliver real inline PNG via HTML without file URLs."""
+import base64
 import json
-import struct
 import urllib.request
-import urllib.error
-from urllib.parse import quote
-
-from tools.smoke_bim_ui import BASE, checked_download_url
+from tools.smoke_bim_ui import BASE
 
 
 def check_image_transport():
     request = urllib.request.Request(
-        BASE + '/gradio_api/call/kiem_tra_truyen_anh',
+        BASE + '/gradio_api/call/kiem_tra_render_doc_lap',
         data=b'{"data":[]}',
         headers={'Content-Type': 'application/json'},
     )
     with urllib.request.urlopen(request, timeout=40) as response:
         queued = json.load(response)
-    if not queued.get('event_id'):
-        raise AssertionError('Image test event was not queued')
+    event_id = queued.get('event_id')
+    if not event_id:
+        raise AssertionError('Inline image event did not queue')
     with urllib.request.urlopen(
-        BASE + '/gradio_api/call/kiem_tra_truyen_anh/' + queued['event_id'],
+        BASE + '/gradio_api/call/kiem_tra_render_doc_lap/' + event_id,
         timeout=60,
     ) as response:
-        events = response.read().decode('utf-8')
-    data = [
-        json.loads(line[6:]) for line in events.splitlines()
-        if line.startswith('data: ')
+        stream = response.read().decode('utf-8')
+    events = [
+        json.loads(line.removeprefix('data: '))
+        for line in stream.splitlines() if line.startswith('data: ')
     ]
-    if not data or not isinstance(data[-1], list) or not data[-1]:
-        raise AssertionError('Gradio did not return an image')
-    image = data[-1][0]
-    if not isinstance(image, dict) or not image.get('url'):
-        raise AssertionError('Gradio did not return image URL')
-    candidates = [checked_download_url(image['url'])]
-    path = image.get('path') or image.get('name')
-    if isinstance(path, str):
-        encoded = quote(path, safe='/:')
-        candidates += [
-            BASE + '/gradio_api/file=' + encoded,
-            BASE + '/file=' + encoded,
-        ]
-    failures = []
-    header = None
-    for url in dict.fromkeys(candidates):
-        try:
-            with urllib.request.urlopen(url, timeout=30) as response:
-                data = response.read(32)
-            if data[:8] == bytes.fromhex('89504e470d0a1a0a'):
-                header = data
-                break
-            failures.append('not PNG: ' + repr(data[:16]))
-        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
-            failures.append(str(exc))
-    if header is None:
-        safe_location = image.get('url', '')
-        # Avoid putting user data, absolute paths or query strings into logs.
-        from urllib.parse import urlsplit
-        route = urlsplit(safe_location).path.split('=')[0][:80]
-        raise AssertionError('No accessible PNG file endpoint; route=' + route
-                             + '; ' + '; '.join(failures))
-    if header[:8] != b'\x89PNG\r\n\x1a\n':
-        raise AssertionError('Image URL was not served as PNG')
-    width, height = struct.unpack('>II', header[16:24])
-    if (width, height) != (128, 96):
-        raise AssertionError('Gradio image pixels have unexpected dimensions')
-    print('PASS: frozen EXE Gradio can serve generated PNG via local URL')
+    if not events or not isinstance(events[-1], list):
+        raise AssertionError('No render data from Gradio event')
+    markup = events[-1][0]
+    if not isinstance(markup, str):
+        raise AssertionError('HTML diagnostic result is not text')
+    prefix = 'data:image/png;base64,'
+    if prefix not in markup:
+        raise AssertionError('Missing inline PNG in diagnostic HTML')
+    payload = markup.split(prefix, 1)[1].split('"', 1)[0]
+    binary = base64.b64decode(payload, validate=True)
+    if binary[:8] != bytes.fromhex('89504e470d0a1a0a'):
+        raise AssertionError('Inline payload does not contain a PNG')
+    from PIL import Image
+    from io import BytesIO
+    with Image.open(BytesIO(binary)) as decoded:
+        decoded.load()
+        if decoded.size != (128, 96):
+            raise AssertionError('Diagnostic image has incorrect size')
+    print('PASS: frozen Gradio rendered and returned valid inline PNG')
 
 
 if __name__ == '__main__':
