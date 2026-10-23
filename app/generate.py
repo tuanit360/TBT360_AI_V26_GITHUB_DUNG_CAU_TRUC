@@ -338,20 +338,6 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                         'thử lại. Ảnh tham chiếu không phải '
                                         'ảnh AI đầu ra.',
                                     )
-                            if os.environ.get('TBT360_OFFLINE') != '1':
-                                from app.cpu_readiness import inspect_local_assets
-                                model_check = inspect_local_assets(ROOT)
-                                if not model_check['model_files_complete']:
-                                    record_operation(ROOT, 'generate', 'blocked_missing_model')
-                                    return (
-                                        [],
-                                        None,
-                                        'Chưa có checkpoint SD1.5 trên máy. Bản '
-                                        'Portable CPU không đi kèm trọng số AI. '
-                                        'Nếu muốn tải model qua mạng, cần cài '
-                                        'checkpoint hợp lệ trước; giao diện không '
-                                        'tự tạo ảnh từ ảnh tham chiếu.',
-                                    )
                             result = create(*arguments, progress=progress)
                             record_operation(ROOT, 'generate', 'completed')
                             return result
