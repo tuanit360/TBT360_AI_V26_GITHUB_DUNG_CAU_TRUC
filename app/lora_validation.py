@@ -50,8 +50,12 @@ def validate_adapter(folder):
                 partner_name = key_lookup.get(partner_lower)
                 if partner_name is None:
                     return {'valid': False, 'reason': 'Unpaired LoRA down tensor'}
-                shape_down = adapter.get_slice(actual_name).get_shape()
-                shape_up = adapter.get_slice(partner_name).get_shape()
+                down_slice = adapter.get_slice(actual_name)
+                up_slice = adapter.get_slice(partner_name)
+                shape_down = down_slice.get_shape()
+                shape_up = up_slice.get_shape()
+                if down_slice.get_dtype() not in ('F16', 'BF16', 'F32', 'F64') or up_slice.get_dtype() not in ('F16', 'BF16', 'F32', 'F64'):
+                    return {'valid': False, 'reason': 'LoRA factor tensors must use floating-point dtype'}
                 if (
                     len(shape_down) != 2 or len(shape_up) != 2
                     or any(dim <= 0 for dim in (*shape_down, *shape_up))
