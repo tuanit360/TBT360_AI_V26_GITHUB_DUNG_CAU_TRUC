@@ -149,6 +149,51 @@ class InferenceLifecycleTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(reference.read_bytes()).hexdigest(),
                              original_hash)
 
+    def test_img2img_mock_output_passes_independent_evidence_audit(self):
+        from training.smoke_diffusers_inference import write_evidence
+        from training.verify_inference_evidence import verify_inference_evidence
+
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            reference = folder / 'reference.png'
+            Image.new('RGB', (640, 480), 'white').save(reference)
+            output = folder / 'result.png'
+            report = folder / 'evidence.json'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            pipeline = StubPipeline(image)
+            stub = types.ModuleType('diffusers')
+            stub.StableDiffusionPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: self.fail(
+                    'img2img must use its own pipeline'
+                )
+            )
+            stub.StableDiffusionImg2ImgPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: pipeline
+            )
+            with patch.dict(sys.modules, {'diffusers': stub}):
+                with patch(
+                    'app.lora_validation.validate_adapter',
+                    return_value={'valid': True, 'sha256': 'fixture-hash'},
+                ):
+                    result = infer(
+                        folder / 'adapter', 'mock-model-not-real', output,
+                        reference=reference, steps=4, strength=0.5,
+                    )
+            write_evidence(report, result)
+            audit = verify_inference_evidence(report, output)
+            self.assertEqual(
+                audit['status'], 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN'
+            )
+            self.assertFalse(audit['real_model_execution_proven_by_artifacts_alone'])
+            reference.write_bytes(b'tampered-after-inference')
+            self.assertEqual(
+                verify_inference_evidence(report, output)['status'], 'BLOCKED',
+            )
+
     def test_reference_modified_during_inference_blocks_output(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
