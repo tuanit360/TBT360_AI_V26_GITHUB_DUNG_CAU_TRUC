@@ -36,6 +36,8 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
         if digest != record['image_sha256']:
             raise ValueError('Generated PNG checksum mismatch')
         with Image.open(image) as decoded:
+            if decoded.format != 'PNG':
+                raise ValueError('Evidence must contain a real PNG image')
             decoded.verify()
         with Image.open(image) as decoded:
             evidence = validate_generated_image(decoded, expected_size=(512, 512))
