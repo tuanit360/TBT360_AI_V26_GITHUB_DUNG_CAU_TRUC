@@ -41,7 +41,7 @@ class V271AdapterIntegrityTests(unittest.TestCase):
     def test_real_tensor_file_and_count_verified(self):
         import torch
         from safetensors.torch import save
-        data = save({'lora_unet_weight': torch.ones((2, 2))})
+        data = save({'lora_unet_test.lora_down.weight': torch.ones((2, 2))})
         self.write_status(data)
         self.assertTrue(validate_adapter(self.folder)['valid'])
         self.write_status(data, tensor_count=2)
