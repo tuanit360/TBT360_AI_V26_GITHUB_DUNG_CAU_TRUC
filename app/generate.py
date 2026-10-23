@@ -271,40 +271,80 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                     with gr.Row():
                         with gr.Column(scale=1, min_width=360):
                             reference=gr.Image(label='Ảnh công trình tham chiếu',type='pil',sources=['upload'],height=270)
-                            check_reference_button = gr.Button('KIỂM TRA ẢNH ĐẦU VÀO (KHÔNG CẦN AI)')
+                            gr.Markdown('### Kiểm tra ảnh và chẩn đoán tại chỗ')
+                            reference_render = gr.HTML(
+                                label='Ảnh kiểm tra trực tiếp',
+                                value='<p>Chưa kiểm tra ảnh.</p>',
+                            )
                             reference_check_status = gr.Textbox(
                                 label='Kết quả kiểm tra ảnh đầu vào',
                                 interactive=False,
                             )
-                            reference_check_preview = gr.Image(
-                                label='Ảnh kiểm tra đọc được',
+                            image_debug_log = gr.Textbox(
+                                label='LOG CHẨN ĐOÁN ẢNH (có thể bôi đen và Ctrl+C)',
+                                lines=9,
                                 interactive=False,
-                                type='pil',
+                                show_copy_button=True,
+                            )
+                            def run_reference_diagnostic(image):
+                                from datetime import datetime, timezone
+                                from app.reference_image_check import inspect_reference_image
+                                from app.diagnostic_image_render import render_diagnostic_image
+                                from app.local_workspace import record_operation
+                                import logging
+                                timestamp = datetime.now(timezone.utc).isoformat()
+                                try:
+                                    preview, message = inspect_reference_image(image)
+                                    if preview is None:
+                                        record_operation(ROOT, 'check_model', 'failed')
+                                        return '<p>Không thể hiển thị ảnh.</p>', message, (
+                                            f'{timestamp} | IMAGE_INPUT | FAIL | {message}'
+                                        )
+                                    markup = render_diagnostic_image(preview)
+                                    record_operation(ROOT, 'check_model', 'completed')
+                                    log = (
+                                        f'{timestamp} | IMAGE_INPUT | PASS | '
+                                        f'{preview.width}x{preview.height} RGB | '
+                                        'INLINE_PNG_DATA_URI | Không dùng endpoint /file='
+                                    )
+                                    return markup, message, log
+                                except Exception as exc:
+                                    logging.getLogger('bimai360').exception('Reference render failed')
+                                    record_operation(ROOT, 'check_model', 'failed')
+                                    message = 'Kiểm tra ảnh thất bại; xem runtime_errors.log'
+                                    return '<p>Lỗi kết xuất ảnh.</p>', message, (
+                                        f'{timestamp} | IMAGE_INPUT | FAIL | '
+                                        f'{type(exc).__name__} | {message}'
+                                    )
+                            gr.Button(
+                                'KIỂM TRA VÀ HIỂN THỊ ẢNH (KHÔNG CẦN AI)'
+                            ).click(
+                                run_reference_diagnostic,
+                                inputs=reference,
+                                outputs=[
+                                    reference_render, reference_check_status,
+                                    image_debug_log,
+                                ],
+                                api_name='kiem_tra_truyen_anh',
                             )
                             def gradio_image_transport_smoke():
                                 from PIL import Image
-                                # Serve an explicit output file, not an opaque
-                                # Gradio-managed temporary Pillow conversion.
-                                target = OUTPUT / 'gradio_transport_smoke.png'
-                                Image.new('RGB', (128, 96), (60, 120, 180)).save(
-                                    target, format='PNG',
+                                from app.diagnostic_image_render import render_diagnostic_image
+                                return render_diagnostic_image(
+                                    Image.new('RGB', (128, 96), (60, 120, 180))
                                 )
-                                return str(target)
                             gr.Button(
-                                'KIỂM TRA KÊNH HIỂN THỊ ẢNH (KHÔNG CẦN AI)'
+                                'KIỂM TRA RENDER ĐỘC LẬP (KHÔNG CẦN AI)'
                             ).click(
                                 gradio_image_transport_smoke,
-                                outputs=reference_check_preview,
-                                api_name='kiem_tra_truyen_anh',
+                                outputs=reference_render,
+                                api_name='kiem_tra_render_doc_lap',
                             )
-                            def check_reference_image(image):
-                                from app.reference_image_check import inspect_reference_image
-                                return inspect_reference_image(image)
-                            check_reference_button.click(
-                                check_reference_image,
-                                inputs=reference,
-                                outputs=[reference_check_preview, reference_check_status],
-                                api_name='kiem_tra_anh_dau_vao',
+                            def refresh_image_debug_log():
+                                from app.local_workspace import read_runtime_log
+                                return read_runtime_log(ROOT, lines=80)
+                            gr.Button('LẤY LOG MỚI NHẤT ĐỂ COPY').click(
+                                refresh_image_debug_log, outputs=image_debug_log,
                             )
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 value='Contemporary office building, dark vertical facade fins, rooftop garden, urban corner site, realistic architectural visualization, daylight',
