@@ -43,14 +43,19 @@ def image_generation_contract(root, generator, arguments, *, progress=None,
                 if bundle.testzip() is not None:
                     raise ValueError('Generated ZIP failed CRC check')
                 included = set(bundle.namelist())
+                if len(images) > 4:
+                    raise ValueError('Generated image count exceeds UI limit')
                 for filename, _label in images:
                     image_path = Path(filename)
                     if not image_path.is_file():
                         raise ValueError('Generated image is missing on disk')
                     if image_path.name not in included:
                         raise ValueError('Generated ZIP missing an output image')
-                    if bundle.getinfo(image_path.name).file_size == 0:
+                    archive_info = bundle.getinfo(image_path.name)
+                    if archive_info.file_size == 0:
                         raise ValueError('Generated ZIP contains an empty image')
+                    if archive_info.file_size != image_path.stat().st_size:
+                        raise ValueError('Generated ZIP image size differs from output file')
         except BadZipFile as exc:
             raise ValueError('Generated ZIP is not a valid archive') from exc
         markup = render_image_gallery(images)
