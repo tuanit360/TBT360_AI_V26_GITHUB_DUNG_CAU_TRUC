@@ -33,10 +33,9 @@ def validate_adapter(folder):
             return {'valid': False, 'reason': 'LoRA checkpoint has no tensors'}
         # Check common Diffusers/PEFT LoRA pair names. Arbitrary tensors
         # should never be advertised as a trained LoRA adapter.
-        keys = set(tensor_keys)
+        keys = {key.lower() for key in tensor_keys}
         pairs = 0
-        for key in keys:
-            normalized = key.lower()
+        for normalized in keys:
             substitutions = (
                 ('.lora_down.', '.lora_up.'),
                 ('.lora_a.', '.lora_b.'),
@@ -45,7 +44,7 @@ def validate_adapter(folder):
             for down, up in substitutions:
                 position = normalized.find(down)
                 if position >= 0:
-                    partner = key[:position] + up + key[position + len(down):]
+                    partner = normalized[:position] + up + normalized[position + len(down):]
                     if partner in keys:
                         pairs += 1
                     break
