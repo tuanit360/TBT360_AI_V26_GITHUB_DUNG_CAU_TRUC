@@ -232,6 +232,28 @@ class InferenceLifecycleTests(unittest.TestCase):
                         )
             self.assertFalse(output.exists())
 
+    def test_empty_diffusers_result_is_rejected_without_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            output = folder / 'result.png'
+            class EmptyResultPipeline(StubPipeline):
+                def __call__(self, **kwargs):
+                    return types.SimpleNamespace(images=[])
+            stub = types.ModuleType('diffusers')
+            stub.StableDiffusionPipeline = types.SimpleNamespace(
+                from_pretrained=lambda *args, **kwargs: EmptyResultPipeline(
+                    Image.new('RGB', (512, 512))
+                )
+            )
+            with patch.dict(sys.modules, {'diffusers': stub}):
+                with patch(
+                    'app.lora_validation.validate_adapter',
+                    return_value={'valid': True, 'sha256': 'fixture-hash'},
+                ):
+                    with self.assertRaisesRegex(ValueError, 'no images'):
+                        infer(folder / 'adapter', 'mock-model-not-real', output)
+            self.assertFalse(output.exists())
+
     def test_blank_output_rejected_without_writing_a_file(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
