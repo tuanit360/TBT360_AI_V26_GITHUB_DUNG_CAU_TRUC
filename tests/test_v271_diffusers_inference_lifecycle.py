@@ -90,6 +90,22 @@ class InferenceLifecycleTests(unittest.TestCase):
                     self.invoke(folder, image)
             self.assertEqual(output.read_bytes(), b'another process created this')
 
+    def test_partial_png_save_removes_only_own_incomplete_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            def interrupted_save(image_object, stream, *args, **kwargs):
+                stream.write(b'partial png')
+                raise OSError('interrupted image encoding')
+            with patch.object(Image.Image, 'save', interrupted_save):
+                with self.assertRaisesRegex(OSError, 'interrupted'):
+                    self.invoke(folder, image)
+            self.assertFalse((folder / 'result.png').exists())
+
     def test_blank_output_rejected_without_writing_a_file(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
