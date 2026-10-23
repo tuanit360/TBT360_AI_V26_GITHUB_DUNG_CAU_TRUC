@@ -13,6 +13,8 @@ def verify_checkpoint(path):
         status = json.loads(status_path.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError('Missing or invalid training status') from exc
+    if not isinstance(status, dict):
+        raise ValueError('Training status must be a JSON object')
     if status.get('status') != 'SUCCEEDED':
         raise ValueError('Training did not complete successfully')
     steps = status.get('steps')
