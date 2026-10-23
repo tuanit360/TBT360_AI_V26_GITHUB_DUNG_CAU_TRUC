@@ -11,7 +11,10 @@ def explain_generation_failure(error):
                                            'connection error', 'could not connect',
                                            'repository not found', 'does not appear to have')):
         return 'Chưa tải đủ mô hình sinh ảnh SD1.5. Cần kết nối mạng để tải checkpoint hợp lệ hoặc cài model vào thư mục models.'
-    if 'cuda' in lowered and ('not available' in lowered or 'driver' in lowered):
+    if ('cuda' in lowered and (
+        'not available' in lowered or 'driver version is insufficient' in lowered
+        or 'no nvidia driver' in lowered or 'cuda driver' in lowered
+    )):
         return 'CUDA chưa sẵn sàng. Kiểm tra trình điều khiển NVIDIA hoặc chạy chế độ CPU.'
     if any(value in lowered for value in ('nearly black', 'visually blank')):
         return 'AI trả về ảnh đen hoặc trống. Kết quả đã bị loại; cần kiểm tra VAE, checkpoint và độ chính xác số.'
