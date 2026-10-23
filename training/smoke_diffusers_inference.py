@@ -9,7 +9,6 @@ import hashlib
 import json
 from pathlib import Path
 
-from training.smoke_diffusers_lora import smoke_load
 
 
 def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
@@ -19,10 +18,11 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         raise ValueError('steps must be 1..100')
     if not prompt.strip():
         raise ValueError('A nonempty architectural prompt is required')
+    if not model or not model.strip():
+        raise ValueError('A real base model is required')
     if output.exists():
         raise FileExistsError('Refusing to overwrite an existing image')
-    # Load smoke gates certificate/adapter compatibility first, then explicitly
-    # create a new pipeline for inference. Success is never inferred from load.
+    # Validate adapter before model loading. Only actual output is a success.
     from app.lora_validation import validate_adapter
     certificate = validate_adapter(adapter)
     if not certificate['valid']:
