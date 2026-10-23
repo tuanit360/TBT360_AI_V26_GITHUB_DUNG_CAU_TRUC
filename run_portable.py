@@ -17,7 +17,15 @@ def main():
     root = root_directory()
     os.environ['BIMAI360_HOME'] = str(root)
     temp_folder = root / 'output' / 'gradio_temp'
-    temp_folder.mkdir(parents=True, exist_ok=True)
+    try:
+        temp_folder.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(
+            f'[BIMAI360] Cannot create runtime folder: {temp_folder} ({exc})',
+            file=sys.stderr,
+            flush=True,
+        )
+        return 3
     os.environ['GRADIO_TEMP_DIR'] = str(temp_folder)
     # Legacy environment alias retained for existing integrations.
     os.environ['TBT360_HOME'] = str(root)
@@ -64,7 +72,7 @@ def main():
             log_dir = root / 'logs'
             log_dir.mkdir(parents=True, exist_ok=True)
             with (log_dir / 'startup_error.log').open('a', encoding='utf-8') as handle:
-                handle.write(f'\\n=== {datetime.now().isoformat()} ===\\n')
+                handle.write(f'\n=== {datetime.now().isoformat()} ===\n')
                 handle.write(details)
         except OSError:
             pass
