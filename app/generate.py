@@ -283,7 +283,13 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                             )
                             def gradio_image_transport_smoke():
                                 from PIL import Image
-                                return Image.new('RGB', (128, 96), (60, 120, 180))
+                                # Serve an explicit output file, not an opaque
+                                # Gradio-managed temporary Pillow conversion.
+                                target = OUTPUT / 'gradio_transport_smoke.png'
+                                Image.new('RGB', (128, 96), (60, 120, 180)).save(
+                                    target, format='PNG',
+                                )
+                                return str(target)
                             gr.Button(
                                 'KIỂM TRA KÊNH HIỂN THỊ ẢNH (KHÔNG CẦN AI)'
                             ).click(
