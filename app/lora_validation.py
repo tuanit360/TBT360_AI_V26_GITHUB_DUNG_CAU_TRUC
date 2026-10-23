@@ -31,6 +31,16 @@ def validate_adapter(folder):
             tensor_keys = list(adapter.keys())
         if not tensor_keys:
             return {'valid': False, 'reason': 'LoRA checkpoint has no tensors'}
+        # Check common Diffusers/PEFT LoRA pair names. Arbitrary tensors
+        # should never be advertised as a trained LoRA adapter.
+        lora_keys = [key for key in tensor_keys if (
+            'lora' in key.lower() and (
+                '.down.' in key.lower() or '.up.' in key.lower()
+                or 'lora_a' in key.lower() or 'lora_b' in key.lower()
+            )
+        )]
+        if not lora_keys:
+            return {'valid': False, 'reason': 'No recognizable LoRA tensors'}
         if isinstance(record.get('tensor_count'), int) and record['tensor_count'] != len(tensor_keys):
             return {'valid': False, 'reason': 'LoRA tensor count mismatch'}
         return {'valid': True, 'sha256': digest, 'bytes': expected_size,
