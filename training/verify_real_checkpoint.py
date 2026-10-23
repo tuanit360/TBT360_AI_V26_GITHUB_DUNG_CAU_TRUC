@@ -9,7 +9,10 @@ from app.lora_validation import validate_adapter
 def verify_checkpoint(path):
     folder = Path(path)
     status_path = folder / 'training_status.json'
-    status = json.loads(status_path.read_text(encoding='utf-8'))
+    try:
+        status = json.loads(status_path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError('Missing or invalid training status') from exc
     if status.get('status') != 'SUCCEEDED':
         raise ValueError('Training did not complete successfully')
     steps = status.get('steps')
