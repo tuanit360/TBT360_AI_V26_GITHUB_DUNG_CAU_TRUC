@@ -2,6 +2,8 @@ name: BIM AI Kiến Trúc 360 V271 Portable Windows x64
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'release/**'
     paths:
       - '.github/workflows/windows-build.yml'
       - 'app/**'
@@ -38,7 +40,7 @@ on:
       - 'requirements.txt'
       - 'requirements-runtime.txt'
 concurrency:
-  group: v271-windows-${{ github.workflow }}-${{ github.ref }}
+  group: v271-windows-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
