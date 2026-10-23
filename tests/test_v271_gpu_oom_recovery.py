@@ -1,18 +1,33 @@
-"""Static regression for GPU OOM cache invalidation and explicit retry."""
+"""Functional GPU OOM cache invalidation regression."""
 import unittest
-from pathlib import Path
+from app import generate
 
 
 class GPUOutOfMemoryRecoveryTests(unittest.TestCase):
-    def test_cuda_cache_is_evicted_after_oom(self):
-        source = (Path(__file__).resolve().parents[1] / 'app' /
-                  'generate.py').read_text(encoding='utf-8')
-        self.assertIn('except torch.cuda.OutOfMemoryError as exc:', source)
-        self.assertIn("if key[1] == 'cuda':", source)
-        self.assertIn('failed_pipe, _ = PIPELINES.pop(key)', source)
-        self.assertIn('ACTIVE_LORA.pop(id(failed_pipe), None)', source)
-        self.assertIn('GPU_DISABLED_FOR_SESSION = True', source)
-        self.assertIn('Lần thử tiếp theo sẽ dùng CPU', source)
+    def test_evicts_only_cuda_pipelines_and_associated_lora(self):
+        old_pipelines = generate.PIPELINES
+        old_lora = generate.ACTIVE_LORA
+        old_disabled = generate.GPU_DISABLED_FOR_SESSION
+        gpu = object()
+        cpu = object()
+        try:
+            generate.PIPELINES = {
+                ('balanced', 'cuda'): (gpu, 'CUDA'),
+                ('balanced', 'cpu'): (cpu, 'CPU'),
+            }
+            generate.ACTIVE_LORA = {id(gpu): 'gpu_lora', id(cpu): 'cpu_lora'}
+            generate.GPU_DISABLED_FOR_SESSION = False
+            self.assertEqual(generate.disable_gpu_after_failure(), 1)
+            self.assertTrue(generate.GPU_DISABLED_FOR_SESSION)
+            self.assertNotIn(('balanced', 'cuda'), generate.PIPELINES)
+            self.assertIs(generate.PIPELINES[('balanced', 'cpu')][0], cpu)
+            self.assertNotIn(id(gpu), generate.ACTIVE_LORA)
+            self.assertEqual(generate.ACTIVE_LORA[id(cpu)], 'cpu_lora')
+            self.assertEqual(generate.disable_gpu_after_failure(), 0)
+        finally:
+            generate.PIPELINES = old_pipelines
+            generate.ACTIVE_LORA = old_lora
+            generate.GPU_DISABLED_FOR_SESSION = old_disabled
 
 
 if __name__ == '__main__':
