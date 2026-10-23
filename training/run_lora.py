@@ -13,6 +13,17 @@ ROOT=Path(__file__).resolve().parents[1]
 REPO_URL='https://raw.githubusercontent.com/huggingface/diffusers/v0.31.0/examples/text_to_image/train_text_to_image_lora.py'
 MODEL='stable-diffusion-v1-5/stable-diffusion-v1-5'
 
+def reserve_run_directory(root: Path, name: str) -> Path:
+    """Reserve a fresh run without touching existing LoRA checkpoints."""
+    import re
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', name):
+        raise ValueError('Invalid LoRA run name')
+    destination = Path(root) / 'loras' / name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.mkdir(exist_ok=False)
+    return destination
+
+
 def run(args):
     import torch
     if not torch.cuda.is_available():
@@ -47,10 +58,8 @@ def run(args):
     if 'train_text_to_image_lora' not in script.name:
         raise RuntimeError('Trainer không hợp lệ')
     print('[TRAINER] SHA256:',hashlib.sha256(script.read_bytes()).hexdigest(),flush=True)
-    out=ROOT/'loras'/args.name
-    # Never re-use a prior run directory, even when a failed run produced no
-    # weights. This protects logs, status and partial checkpoints from mixing.
-    out.mkdir(parents=True,exist_ok=False)
+    # Never re-use even a failed run; its logs/partial weights remain intact.
+    out=reserve_run_directory(ROOT, args.name)
     command=[sys.executable,str(script),'--pretrained_model_name_or_path',MODEL,
         '--train_data_dir',str(prepared),'--caption_column','text','--image_column','image',
         '--resolution','512','--center_crop','--random_flip','--train_batch_size','1',
