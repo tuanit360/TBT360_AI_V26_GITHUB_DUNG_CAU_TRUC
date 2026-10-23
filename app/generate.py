@@ -126,7 +126,9 @@ def installed_loras():
 
 
 def select_lora(pipe, memory_mode, adapter_name):
-    device_key = (memory_mode, str(pipe.device))
+    # Offloaded CUDA pipelines can report CPU as their active device.
+    # Track the actual pipeline instance, not its transient device.
+    device_key = id(pipe)
     current = ACTIVE_LORA.get(device_key, 'Không dùng LoRA')
     if current == adapter_name:
         return
