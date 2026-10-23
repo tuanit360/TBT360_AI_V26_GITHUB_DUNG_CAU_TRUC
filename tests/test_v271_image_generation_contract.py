@@ -22,8 +22,11 @@ class ImageGenerationContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             def failing(*args, **kwargs):
                 raise RuntimeError('CUDA out of memory')
-            with patch('app.local_workspace.record_operation'):
+            with patch('app.local_workspace.record_operation'), patch(
+                'app.image_generation_contract.logging.getLogger'
+            ) as mocked_logger:
                 result = image_generation_contract(directory, failing, ())
+                mocked_logger.return_value.exception.assert_called_once()
             self.assertEqual(len(result), 4)
             self.assertIsNone(result[1])
             self.assertIn('bộ nhớ', result[2])
