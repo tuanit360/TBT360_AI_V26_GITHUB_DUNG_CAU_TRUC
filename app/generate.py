@@ -85,12 +85,24 @@ def dimensions(aspect):
 
 
 def prepare_image(image, aspect, fit_mode):
-    source = ImageOps.exif_transpose(image).convert('RGB')
+    """Respect camera orientation and composite transparent reference images."""
+    oriented = ImageOps.exif_transpose(image)
+    if oriented.mode in ('RGBA', 'LA') or 'transparency' in oriented.info:
+        rgba = oriented.convert('RGBA')
+        source = Image.new('RGB', rgba.size, (230, 231, 230))
+        source.paste(rgba, mask=rgba.getchannel('A'))
+    else:
+        source = oriented.convert('RGB')
     target_size = dimensions(aspect)
     if fit_mode == 'Giữ đủ ảnh (thêm viền)':
-        result = ImageOps.pad(source, target_size, color=(230,231,230), method=Image.Resampling.LANCZOS)
+        result = ImageOps.pad(
+            source, target_size, color=(230, 231, 230),
+            method=Image.Resampling.LANCZOS,
+        )
     else:
-        result = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
+        result = ImageOps.fit(
+            source, target_size, method=Image.Resampling.LANCZOS,
+        )
     return result, hashlib.sha256(source.tobytes()).hexdigest()
 
 
