@@ -68,6 +68,28 @@ class InferenceLifecycleTests(unittest.TestCase):
                 result['image_sha256'],
             )
 
+    def test_exclusive_create_collision_does_not_delete_other_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            output = folder / 'result.png'
+            image = Image.new('RGB', (512, 512))
+            image.putdata([
+                ((x * 3) % 256, (y * 5) % 256, (x + y) % 256)
+                for y in range(512) for x in range(512)
+            ])
+            original_open = Path.open
+
+            def collision(path, mode='r', *args, **kwargs):
+                if Path(path) == output and mode == 'xb':
+                    output.write_bytes(b'another process created this')
+                    raise FileExistsError('concurrent output')
+                return original_open(path, mode, *args, **kwargs)
+
+            with patch.object(Path, 'open', collision):
+                with self.assertRaises(FileExistsError):
+                    self.invoke(folder, image)
+            self.assertEqual(output.read_bytes(), b'another process created this')
+
     def test_blank_output_rejected_without_writing_a_file(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
