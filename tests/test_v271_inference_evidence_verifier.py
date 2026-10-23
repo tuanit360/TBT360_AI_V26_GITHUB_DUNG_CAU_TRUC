@@ -86,7 +86,7 @@ class V271EvidenceVerificationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             source = folder / 'reference.png'
-            source.write_bytes(b'initial reference')
+            Image.new('RGB', (256, 256), 'white').save(source)
             image_path = folder / 'image.png'
             report_path = folder / 'report.json'
             image = Image.new('RGB', (512, 512))
@@ -122,6 +122,16 @@ class V271EvidenceVerificationTests(unittest.TestCase):
             )
             record['strength'] = 0.5
             report_path.write_text(json.dumps(record), encoding='utf-8')
+            # Even a matching SHA is not enough if the image cannot decode.
+            source.write_bytes(b'corrupted but checksummed reference')
+            record['reference_sha256'] = hashlib.sha256(
+                source.read_bytes()
+            ).hexdigest()
+            report_path.write_text(json.dumps(record), encoding='utf-8')
+            self.assertEqual(
+                verify_inference_evidence(report_path, image_path)['status'],
+                'BLOCKED',
+            )
             source.write_bytes(b'modified reference')
             self.assertEqual(
                 verify_inference_evidence(report_path, image_path)['status'],
