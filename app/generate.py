@@ -116,6 +116,9 @@ def get_pipeline(memory_mode):
     if cache_key in PIPELINES:
         return PIPELINES[cache_key]
     dtype = torch.float16 if use_cuda else torch.float32
+    # Loading a checkpoint may fail before .to('cuda') is reached. In that case
+    # preserve the original error rather than treating missing/corrupt weights
+    # as a device failure.
     pipe = AutoPipelineForImage2Image.from_pretrained(
         MODEL_ID, torch_dtype=dtype, use_safetensors=True, cache_dir=str(CACHE),
         local_files_only=os.environ.get('TBT360_OFFLINE') == '1')
@@ -152,7 +155,12 @@ def get_pipeline(memory_mode):
         pipe.to('cpu')
         placement = 'CPU (có thể rất chậm)'
     if memory_mode == 'Tiết kiệm VRAM tối đa' or not use_cuda:
-        pipe.enable_attention_slicing()
+        # Recent Diffusers versions may omit this optional optimization.
+        # It must not prevent a viable CPU pipeline from starting.
+        try:
+            pipe.enable_attention_slicing()
+        except (AttributeError, ValueError, NotImplementedError):
+            pass
     try:
         pipe.enable_vae_slicing()
     except (AttributeError, ValueError):
