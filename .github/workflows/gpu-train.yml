@@ -42,6 +42,8 @@ jobs:
         env:
           RUN_NAME: ${{ inputs.run_name }}
           STEPS: ${{ inputs.steps }}
+      - name: Fail-fast GPU dependencies, disk and dataset preflight
+        run: python -m training.preflight_real_gpu --dataset dataset/v72_certified
       - name: Train genuine LoRA checkpoint
         run: python -m training.run_lora --name "$RUN_NAME" --steps "$STEPS"
         env:
