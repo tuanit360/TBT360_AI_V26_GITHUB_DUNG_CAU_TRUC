@@ -91,6 +91,10 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         else:
             generation_args.update({'width': 512, 'height': 512})
         generated = pipeline(**generation_args).images[0]
+        if reference is not None:
+            with reference.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                    raise ValueError('Reference changed during img2img inference')
         from app.generated_image_gate import validate_generated_image
         image_evidence = validate_generated_image(generated, expected_size=(512, 512))
         output.parent.mkdir(parents=True, exist_ok=True)
