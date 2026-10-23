@@ -23,3 +23,24 @@ def render_diagnostic_image(image):
         '<p>Đã kết xuất ảnh chẩn đoán trực tiếp, không dùng URL tệp Gradio.</p>'
         '</div>'
     )
+
+
+def render_image_gallery(items):
+    """Render bounded PNG previews directly, with no Gradio file endpoint."""
+    if not items:
+        return '<p>Chưa có ảnh AI hợp lệ. Xem LOG CHẨN ĐOÁN ẢNH.</p>'
+    cards = []
+    for filename, label in items[:4]:
+        from pathlib import Path
+        path = Path(filename)
+        if not path.is_file():
+            raise ValueError('Missing generated PNG')
+        with Image.open(path) as source:
+            source.load()
+            rendered = render_diagnostic_image(source)
+        cards.append(
+            '<section style="min-width:240px;max-width:640px;flex:1">'
+            + '<strong>' + html.escape(str(label)) + '</strong>'
+            + rendered + '</section>'
+        )
+    return '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ''.join(cards) + '</div>'
