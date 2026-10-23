@@ -371,7 +371,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 sharpness=gr.Slider(0,1,value=0.2,step=0.1,label='Làm nét nhẹ')
                             start=gr.Button('TẠO PHƯƠNG ÁN',variant='primary',size='lg')
                         with gr.Column(scale=2,min_width=380):
-                            gallery=gr.Gallery(label='Ảnh các phương án kiến trúc · chưa có ảnh cho đến khi AI chạy thành công',columns=2,height=630,object_fit='contain')
+                            gallery=gr.HTML(value='<p>Chưa có ảnh AI. Hãy kiểm tra model và nhấn TẠO PHƯƠNG ÁN.</p>')
                             export=gr.File(label='Tải gói ảnh và thông số tạo ảnh (ZIP)')
                             status=gr.Textbox(label='Tiến trình và thông báo',lines=3,interactive=False)
                     gr.Markdown('**Bắt đầu:** Nạp ảnh → Chọn cấu hình → Tạo phương án → Xem kết quả. Nếu thiếu checkpoint, phần mềm phải báo thiếu thay vì xuất ảnh giả.')
@@ -403,7 +403,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 if not readiness['model_files_complete']:
                                     record_operation(ROOT, 'generate', 'blocked_missing_model')
                                     return (
-                                        [],
+                                        '<p>Chưa thể tạo ảnh. Xem trạng thái model.</p>',
                                         None,
                                         'CHƯA THỂ SINH ẢNH: Thiếu checkpoint SD1.5 '
                                         'cục bộ hợp lệ. Mở 05 · ĐÀO TẠO → '
@@ -415,7 +415,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                     )
                             result = create(*arguments, progress=progress)
                             record_operation(ROOT, 'generate', 'completed')
-                            return result
+                            from app.diagnostic_image_render import render_image_gallery
+                            images, archive, message = result
+                            return render_image_gallery(images), archive, message
                         except Exception as exc:
                             record_operation(ROOT, 'generate', 'failed')
                             logging.getLogger('bimai360').exception(
@@ -423,7 +425,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 type(exc).__name__,
                             )
                             return (
-                                [],
+                                '<p>Không sinh được ảnh; xem thông báo.</p>',
                                 None,
                                 'KHÔNG TẠO ĐƯỢC PHƯƠNG ÁN: '
                                 + explain_generation_failure(exc),
