@@ -20,6 +20,23 @@ class InferenceSafetyTests(unittest.TestCase):
                 infer(Path(temp) / 'adapter', 'sd15', output)
             self.assertEqual(output.read_bytes(), b'important image')
 
+    def test_existing_report_is_never_overwritten_by_cli(self):
+        import sys
+        from unittest.mock import patch
+        from training.smoke_diffusers_inference import main
+        with tempfile.TemporaryDirectory() as temp:
+            report = Path(temp) / 'evidence.json'
+            report.write_text('previous verified evidence', encoding='utf-8')
+            args = ['smoke', '--adapter', str(Path(temp) / 'adapter'),
+                    '--model', 'sd15', '--image', str(Path(temp) / 'image.png'),
+                    '--report', str(report)]
+            with patch.object(sys, 'argv', args):
+                with self.assertRaises(SystemExit) as error:
+                    main()
+            self.assertEqual(error.exception.code, 2)
+            self.assertEqual(report.read_text(encoding='utf-8'),
+                             'previous verified evidence')
+
     def test_reject_invalid_inference_arguments(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'image.png'
