@@ -268,7 +268,13 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 result = postprocess_image(result, scale, sharpness)
                 from app.generated_image_gate import validate_generated_image
                 quality_evidence = validate_generated_image(
-                    result, prepared_input=source if int(scale) == 1 else None)
+                    result,
+                    prepared_input=source if int(scale) == 1 else None,
+                    expected_size=(
+                        source.width * int(scale),
+                        source.height * int(scale),
+                    ),
+                )
                 result.save(run_dir/fname, optimize=True)
                 generated.append((str(run_dir/fname), f'Phương án {index+1} · seed {current_seed}'))
                 diag = image_diagnostics(result)
