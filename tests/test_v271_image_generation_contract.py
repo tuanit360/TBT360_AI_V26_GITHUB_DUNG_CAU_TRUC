@@ -1,4 +1,5 @@
 import tempfile
+import zipfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -32,12 +33,28 @@ class ImageGenerationContractTests(unittest.TestCase):
             self.assertIn('bộ nhớ', result[2])
             self.assertIn('FAIL | RuntimeError', result[3])
 
+    def test_invalid_zip_is_not_reported_as_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / 'render.png'
+            Image.new('RGB', (128, 96)).save(image_path)
+            archive = Path(directory) / 'bad.zip'
+            archive.write_bytes(b'not a zip archive')
+            def generated(*args, **kwargs):
+                return [(str(image_path), 'Ảnh thử')], str(archive), 'Đã tạo'
+            with patch('app.local_workspace.record_operation'), patch(
+                'app.image_generation_contract.logging.getLogger'
+            ):
+                result = image_generation_contract(directory, generated, ())
+            self.assertIsNone(result[1])
+            self.assertIn('FAIL', result[3])
+
     def test_success_renders_image_and_keeps_zip(self):
         with tempfile.TemporaryDirectory() as directory:
             image_path = Path(directory) / 'render.png'
             Image.new('RGB', (128, 96)).save(image_path)
             archive = Path(directory) / 'render.zip'
-            archive.write_bytes(b'example')
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                bundle.write(image_path, arcname='render.png')
             def success(*args, **kwargs):
                 return [(str(image_path), 'Ảnh thử')], str(archive), 'Đã tạo'
             with patch('app.local_workspace.record_operation'):
