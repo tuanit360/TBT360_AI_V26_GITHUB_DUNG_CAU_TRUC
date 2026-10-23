@@ -90,6 +90,19 @@ def prepare_image(image, aspect, fit_mode):
     return result, hashlib.sha256(source.tobytes()).hexdigest()
 
 
+def disable_gpu_after_failure():
+    """Invalidate failed CUDA instances; CPU pipelines remain reusable."""
+    global GPU_DISABLED_FOR_SESSION
+    GPU_DISABLED_FOR_SESSION = True
+    removed = 0
+    for key in tuple(PIPELINES):
+        if key[1] == 'cuda':
+            failed_pipe, _ = PIPELINES.pop(key)
+            ACTIVE_LORA.pop(id(failed_pipe), None)
+            removed += 1
+    return removed
+
+
 def get_pipeline(memory_mode):
     global GPU_DISABLED_FOR_SESSION
     import torch
@@ -256,11 +269,7 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
             # Evict the failed CUDA pipeline. Never silently retry the same
             # diffusion operation: explicit user action preserves seed/output.
             import logging
-            GPU_DISABLED_FOR_SESSION = True
-            for key in tuple(PIPELINES):
-                if key[1] == 'cuda':
-                    failed_pipe, _ = PIPELINES.pop(key)
-                    ACTIVE_LORA.pop(id(failed_pipe), None)
+            disable_gpu_after_failure()
             logging.getLogger('bimai360').warning(
                 'CUDA OOM; GPU disabled for this session. Next attempt uses CPU.'
             )
