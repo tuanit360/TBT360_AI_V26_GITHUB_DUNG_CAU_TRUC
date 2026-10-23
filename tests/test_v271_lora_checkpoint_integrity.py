@@ -38,13 +38,19 @@ class V271AdapterIntegrityTests(unittest.TestCase):
         self.write_status(save({}), tensor_count=0)
         self.assertFalse(validate_adapter(self.folder)['valid'])
 
+    def test_unpaired_lora_factor_is_rejected(self):
+        import torch
+        from safetensors.torch import save
+        self.write_status(save({'x.lora_down.weight': torch.ones((2, 2))}))
+        self.assertFalse(validate_adapter(self.folder)['valid'])
+
     def test_real_tensor_file_and_count_verified(self):
         import torch
         from safetensors.torch import save
-        data = save({'lora_unet_test.lora_down.weight': torch.ones((2, 2))})
-        self.write_status(data)
-        self.assertTrue(validate_adapter(self.folder)['valid'])
+        data = save({'lora_unet_test.lora_down.weight': torch.ones((2, 2)), 'lora_unet_test.lora_up.weight': torch.ones((2, 2))})
         self.write_status(data, tensor_count=2)
+        self.assertTrue(validate_adapter(self.folder)['valid'])
+        self.write_status(data, tensor_count=3)
         self.assertFalse(validate_adapter(self.folder)['valid'])
 
 
