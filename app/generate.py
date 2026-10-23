@@ -94,11 +94,12 @@ def get_pipeline(memory_mode):
     from diffusers import AutoPipelineForImage2Image
     if memory_mode in PIPELINES:
         return PIPELINES[memory_mode]
-    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    use_cuda = (os.environ.get('BIMAI360_FORCE_CPU') != '1' and torch.cuda.is_available())
+    dtype = torch.float16 if use_cuda else torch.float32
     pipe = AutoPipelineForImage2Image.from_pretrained(
         MODEL_ID, torch_dtype=dtype, use_safetensors=True, cache_dir=str(CACHE),
         local_files_only=os.environ.get('TBT360_OFFLINE') == '1')
-    if torch.cuda.is_available():
+    if use_cuda:
         if memory_mode == 'Tiết kiệm VRAM tối đa':
             pipe.enable_sequential_cpu_offload()
             placement = 'CUDA sequential CPU offload (rất chậm nhưng tiết kiệm VRAM)'
@@ -108,7 +109,7 @@ def get_pipeline(memory_mode):
     else:
         pipe.to('cpu')
         placement = 'CPU (có thể rất chậm)'
-    if memory_mode == 'Tiết kiệm VRAM tối đa' or not torch.cuda.is_available():
+    if memory_mode == 'Tiết kiệm VRAM tối đa' or not use_cuda:
         pipe.enable_attention_slicing()
     try:
         pipe.enable_vae_slicing()
