@@ -21,11 +21,13 @@ def smoke_load(adapter_path: Path, model_path: str, device: str = 'cpu') -> dict
     import torch
     from diffusers import StableDiffusionPipeline
 
+    if not model_path or not model_path.strip():
+        raise ValueError('Real base model path or model identifier required')
     if device == 'cuda' and not torch.cuda.is_available():
         raise RuntimeError('CUDA unavailable; cannot claim CUDA load PASS')
     dtype = torch.float16 if device == 'cuda' else torch.float32
     pipeline = StableDiffusionPipeline.from_pretrained(
-        model_path, torch_dtype=dtype, safety_checker=None,
+        model_path, torch_dtype=dtype,
     )
     try:
         pipeline.to(device)
@@ -39,6 +41,8 @@ def smoke_load(adapter_path: Path, model_path: str, device: str = 'cpu') -> dict
             'device': device,
             'generated_images': 0,
             'quality_evaluated': False,
+            'inference_verified': False,
+            'checkpoint_structural_verified': True,
         }
     finally:
         del pipeline
