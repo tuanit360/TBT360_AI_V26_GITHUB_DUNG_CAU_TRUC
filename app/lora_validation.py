@@ -24,8 +24,18 @@ def validate_adapter(folder):
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         if digest != record.get('weights_sha256'):
             return {'valid': False, 'reason': 'SHA256 mismatch'}
-        return {'valid': True, 'sha256': digest, 'bytes': expected_size}
-    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        # A matching checksum proves file integrity, not that bytes encode a
+        # usable LoRA. Read the safetensors index without allocating tensors.
+        from safetensors import safe_open
+        with safe_open(str(weights), framework='pt', device='cpu') as adapter:
+            tensor_keys = list(adapter.keys())
+        if not tensor_keys:
+            return {'valid': False, 'reason': 'LoRA checkpoint has no tensors'}
+        if isinstance(record.get('tensor_count'), int) and record['tensor_count'] != len(tensor_keys):
+            return {'valid': False, 'reason': 'LoRA tensor count mismatch'}
+        return {'valid': True, 'sha256': digest, 'bytes': expected_size,
+                'tensor_count': len(tensor_keys)}
+    except (OSError, ValueError, TypeError, ImportError) as exc:
         return {'valid': False, 'reason': str(exc)[:160]}
 
 
