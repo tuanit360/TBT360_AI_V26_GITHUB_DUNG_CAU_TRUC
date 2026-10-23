@@ -5,6 +5,7 @@ A ZIP is only returned for successful generation. No fake image is created.
 """
 from datetime import datetime, timezone
 import logging
+import hashlib
 import uuid
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
@@ -56,6 +57,16 @@ def image_generation_contract(root, generator, arguments, *, progress=None,
                         raise ValueError('Generated ZIP contains an empty image')
                     if archive_info.file_size != image_path.stat().st_size:
                         raise ValueError('Generated ZIP image size differs from output file')
+                    source_digest = hashlib.sha256()
+                    with image_path.open('rb') as source_stream:
+                        for chunk in iter(lambda: source_stream.read(1024 * 1024), b''):
+                            source_digest.update(chunk)
+                    zip_digest = hashlib.sha256()
+                    with bundle.open(archive_info) as zip_stream:
+                        for chunk in iter(lambda: zip_stream.read(1024 * 1024), b''):
+                            zip_digest.update(chunk)
+                    if source_digest.digest() != zip_digest.digest():
+                        raise ValueError('Generated ZIP image checksum differs from output file')
         except BadZipFile as exc:
             raise ValueError('Generated ZIP is not a valid archive') from exc
         markup = render_image_gallery(images)
