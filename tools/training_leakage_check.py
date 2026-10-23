@@ -46,6 +46,8 @@ def check_training_leakage(manifest: Path, root: Path):
         'validation_projects': split['validation_projects'],
         'cross_split_pixel_duplicates': [],
         'cross_split_near_duplicates': [],
+        'train_image_count': 0,
+        'validation_image_count': 0,
         'errors': list(split['errors']),
         'note': (
             'A PASS checks split separation only, not labels, image licenses, '
@@ -63,6 +65,10 @@ def check_training_leakage(manifest: Path, root: Path):
         for record in split['records'][group]:
             name = record['file_name']
             if Path(name).suffix.lower() not in IMAGE_SUFFIXES:
+                result['errors'].append({
+                    'file': name,
+                    'reason': 'Unsupported/non-image training file',
+                })
                 continue
             try:
                 pixel_hash, difference_hash, mean_luminance = image_fingerprint(root / name)
@@ -73,6 +79,10 @@ def check_training_leakage(manifest: Path, root: Path):
                 })
                 continue
             collection.append((name, pixel_hash, difference_hash, mean_luminance))
+    result['train_image_count'] = len(train)
+    result['validation_image_count'] = len(validation)
+    if not train or not validation:
+        result['errors'].append('Training and validation must both contain readable images')
     for name, pixel_hash, difference_hash, mean_luminance in train:
         for other_name, other_hash, other_difference, other_luminance in validation:
             if pixel_hash == other_hash:
