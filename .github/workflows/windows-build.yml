@@ -119,6 +119,11 @@ jobs:
           python -m tools.verify_portable dist/BIMAI360
           python -c "import pathlib,tempfile,zipfile; from tools.verify_portable import verify,verify_release_structure; archive=pathlib.Path('BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip'); t=tempfile.TemporaryDirectory(); zipfile.ZipFile(archive).extractall(t.name); root=pathlib.Path(t.name)/'BIMAI360'; issues=verify(root)+verify_release_structure(root); print('EXTRACTED ZIP VERIFY:',issues or 'PASS'); assert not issues,issues; assert (root/'BIMAI360.exe').is_file(); t.cleanup()"
           if ($LASTEXITCODE -ne 0) { throw 'Extracted Portable verification failed' }
+          $extractedExe = Join-Path $env:RUNNER_TEMP 'bimai360-extracted-smoke'
+          New-Item -ItemType Directory -Path $extractedExe -Force | Out-Null
+          Expand-Archive -Path BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip -DestinationPath $extractedExe -Force
+          & (Join-Path $extractedExe 'BIMAI360/BIMAI360.exe') --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'EXE self-test failed after ZIP extraction' }
           Get-FileHash BIMAI360_V271_PORTABLE_WINDOWS_X64_CPU.zip -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v7
         with:
