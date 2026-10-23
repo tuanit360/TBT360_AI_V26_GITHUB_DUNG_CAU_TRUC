@@ -6,6 +6,8 @@ A ZIP is only returned for successful generation. No fake image is created.
 from datetime import datetime, timezone
 import logging
 import uuid
+from pathlib import Path
+from zipfile import ZipFile, BadZipFile
 
 from app.diagnostic_image_render import render_image_gallery
 from app.generation_failures import explain_generation_failure
@@ -33,6 +35,19 @@ def image_generation_contract(root, generator, arguments, *, progress=None,
         images, archive, status = result
         if not images or not archive:
             raise ValueError('Generator produced no deliverable image and archive')
+        archive_path = Path(archive)
+        if not archive_path.is_file():
+            raise ValueError('Generated ZIP archive does not exist')
+        try:
+            with ZipFile(archive_path) as bundle:
+                if bundle.testzip() is not None:
+                    raise ValueError('Generated ZIP failed CRC check')
+                included = set(bundle.namelist())
+                for filename, _label in images:
+                    if Path(filename).name not in included:
+                        raise ValueError('Generated ZIP missing an output image')
+        except BadZipFile as exc:
+            raise ValueError('Generated ZIP is not a valid archive') from exc
         markup = render_image_gallery(images)
         record_operation(root, 'generate', 'completed')
         log('PASS | images=' + str(len(images)))
