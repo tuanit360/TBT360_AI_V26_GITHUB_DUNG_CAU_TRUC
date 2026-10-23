@@ -90,7 +90,10 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             })
         else:
             generation_args.update({'width': 512, 'height': 512})
-        generated = pipeline(**generation_args).images[0]
+        generation_result = pipeline(**generation_args)
+        if not generation_result.images:
+            raise ValueError('Diffusers returned no images')
+        generated = generation_result.images[0]
         if reference is not None:
             with reference.open('rb') as stream:
                 if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
