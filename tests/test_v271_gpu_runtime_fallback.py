@@ -43,9 +43,11 @@ class DeviceFallbackRuntimeTests(unittest.TestCase):
         )
         previous_disabled = generate.GPU_DISABLED_FOR_SESSION
         previous_pipelines = generate.PIPELINES
+        previous_lora = generate.ACTIVE_LORA
         try:
             generate.GPU_DISABLED_FOR_SESSION = False
             generate.PIPELINES = {}
+            generate.ACTIVE_LORA = {}
             with patch.dict(sys.modules, {'torch': fake_torch, 'diffusers': fake_diffusers}):
                 cpu_pipe, label = generate.get_pipeline('Cân bằng')
                 self.assertIs(cpu_pipe, pipelines[1][0])
@@ -60,6 +62,7 @@ class DeviceFallbackRuntimeTests(unittest.TestCase):
         finally:
             generate.GPU_DISABLED_FOR_SESSION = previous_disabled
             generate.PIPELINES = previous_pipelines
+            generate.ACTIVE_LORA = previous_lora
 
 
 if __name__ == '__main__':
