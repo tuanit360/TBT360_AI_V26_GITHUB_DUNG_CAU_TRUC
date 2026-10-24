@@ -14,8 +14,14 @@ from pathlib import Path
 def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
           prompt: str = 'Architectural photograph of a modern office facade',
           seed: int = 42, steps: int = 15,
-          reference: Path | None = None, strength: float = 0.4) -> dict:
+          reference: Path | None = None, strength: float = 0.4,
+          negative_prompt: str = '', guidance_scale: float = 7.5) -> dict:
     import math
+    if (type(guidance_scale) not in (int, float) or
+            not math.isfinite(guidance_scale) or not 0 <= guidance_scale <= 20):
+        raise ValueError('guidance_scale must be finite and between 0 and 20')
+    if not isinstance(negative_prompt, str):
+        raise ValueError('negative_prompt must be text')
     if reference is not None and (
         type(strength) not in (int, float) or
         not math.isfinite(strength) or not 0 < strength <= 1
@@ -94,6 +100,8 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             'prompt': prompt,
             'num_inference_steps': steps,
             'generator': generator,
+            'negative_prompt': negative_prompt,
+            'guidance_scale': guidance_scale,
         }
         if reference is not None:
             with reference.open('rb') as stream:
@@ -144,6 +152,8 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         'adapter_sha256': certificate['sha256'],
         'model': model,
         'prompt': prompt,
+        'negative_prompt': negative_prompt,
+        'guidance_scale': guidance_scale,
         'seed': seed,
         'steps': steps,
         'device': device,
@@ -181,6 +191,8 @@ def main():
     parser.add_argument('--prompt', default='Architectural photograph of a modern office facade')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--steps', type=int, default=15)
+    parser.add_argument('--negative-prompt', default='')
+    parser.add_argument('--guidance-scale', type=float, default=7.5)
     parser.add_argument('--reference', type=Path)
     parser.add_argument('--strength', type=float, default=0.4)
     args = parser.parse_args()
@@ -191,7 +203,8 @@ def main():
     try:
         result = infer(args.adapter, args.model, args.image, args.device,
                        args.prompt, args.seed, args.steps,
-                       args.reference, args.strength)
+                       args.reference, args.strength,
+                       args.negative_prompt, args.guidance_scale)
     except Exception as exc:
         result = {'status': 'FAILED', 'error': f'{type(exc).__name__}: {exc}'[:300]}
     write_evidence(args.report, result)
