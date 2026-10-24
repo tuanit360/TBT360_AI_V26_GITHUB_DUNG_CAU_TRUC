@@ -37,6 +37,12 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--ifc-export-child' in sys.argv:
+        from app.ifc_isolated_bridge import run_ifc_child
+        position = sys.argv.index('--ifc-export-child')
+        if len(sys.argv) != position + 2:
+            return 2
+        return run_ifc_child(sys.argv[position + 1])
     if '--ifc-export-self-test' in sys.argv:
         from app.ifc_portable_smoke import test_frozen_ifc_export
         import json

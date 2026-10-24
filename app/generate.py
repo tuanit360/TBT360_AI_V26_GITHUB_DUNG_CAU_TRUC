@@ -399,12 +399,8 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                             gr.Markdown('### Xuất IFC thiết kế từ ảnh tham chiếu — không cần sinh ảnh AI')
                             # Concept IFC export is independent of image AI inference.
                             def export_five_ifc_from_reference(image):
-                                from app.five_concept_ifc import export_five_concepts
-                                try:
-                                    archive, message = export_five_concepts(image, ROOT)
-                                    return archive, message
-                                except (ValueError, RuntimeError, OSError) as exc:
-                                    return None, 'Không xuất được IFC concept: ' + str(exc)[:250]
+                                from app.ifc_isolated_bridge import export_isolated_ifc
+                                return export_isolated_ifc(image, ROOT)
                             gr.Markdown(
                                 '**IFC concept từ một ảnh:** tạo 5 phương án cho cùng một công trình '
                                 'Kiến trúc + Kết cấu + Điện + Cấp/thoát nước. '
