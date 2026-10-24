@@ -1,2 +1,0 @@
-V75: python -m unittest discover -s tests -v
-55 tests passed on Linux/Python runtime; synthetic fixtures only. No Windows exe or GPU test.
