@@ -136,6 +136,9 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 'prompt': 'Architectural facade',
                 'negative_prompt': 'warped windows',
                 'guidance_scale': 7.5,
+                'device': 'cpu',
+                'generation_seconds': 1.25,
+                'cuda_peak_allocated_mib': None,
                 'seed': 42,
                 'basic_image_gate': validate_generated_image(image, expected_size=(512, 512)),
             }
