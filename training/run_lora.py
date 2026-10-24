@@ -13,13 +13,28 @@ ROOT=Path(__file__).resolve().parents[1]
 REPO_URL='https://raw.githubusercontent.com/huggingface/diffusers/v0.31.0/examples/text_to_image/train_text_to_image_lora.py'
 MODEL='stable-diffusion-v1-5/stable-diffusion-v1-5'
 
+def reserve_run_directory(root: Path, name: str) -> Path:
+    """Reserve a fresh run without touching existing LoRA checkpoints."""
+    import re
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', name):
+        raise ValueError('Invalid LoRA run name')
+    destination = Path(root) / 'loras' / name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.mkdir(exist_ok=False)
+    return destination
+
+
 def run(args):
     import torch
     if not torch.cuda.is_available():
         raise RuntimeError('Huấn luyện LoRA cần GPU CUDA. Không dùng CPU cho workflow này.')
     mem=torch.cuda.get_device_properties(0).total_memory/2**30
-    if mem<8:
-        raise RuntimeError(f'GPU chỉ có {mem:.1f} GiB VRAM. Huấn luyện SD1.5 LoRA có nguy cơ OOM; yêu cầu GPU từ 8GiB cho cấu hình thử này. Có thể chạy training/ trên máy GPU mạnh hơn rồi chép thư mục LoRA về máy này để sinh ảnh.')
+    if mem < 3.5:
+        raise RuntimeError(f'GPU chỉ có {mem:.1f} GiB VRAM; chưa đủ mức thử nghiệm local tối thiểu 3.5 GiB.')
+    low_vram = mem < 8
+    training_resolution = 256 if low_vram else 512
+    lora_rank = 2 if low_vram else 4
+    print(f'[HARDWARE PROFILE] VRAM={mem:.2f} GiB; resolution={training_resolution}; LoRA rank={lora_rank}; low_vram={low_vram}. Profile low VRAM chưa được bảo đảm không OOM.', flush=True)
     from training.gated_dataset import verify
     certified = ROOT / 'dataset' / 'v72_certified'
     certificate = verify(certified)
@@ -47,25 +62,31 @@ def run(args):
     if 'train_text_to_image_lora' not in script.name:
         raise RuntimeError('Trainer không hợp lệ')
     print('[TRAINER] SHA256:',hashlib.sha256(script.read_bytes()).hexdigest(),flush=True)
-    out=ROOT/'loras'/args.name
-    out.mkdir(parents=True,exist_ok=True)
-    prior = out/'pytorch_lora_weights.safetensors'
-    if prior.exists():
-        raise RuntimeError('Tên LoRA đã có trọng số trước đó. Đặt --name mới để không ghi đè hoặc trộn phiên huấn luyện.')
+    # Never re-use even a failed run; its logs/partial weights remain intact.
+    out=reserve_run_directory(ROOT, args.name)
     command=[sys.executable,str(script),'--pretrained_model_name_or_path',MODEL,
         '--train_data_dir',str(prepared),'--caption_column','text','--image_column','image',
-        '--resolution','512','--center_crop','--random_flip','--train_batch_size','1',
+        '--resolution',str(training_resolution),'--gradient_checkpointing','--center_crop','--random_flip','--train_batch_size','1',
         '--gradient_accumulation_steps','4','--max_train_steps',str(args.steps),
         '--learning_rate','1e-4','--lr_scheduler','constant','--lr_warmup_steps','0',
-        '--checkpointing_steps','100','--mixed_precision','fp16','--rank','4',
+        '--checkpointing_steps','100','--mixed_precision','fp16','--rank',str(lora_rank),
         '--output_dir',str(out),'--seed','42','--report_to','tensorboard']
     env=os.environ.copy()
     env['HF_HOME']=str(ROOT/'models'/'hf_home')
     env['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
+    dataset_sha256=hashlib.sha256((certified/'certificate.json').read_bytes()).hexdigest()
+    trainer_sha256=hashlib.sha256(script.read_bytes()).hexdigest()
     print('Huấn luyện LoRA thật, không dùng mô hình phân loại. Checkpoint:',out,flush=True)
-    (out/'training_status.json').write_text(json.dumps({'status':'RUNNING','start_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'images':len(records),'steps':args.steps},indent=2),encoding='utf-8')
+    (out/'training_status.json').write_text(json.dumps({'status':'RUNNING','start_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'images':len(records),'steps':args.steps,
+        'dataset_certificate_sha256':dataset_sha256,
+        'trainer_sha256':trainer_sha256},indent=2),encoding='utf-8')
     with (out/'training_command.json').open('w',encoding='utf-8') as f:
-        json.dump({'argv':command,'source':REPO_URL,'images':len(records),'gpu_vram_gib':round(mem,2),'dataset_audit':str(certified/'certificate.json')},f,ensure_ascii=False,indent=2)
+        json.dump({'argv':command,'source':REPO_URL,'images':len(records),'gpu_vram_gib':round(mem,2),'dataset_audit':str(certified/'certificate.json'),
+            'dataset_certificate_sha256':dataset_sha256,
+            'trainer_sha256':trainer_sha256,
+            'hardware_profile':'low_vram_256' if low_vram else 'standard_512',
+            'training_resolution':training_resolution,
+            'lora_rank':lora_rank},f,ensure_ascii=False,indent=2)
     log_path=out/'training_console.log'
     try:
         with log_path.open('w',encoding='utf-8',errors='replace') as log:
@@ -85,7 +106,13 @@ def run(args):
             key_count=len(wf.keys())
         if key_count==0:
             raise RuntimeError('Trọng số LoRA không chứa tensor')
-        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':hashlib.sha256(weights.read_bytes()).hexdigest(),'tensor_count':key_count}
+        with weights.open('rb') as weight_stream:
+            weights_sha256 = hashlib.file_digest(weight_stream, 'sha256').hexdigest()
+        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':weights_sha256,'tensor_count':key_count,
+            'dataset_certificate_sha256':dataset_sha256,
+            'trainer_sha256':trainer_sha256,
+            'hardware_profile':'low_vram_256' if low_vram else 'standard_512',
+            'training_resolution':training_resolution,'lora_rank':lora_rank}
         (out/'training_status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
         print('SUCCESS LoRA:',out,flush=True)
     except Exception as exc:
