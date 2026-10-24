@@ -49,6 +49,10 @@ def main():
             encoding='utf-8',
         )
         return 0 if report['ready'] else 2
+    if '--worker-image' in sys.argv:
+        from app.isolated_image_worker import main as worker_main
+        arguments = [arg for arg in sys.argv[1:] if arg != '--worker-image']
+        return worker_main(arguments)
     if '--diagnostics' in sys.argv:
         from app.diagnostic_bundle import build_diagnostic_zip
         print(build_diagnostic_zip(root), flush=True)

@@ -526,8 +526,10 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         readiness = inspect_local_assets(ROOT) if offline else None
                         from app.reference_fallback import fallback_reference_preview
                         outcome = image_generation_contract(
-                            ROOT, create, arguments,
-                            progress=progress, offline=offline,
+                            ROOT, lambda *values, progress=None: __import__(
+                                'app.isolated_image_bridge', fromlist=['execute_image_job']
+                            ).execute_image_job(ROOT, values),
+                            arguments, progress=progress, offline=offline,
                             readiness=readiness,
                         )
                         return fallback_reference_preview(arguments[0], outcome)
