@@ -7,6 +7,21 @@ from training.smoke_diffusers_inference import infer, write_evidence
 
 
 class InferenceSafetyTests(unittest.TestCase):
+    def test_negative_prompt_and_cfg_reject_invalid_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            for invalid in (float('nan'), float('inf'), -1, 21, True, '7.5'):
+                with self.assertRaisesRegex(ValueError, 'guidance_scale'):
+                    infer(
+                        folder / 'adapter', 'sd15', folder / 'output.png',
+                        guidance_scale=invalid,
+                    )
+            with self.assertRaisesRegex(ValueError, 'negative_prompt'):
+                infer(
+                    folder / 'adapter', 'sd15', folder / 'output.png',
+                    negative_prompt=None,
+                )
+
     def test_refuse_missing_model_before_loading_diffusers(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'base model'):
