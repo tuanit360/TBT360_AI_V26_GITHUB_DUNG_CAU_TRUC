@@ -50,6 +50,11 @@ def main():
         )
         return 0 if report['ready'] else 2
     if '--worker-failure-self-test' in sys.argv:
+        from app.windows_console import print_portable_json
+        from app.worker_failure_smoke import run_failure_contract
+        print_portable_json(run_failure_contract(root))
+        return 0
+
         import json
         from app.worker_failure_smoke import run_failure_contract
         print(json.dumps(run_failure_contract(root), ensure_ascii=False), flush=True)
