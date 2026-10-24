@@ -49,6 +49,9 @@ def run_job(job_file):
     from diffusers import AutoPipelineForImage2Image
     write_state(root, job_id, 'DIFFUSERS_IMPORT_DONE')
     local = root / 'models' / 'sd15'
+    if (local / 'model_index.json').is_file():
+        from app.model_index_validation import validate_sd15_index
+        validate_sd15_index(local)
     if not (local / 'model_index.json').is_file():
         if os.environ.get('TBT360_OFFLINE') == '1':
             raise RuntimeError('Thiếu checkpoint SD1.5 offline.')

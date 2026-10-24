@@ -110,6 +110,9 @@ def verify_worker_receipt(report, folder):
             raise ValueError('Duplicate ZIP members')
         if any(name in names for name in ('job.json', 'reference_input.png')):
             raise ValueError('Private inputs leaked in ZIP')
+        png_members = [name for name in names if name.lower().endswith('.png')]
+        if len(png_members) != len(images):
+            raise ValueError('Unexpected PNG in ZIP archive')
         expected = {'generation.json'}
         for item in images:
             if not isinstance(item, (list, tuple)) or len(item) != 2:
@@ -117,9 +120,6 @@ def verify_worker_receipt(report, folder):
             expected.add(Path(str(item[0])).name)
         if set(names) != expected:
             raise ValueError('ZIP manifest contains unexpected files')
-        png_members = [name for name in names if name.lower().endswith('.png')]
-        if len(png_members) != len(images):
-            raise ValueError('Unexpected PNG in ZIP archive')
         for item in images:
             if not isinstance(item, (list, tuple)) or len(item) != 2:
                 raise ValueError('Invalid image tuple')
