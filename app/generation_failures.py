@@ -5,6 +5,14 @@ import re
 def explain_generation_failure(error):
     message = str(error)
     lowered = message.lower()
+    if 'bimai360_cpu_ram_low' in lowered:
+        return ('RAM khả dụng không đủ để sinh ảnh AI bằng CPU. '
+                'Đóng bớt ứng dụng, hoặc sử dụng môi trường CUDA VENV đã kiểm tra. '
+                'Ảnh tham chiếu vẫn xem được và không phải kết quả AI.')
+    if 'bimai360_cpu_selected' in lowered:
+        return ('Phiên bản hiện tại chạy CPU, không có CUDA. '
+                'Hãy kiểm tra model SD1.5 và RAM; không cần sửa driver NVIDIA '
+                'để xem ảnh tham chiếu hoặc chạy CPU.')
     if 'out of memory' in lowered or 'cuda out of memory' in lowered:
         return 'GPU thiếu bộ nhớ. Hãy chọn 1 ảnh, 10–15 bước và bật chế độ tiết kiệm VRAM.'
     if any(value in lowered for value in ('not found in cache', 'local_files_only',

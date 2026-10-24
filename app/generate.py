@@ -256,6 +256,10 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
         try:
             write_generation_stage(ROOT, 'MODEL_LOAD', 'BEGIN')
             import torch
+            from app.runtime_readiness import check_generation_runtime
+            runtime_check = check_generation_runtime(torch)
+            if not runtime_check['ready']:
+                raise RuntimeError(runtime_check['message'])
             pipe, runtime = get_pipeline(memory_mode)
             write_generation_stage(ROOT, 'MODEL_LOAD', 'DONE')
             select_lora(pipe, memory_mode, lora_name)
