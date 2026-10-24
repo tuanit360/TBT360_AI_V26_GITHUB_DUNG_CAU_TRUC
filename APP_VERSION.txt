@@ -1,0 +1,2 @@
+BIM AI Kiến Trúc 360 V271 — BIMAI360
+Kiểm thử trực tiếp chuỗi nút tạo BIM 3 tầng từ kích thước người dùng, xuất và mở lại toàn bộ GLB/DXF/SVG/JSON; lỗi bàn giao hiển thị báo cáo tiếng Việt, không còn thông báo Error chung. Mô hình SD1.5 chưa được đóng gói sẵn và cần tải riêng khi chạy ảnh AI.
