@@ -507,11 +507,13 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         from app.cpu_readiness import inspect_local_assets
                         offline = os.environ.get('TBT360_OFFLINE') == '1'
                         readiness = inspect_local_assets(ROOT) if offline else None
-                        return image_generation_contract(
+                        from app.reference_fallback import fallback_reference_preview
+                        outcome = image_generation_contract(
                             ROOT, create, arguments,
                             progress=progress, offline=offline,
                             readiness=readiness,
                         )
+                        return fallback_reference_preview(arguments[0], outcome)
                     start.click(
                         create_with_feedback,
                         inputs=[
