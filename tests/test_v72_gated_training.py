@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from PIL import Image
-from training.gated_dataset import stage, verify
+from training.gated_dataset import stage, verify, check_cross_split_pixels
 
 
 class CertifiedTrainingTests(unittest.TestCase):
@@ -27,6 +27,26 @@ class CertifiedTrainingTests(unittest.TestCase):
         manifest = root / 'manifest.jsonl'
         manifest.write_text(''.join(json.dumps(r) + '\n' for r in rows))
         return manifest
+
+    def test_certified_cross_split_pixels_same_image_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            train = root / 'prepared'
+            validation = root / 'validation'
+            train.mkdir()
+            validation.mkdir()
+            source = Image.new('RGB', (280, 280), (120, 145, 165))
+            source.save(train / 'train.png')
+            from PIL.PngImagePlugin import PngInfo
+            different_encoding = PngInfo()
+            different_encoding.add_text('encoder', 'another program')
+            source.save(validation / 'validation.png', pnginfo=different_encoding)
+            self.assertNotEqual(
+                hashlib.sha256((train / 'train.png').read_bytes()).hexdigest(),
+                hashlib.sha256((validation / 'validation.png').read_bytes()).hexdigest(),
+            )
+            with self.assertRaisesRegex(ValueError, 'pixel leakage'):
+                check_cross_split_pixels(train, validation)
 
     def test_stage_train_validation_isolation(self):
         with tempfile.TemporaryDirectory() as temp:
