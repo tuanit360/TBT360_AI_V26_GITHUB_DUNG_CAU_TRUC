@@ -73,6 +73,7 @@ def main():
         'APP_VERSION.txt',
         'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
         'MO_LOG_KHONG_CAN_UI.bat',
+        'CHAY_BIMAI360_GHI_LOG_LOI.bat',
     ):
         shutil.copy2(ROOT / filename, target / filename)
     # Clear obsolete helper scripts from reusable onedir build output.
@@ -80,6 +81,7 @@ def main():
         if script.name not in (
             'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
             'MO_LOG_KHONG_CAN_UI.bat',
+            'CHAY_BIMAI360_GHI_LOG_LOI.bat',
         ):
             script.unlink()
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
