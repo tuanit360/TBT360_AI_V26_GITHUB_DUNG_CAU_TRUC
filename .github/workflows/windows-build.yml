@@ -40,8 +40,10 @@ on:
       - 'requirements.txt'
       - 'requirements-runtime.txt'
 concurrency:
-  group: v271-windows-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  # Separate push/PR runs and allow active builds to reach their result.
+  # Otherwise two events for one commit cancel each other mid pip install.
+  group: v271-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   windows-v106:
