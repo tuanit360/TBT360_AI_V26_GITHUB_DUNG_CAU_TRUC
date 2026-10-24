@@ -33,6 +33,19 @@ class InferenceSafetyTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'system RAM available'):
                     infer(adapter, 'sd15', root / 'out.png', device='cuda')
 
+    def test_seed_prompt_and_model_validate_before_pipeline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            for seed in (-1, True, 2 ** 63, '42', 4.5):
+                with self.assertRaisesRegex(ValueError, 'seed'):
+                    infer(folder / 'adapter', 'sd15', folder / 'output.png',
+                          seed=seed)
+            with self.assertRaisesRegex(ValueError, 'prompt'):
+                infer(folder / 'adapter', 'sd15', folder / 'output.png',
+                      prompt=None)
+            with self.assertRaisesRegex(ValueError, 'base model'):
+                infer(folder / 'adapter', 123, folder / 'output.png')
+
     def test_negative_prompt_and_cfg_reject_invalid_values(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
