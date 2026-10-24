@@ -128,6 +128,19 @@ def get_pipeline(memory_mode):
         and os.environ.get('BIMAI360_FORCE_CPU') != '1'
         and torch.cuda.is_available()
     )
+    # A CPU-only Portable can exhaust 16 GiB system RAM while loading SD1.5.
+    # Refuse predictably before large allocations rather than kill Gradio and
+    # strand every widget (including the diagnostic log) with a red Error.
+    if not use_cuda:
+        from training.local_hardware_diagnostic import available_memory_gib
+        free_ram = available_memory_gib()
+        if free_ram is not None and free_ram < 7:
+            raise RuntimeError(
+                f'Không đủ RAM để nạp SD1.5 bằng CPU: chỉ còn '
+                f'{free_ram:.2f} GiB RAM khả dụng (mức bảo vệ 7 GiB). '
+                'Đóng bớt ứng dụng hoặc chạy bằng Python CUDA riêng cho '
+                'NVIDIA T600 4 GB. Không phải lỗi ảnh đầu vào.'
+            )
     cache_key = (memory_mode, 'cuda' if use_cuda else 'cpu')
     if cache_key in PIPELINES:
         return PIPELINES[cache_key]
