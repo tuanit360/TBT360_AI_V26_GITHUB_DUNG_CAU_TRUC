@@ -46,6 +46,7 @@ def verify_release_structure(root):
     allowed_bats = {
         'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
         'MO_LOG_KHONG_CAN_UI.bat',
+        'CHAY_BIMAI360_GHI_LOG_LOI.bat',
     }
     for script in root.glob('*.bat'):
         if script.name not in allowed_bats:
