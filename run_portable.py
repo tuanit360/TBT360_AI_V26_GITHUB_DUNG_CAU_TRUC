@@ -37,6 +37,18 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--cpu-preflight' in sys.argv:
+        from tools.cpu_generation_preflight import build_cpu_preflight_report
+        import json
+        report = build_cpu_preflight_report(root)
+        print(json.dumps(report, ensure_ascii=False, indent=2), flush=True)
+        destination = root / 'logs' / 'cpu_preflight.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2),
+            encoding='utf-8',
+        )
+        return 0 if report['ready'] else 2
     if '--diagnostics' in sys.argv:
         from app.diagnostic_bundle import build_diagnostic_zip
         print(build_diagnostic_zip(root), flush=True)
