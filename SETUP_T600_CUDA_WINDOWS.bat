@@ -10,7 +10,11 @@ set "PY=.venv-t600-cuda\Scripts\python.exe"
 if errorlevel 1 goto :fail
 "%PY%" -m pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 if errorlevel 1 goto :fail
-"%PY%" -m pip install -r requirements-runtime.txt
+rem The real LoRA trainer also imports datasets, TensorBoard and ftfy.
+rem Runtime-only requirements are insufficient for real training.
+"%PY%" -m pip install -r requirements.txt
+if errorlevel 1 goto :fail
+"%PY%" -m pip install "ftfy>=6.1,<7"
 if errorlevel 1 goto :fail
 "%PY%" -m pip check
 if errorlevel 1 goto :fail
