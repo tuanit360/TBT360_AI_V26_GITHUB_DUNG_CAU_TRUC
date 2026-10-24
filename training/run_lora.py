@@ -99,7 +99,9 @@ def run(args):
             key_count=len(wf.keys())
         if key_count==0:
             raise RuntimeError('Trọng số LoRA không chứa tensor')
-        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':hashlib.sha256(weights.read_bytes()).hexdigest(),'tensor_count':key_count,
+        with weights.open('rb') as weight_stream:
+            weights_sha256 = hashlib.file_digest(weight_stream, 'sha256').hexdigest()
+        status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':weights_sha256,'tensor_count':key_count,
             'dataset_certificate_sha256':dataset_sha256,
             'trainer_sha256':trainer_sha256}
         (out/'training_status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
