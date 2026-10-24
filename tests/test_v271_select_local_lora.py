@@ -1,5 +1,6 @@
 """Real checkpoint selection contract without fabricated training claims."""
 import tempfile
+import os
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -25,6 +26,9 @@ class LocalLoRASelectionTests(unittest.TestCase):
             invalid = root / 'lora_z'
             for folder in (old, recent, invalid):
                 folder.mkdir()
+            os.utime(old, ns=(1000000000, 1000000000))
+            os.utime(recent, ns=(2000000000, 2000000000))
+            os.utime(invalid, ns=(3000000000, 3000000000))
             def fake_validate(folder):
                 return {'valid': folder.name != 'lora_z'}
             with patch('training.select_local_lora.validate_adapter',
