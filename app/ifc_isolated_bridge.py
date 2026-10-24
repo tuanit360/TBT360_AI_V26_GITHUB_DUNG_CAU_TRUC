@@ -52,12 +52,23 @@ def export_isolated_ifc(image, root):
         if getattr(sys, 'frozen', False)
         else [sys.executable, '-m', 'app.ifc_isolated_cli', str(job)]
     )
+    # The source launcher must start from the installed source tree, not
+    # the user's output directory. Frozen EXE remains self-contained.
+    source_root = Path(__file__).resolve().parents[1]
+    worker_cwd = root if getattr(sys, 'frozen', False) else source_root
+    worker_env = os.environ.copy()
+    if not getattr(sys, 'frozen', False):
+        previous = worker_env.get('PYTHONPATH', '')
+        worker_env['PYTHONPATH'] = str(source_root) + (
+            os.pathsep + previous if previous else ''
+        )
     logfile = root / 'logs' / 'ifc_export.log'
     logfile.parent.mkdir(parents=True, exist_ok=True)
     try:
         with logfile.open('a', encoding='utf-8') as log:
             attempt = subprocess.run(
-                command, cwd=root, stdout=log, stderr=subprocess.STDOUT,
+                command, cwd=worker_cwd, env=worker_env,
+                stdout=log, stderr=subprocess.STDOUT,
                 timeout=180, check=False,
             )
         if attempt.returncode != 0:
