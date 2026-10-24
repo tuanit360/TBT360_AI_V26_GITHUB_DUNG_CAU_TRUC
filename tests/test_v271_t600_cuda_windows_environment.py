@@ -12,6 +12,9 @@ class WindowsT600CudaEnvironmentTests(unittest.TestCase):
         self.assertIn('py -3.11 -m venv .venv-t600-cuda', setup)
         self.assertIn('https://download.pytorch.org/whl/cu121', setup)
         self.assertIn('torch.cuda.is_available()', setup)
+        self.assertIn('pip install -r requirements.txt', setup)
+        self.assertIn('ftfy>=6.1,<7', setup)
+        self.assertNotIn('pip install -r requirements-runtime.txt', setup)
         self.assertIn('if errorlevel 1 goto :fail', setup)
         self.assertNotIn('download.pytorch.org/whl/cpu', setup)
 
