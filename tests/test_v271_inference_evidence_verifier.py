@@ -30,6 +30,11 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 'image_sha256': digest,
                 'adapter_sha256': 'example-adapter-hash',
                 'quality_evaluated': False,
+                'prompt': 'Architectural facade',
+                'negative_prompt': 'warped windows',
+                'guidance_scale': 7.5,
+                'seed': 42,
+                'steps': 15,
                 'generation_mode': 'text2img',
                 'basic_image_gate': validate_generated_image(
                     image, expected_size=(512, 512)
