@@ -13,7 +13,7 @@ import sys
 import zipfile
 
 MAX_LOG_BYTES = 512 * 1024
-ALLOWED_LOGS = ('bimai360_operations.log', 'startup_error.log', 'runtime_errors.log', 'console_errors.log', 'python_fatal.log')
+ALLOWED_LOGS = ('bimai360_operations.log', 'startup_error.log', 'runtime_errors.log', 'console_errors.log', 'startup_console.log', 'python_fatal.log')
 SECRET = re.compile(
     r'(?i)(bearer\s+\S+|(?:token|api[_-]?key|password|secret)\s*[:=]\s*\S+)'
 )

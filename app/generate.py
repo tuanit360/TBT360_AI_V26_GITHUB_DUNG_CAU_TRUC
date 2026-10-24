@@ -315,9 +315,8 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
             manifest['elapsed_seconds']=round(time.perf_counter()-started,2)
             (run_dir/'generation.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
             archive_path=run_dir.with_suffix('.zip')
-            with zipfile.ZipFile(archive_path,'w',zipfile.ZIP_DEFLATED) as archive:
-                for path in sorted(run_dir.iterdir()):
-                    archive.write(path,arcname=path.name)
+            from app.atomic_export import publish_directory_zip
+            publish_directory_zip(run_dir, archive_path)
             status=(f'Sinh thành công {len(generated)} phương án; {manifest["elapsed_seconds"]} giây. '
                 f'Chế độ: {runtime}. Đã lưu ảnh + seed + tham số vào {archive_path.name}. ' +
                 ('Đây là ảnh concept, không phải BIM. LoRA hợp lệ đã được áp dụng.' if lora_name != 'Không dùng LoRA' else 'Đây là ảnh concept pretrained, chưa fine-tune trên ảnh riêng.'))
