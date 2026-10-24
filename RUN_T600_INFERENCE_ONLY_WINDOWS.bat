@@ -7,10 +7,7 @@ rem Pick only a checkpoint already validated by the shared LoRA integrity gate.
 for /f "usebackq delims=" %%I in (`"%PY%" -m training.select_local_lora --root loras`) do set "ADAPTER_NAME=%%I"
 if not defined ADAPTER_NAME goto :missing
 "%PY%" -m training.local_hardware_diagnostic
-if errorlevel 1 goto :environment_missing
-echo [BIMAI360] CUDA environment missing. Run SETUP_T600_CUDA_WINDOWS.bat first.
-exit /b 3
-:fail
+if errorlevel 1 goto :fail
 "%PY%" -m training.verify_real_checkpoint --path "loras/%ADAPTER_NAME%"
 if errorlevel 1 goto :fail
 rem Unique image/report names preserve prior generations and evidence.
@@ -29,6 +26,9 @@ exit /b 2
 :missing
 echo [BIMAI360] No verified trained checkpoint found for %ADAPTER_NAME%.
 exit /b 2
+:environment_missing
+echo [BIMAI360] CUDA environment missing. Run SETUP_T600_CUDA_WINDOWS.bat first.
+exit /b 3
 :fail
 echo [BIMAI360] Inference failed. Existing checkpoints and prior images were preserved.
 exit /b 1
