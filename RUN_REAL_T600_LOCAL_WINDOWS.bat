@@ -5,10 +5,7 @@ set "PY=.venv-t600-cuda\Scripts\python.exe"
 if not exist "%PY%" goto :environment_missing
 rem Use a safe unique run name; avoid overwriting previous checkpoints or requiring manual edits.
 for /f "usebackq delims=" %%I in (`"%PY%" -c "from datetime import datetime,timezone; from uuid import uuid4; print('t600_'+datetime.now(timezone.utc).strftime('%%Y%%m%%d_%%H%%M%%S')+'_'+uuid4().hex[:6])"`) do set "RUN_NAME=%%I"
-if not defined RUN_NAME goto :environment_missing
-echo [BIMAI360] CUDA environment missing. Run SETUP_T600_CUDA_WINDOWS.bat first.
-exit /b 3
-:fail
+if not defined RUN_NAME goto :fail
 echo [BIMAI360] Local Windows NVIDIA T600 SD1.5 + LoRA verification
 echo [BIMAI360] Run name: %RUN_NAME%
 "%PY%" -m training.local_hardware_diagnostic
@@ -25,6 +22,9 @@ if errorlevel 1 goto :fail
 if errorlevel 1 goto :fail
 echo [BIMAI360] Pipeline completed. This does not independently certify architectural accuracy.
 exit /b 0
+:environment_missing
+echo [BIMAI360] CUDA environment missing. Run SETUP_T600_CUDA_WINDOWS.bat first.
+exit /b 3
 :fail
 echo [BIMAI360] Stopped after a failed stage. Read the error above; no success claimed.
 exit /b 1
