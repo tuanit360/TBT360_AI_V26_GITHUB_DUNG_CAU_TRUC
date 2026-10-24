@@ -49,6 +49,18 @@ def main():
             encoding='utf-8',
         )
         return 0 if report['ready'] else 2
+    if '--worker-transport-probe' in sys.argv:
+        from app.worker_transport_smoke import worker_probe
+        index = sys.argv.index('--worker-transport-probe')
+        if len(sys.argv) <= index + 1:
+            return 2
+        worker_probe(sys.argv[index + 1])
+        return 0
+    if '--worker-transport-self-test' in sys.argv:
+        from app.worker_transport_smoke import parent_probe
+        import json
+        print(json.dumps(parent_probe(root), ensure_ascii=False), flush=True)
+        return 0
     if '--worker-image' in sys.argv:
         from app.isolated_image_worker import main as worker_main
         arguments = [arg for arg in sys.argv[1:] if arg != '--worker-image']
