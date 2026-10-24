@@ -16,6 +16,8 @@ def run_job(job_file):
     request = json.loads(request_path.read_text(encoding='utf-8'))
     if request.get('schema') != 'bimai360.worker.v1':
         raise ValueError('Invalid worker request')
+    from app.inference_validation import validate_inference_parameters
+    validate_inference_parameters(request)
     root = request_path.parent.parent.parent
     run_dir = request_path.parent
     job_id = run_dir.name.removeprefix('isolated_')
@@ -49,6 +51,10 @@ def run_job(job_file):
     from diffusers import AutoPipelineForImage2Image
     write_state(root, job_id, 'DIFFUSERS_IMPORT_DONE')
     local = root / 'models' / 'sd15'
+    if os.environ.get('TBT360_OFFLINE') == '1' and not (
+        local / 'model_index.json'
+    ).is_file():
+        raise RuntimeError('Thiếu checkpoint SD1.5 offline.')
     if (local / 'model_index.json').is_file():
         from app.model_index_validation import validate_sd15_index
         validate_sd15_index(local)
@@ -103,11 +109,16 @@ def run_job(job_file):
         write_state(root, job_id, 'INFERENCE_BEGIN')
         write_generation_stage(root, 'INFERENCE', f'BEGIN image={index+1}')
         generator = torch.Generator(device='cpu').manual_seed(seed + index)
-        result = pipeline(
-            prompt=prompt, negative_prompt=negative, image=source,
-            strength=strength, guidance_scale=float(request['guidance']),
-            num_inference_steps=steps, generator=generator,
-        ).images[0]
+        # Avoid retaining autograd activations during inference.
+        with torch.inference_mode():
+            response = pipeline(
+                prompt=prompt, negative_prompt=negative, image=source,
+                strength=strength, guidance_scale=float(request['guidance']),
+                num_inference_steps=steps, generator=generator,
+            )
+        if not getattr(response, 'images', None):
+            raise RuntimeError('Diffusers returned no generated image')
+        result = response.images[0]
         write_generation_stage(root, 'INFERENCE', f'DONE image={index+1}')
         write_state(root, job_id, 'INFERENCE_DONE')
         factor = int(request['scale'])
