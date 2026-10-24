@@ -20,7 +20,8 @@ class V271PortableIntegrityGateTests(unittest.TestCase):
             (root / 'manifest.json').write_text(json.dumps({'files': {}}), encoding='utf-8')
             for filename in (
                 'BIMAI360.exe', 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
-                'MO_LOG_KHONG_CAN_UI.bat', 'README_PORTABLE.md'
+                'MO_LOG_KHONG_CAN_UI.bat',
+                'CHAY_BIMAI360_GHI_LOG_LOI.bat', 'README_PORTABLE.md'
             ):
                 (root / filename).write_bytes(b'test')
             (root / 'CHAY_OFFLINE_WINDOWS.bat').write_bytes(b'legacy')
@@ -32,7 +33,8 @@ class V271PortableIntegrityGateTests(unittest.TestCase):
             (root / 'manifest.json').write_text('{"files": {}}', encoding='utf-8')
             for filename in (
                 'BIMAI360.exe', 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
-                'MO_LOG_KHONG_CAN_UI.bat', 'README_PORTABLE.md'
+                'MO_LOG_KHONG_CAN_UI.bat',
+                'CHAY_BIMAI360_GHI_LOG_LOI.bat', 'README_PORTABLE.md'
             ):
                 (root / filename).write_bytes(b'test')
             self.assertEqual(verify_release_structure(root), [])
