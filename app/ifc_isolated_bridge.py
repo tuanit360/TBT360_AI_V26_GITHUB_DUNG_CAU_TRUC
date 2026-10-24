@@ -61,6 +61,11 @@ def export_isolated_ifc(image, root):
                 timeout=180, check=False,
             )
         if attempt.returncode != 0:
+            error_file = work / 'error.txt'
+            if error_file.is_file():
+                with logfile.open('a', encoding='utf-8') as log:
+                    log.write('\\n--- IFC CHILD ERROR ---\\n')
+                    log.write(error_file.read_text(encoding='utf-8')[-8000:])
             return None, (
                 'Worker IFC thất bại hoặc bị ngắt (mã '
                 + str(attempt.returncode) + '). Xem logs/ifc_export.log.'
@@ -72,7 +77,7 @@ def export_isolated_ifc(image, root):
         archive = Path(str(result.get('archive', ''))).resolve()
         if (result.get('status') != 'OK' or not archive.is_file()
                 or archive.suffix.lower() != '.zip'
-                or archive.parent.parent != root / 'output'):
+                or archive.parent != root / 'output'):
             return None, 'Worker IFC xuất kết quả không hợp lệ.'
         return str(archive), str(result['message'])[:500]
     except subprocess.TimeoutExpired:
