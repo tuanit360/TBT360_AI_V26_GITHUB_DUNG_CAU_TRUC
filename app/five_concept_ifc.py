@@ -210,37 +210,33 @@ def export_five_concepts(image, root):
             'engineering_verified': False,
             'reference_sha256': digest,
         })
-    manifest = destination / 'manifest.json'
-    manifest.write_text(
-        json.dumps({
-            'schema': 'bimai360.five_ifc_concept.v1',
-            'image_usage': 'visual_reference_only_no_dimensions_inferred',
-            'common_building_id': 'ONE_BUILDING_FROM_REFERENCE',
-            'alternatives_not_independent_houses': True,
-            'image_exported': False,
-            'source_dimensions': 'NOT_INFERRED_FROM_IMAGE',
-            'ifc_schema': 'IFC4',
-            'engineering_verified': False,
-            'options': entries,
-        }, ensure_ascii=False, indent=2), encoding='utf-8',
-    )
-    # Validate every model BEFORE exposing an archive to the UI.
+    # Validate the actual IFC files before publishing one canonical manifest.
     from app.ifc_concept_validation import validate_concept_file
     for entry in entries:
         target = destination / (entry['option'] + '.ifc')
-        results = validate_concept_file(target, entry['disciplines'])
+        result = validate_concept_file(target, entry['disciplines'])
         entry['verification'] = 'ifc4_reopen_and_geometry_representation'
-        entry['ifc_entities_verified'] = results['product_count']
+        entry['ifc_entities_verified'] = result['product_count']
+        entry['ifc_sha256'] = hashlib.sha256(target.read_bytes()).hexdigest()
+
+    manifest = destination / 'manifest.json'
+    payload = {
+        'schema': 'bimai360.five_ifc_concept.v2',
+        'image_usage': 'visual_reference_only_no_dimensions_inferred',
+        'common_building_id': 'ONE_BUILDING_FROM_REFERENCE',
+        'alternatives_not_independent_houses': True,
+        'image_exported': False,
+        'source_dimensions': 'NOT_INFERRED_FROM_IMAGE',
+        'ifc_schema': 'IFC4',
+        'engineering_verified': False,
+        'discipline_status': 'schematic_assumed_not_engineered',
+        'options': entries,
+    }
     manifest.write_text(
-        json.dumps({
-            'schema': 'bimai360.five_ifc_concept.v1',
-            'image_usage': 'style_reference_only',
-            'source_dimensions': 'NOT_INFERRED_FROM_IMAGE',
-            'ifc_schema': 'IFC4',
-            'engineering_verified': False,
-            'options': entries,
-        }, ensure_ascii=False, indent=2), encoding='utf-8',
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8',
     )
+    from app.ifc_handoff_manifest import validate_handoff_manifest
+    validate_handoff_manifest(destination, payload)
     archive = destination.with_suffix('.zip')
     from app.ifc_concept_validation import write_verified_archive
     write_verified_archive(destination, archive, entries)
