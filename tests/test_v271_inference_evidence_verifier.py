@@ -112,6 +112,10 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 'image_sha256': hashlib.sha256(image_path.read_bytes()).hexdigest(),
                 'adapter_sha256': 'test-only-checksum',
                 'quality_evaluated': False,
+                'prompt': 'Architectural facade',
+                'negative_prompt': 'warped windows',
+                'guidance_scale': 7.5,
+                'seed': 42,
                 'basic_image_gate': validate_generated_image(image, expected_size=(512, 512)),
             }
             report_path.write_text(json.dumps(record), encoding='utf-8')
