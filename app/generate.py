@@ -250,11 +250,16 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
     if not inspection['ready']:
         raise gr.Error('; '.join(inspection['blocking']))
     with LOCK:
+        from app.generation_stage import write_generation_stage
         started = time.perf_counter()
+        write_generation_stage(ROOT, 'START', 'AI_REQUEST')
         try:
+            write_generation_stage(ROOT, 'MODEL_LOAD', 'BEGIN')
             import torch
             pipe, runtime = get_pipeline(memory_mode)
+            write_generation_stage(ROOT, 'MODEL_LOAD', 'DONE')
             select_lora(pipe, memory_mode, lora_name)
+            write_generation_stage(ROOT, 'LORA', 'DONE')
             source, digest = prepare_image(source_image, aspect, fit_mode)
             seed0 = int(seed) if int(seed) >= 0 else random.SystemRandom().randint(1,2**31-2)
             prompt = safe_prompt(brief, style)
@@ -282,9 +287,11 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 progress(index / int(count), desc=f'Đang sinh ảnh {index+1}/{int(count)}')
                 current_seed=seed0+index
                 generator=torch.Generator(device='cpu').manual_seed(current_seed)
+                write_generation_stage(ROOT, 'INFERENCE', f'BEGIN image={index+1}')
                 result=pipe(prompt=prompt,negative_prompt=NEGATIVE,image=source,
                     strength=1-float(preserve),guidance_scale=float(guidance),
                     num_inference_steps=int(steps),generator=generator).images[0]
+                write_generation_stage(ROOT, 'INFERENCE', f'DONE image={index+1}')
                 fname=f'architecture_option_{index+1:02d}_seed_{current_seed}.png'
                 result = postprocess_image(result, scale, sharpness)
                 from app.generated_image_gate import validate_generated_image
@@ -296,7 +303,9 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                         source.height * int(scale),
                     ),
                 )
+                write_generation_stage(ROOT, 'PNG_SAVE', f'BEGIN image={index+1}')
                 result.save(run_dir/fname, optimize=True)
+                write_generation_stage(ROOT, 'PNG_SAVE', f'DONE image={index+1}')
                 generated.append((str(run_dir/fname), f'Phương án {index+1} · seed {current_seed}'))
                 diag = image_diagnostics(result)
                 manifest['images'].append({'file':fname,'seed':current_seed,
@@ -310,12 +319,15 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
             (run_dir/'generation.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
             archive_path=run_dir.with_suffix('.zip')
             from app.atomic_export import publish_directory_zip
+            write_generation_stage(ROOT, 'ZIP_EXPORT', 'BEGIN')
             publish_directory_zip(run_dir, archive_path)
+            write_generation_stage(ROOT, 'ZIP_EXPORT', 'DONE')
             status=(f'Sinh thành công {len(generated)} phương án; {manifest["elapsed_seconds"]} giây. '
                 f'Chế độ: {runtime}. Đã lưu ảnh + seed + tham số vào {archive_path.name}. ' +
                 ('Đây là ảnh concept, không phải BIM. LoRA hợp lệ đã được áp dụng.' if lora_name != 'Không dùng LoRA' else 'Đây là ảnh concept pretrained, chưa fine-tune trên ảnh riêng.'))
             return generated, str(archive_path), status
         except torch.cuda.OutOfMemoryError as exc:
+            write_generation_stage(ROOT, 'FAILED', 'CUDA_OOM')
             # Evict the failed CUDA pipeline. Never silently retry the same
             # diffusion operation: explicit user action preserves seed/output.
             import logging
@@ -328,6 +340,7 @@ def create(source_image, brief, preserve, steps, count, seed, aspect, fit_mode, 
                 'hãy chọn 1 ảnh, 10–15 bước.'
             ) from exc
         except Exception:
+            write_generation_stage(ROOT, 'FAILED', 'PYTHON_EXCEPTION')
             # Preserve the original exception and traceback for diagnostics.
             raise
 
