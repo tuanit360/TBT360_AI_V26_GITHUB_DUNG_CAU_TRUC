@@ -54,6 +54,13 @@ def inspect() -> dict:
     except (ImportError, OSError, RuntimeError) as exc:
         data['torch_diagnostic'] = str(exc)[:160]
     memory = data['available_ram_gib']
+    # A CUDA installation may see a non-NVIDIA adapter at index 0 on unusual
+    # multi-GPU setups. Report the selected device explicitly to users.
+    if data['cuda_available'] and data['cuda_gpu']:
+        data['cuda_device_index'] = 0
+    data['memory_ready_for_offload'] = (
+        memory is not None and memory >= 5
+    )
     if memory is not None and memory < 5:
         data['recommendation'] = (
             'Close memory-heavy applications and reach about 5 GiB available RAM '
