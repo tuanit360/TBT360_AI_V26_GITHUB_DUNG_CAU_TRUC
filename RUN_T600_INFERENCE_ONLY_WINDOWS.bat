@@ -1,12 +1,9 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 cd /d "%~dp0"
-rem Edit only this safe LoRA folder name after the checkpoint has been trained.
-set "ADAPTER_NAME=t600_local_trial"
-rem Prevent path traversal, spaces, shell metacharacters and unexpected folders.
-echo(%ADAPTER_NAME%| findstr /R /X "[A-Za-z0-9_-][A-Za-z0-9_-]*" >nul
-if errorlevel 1 goto :invalid
-if not exist "loras\%ADAPTER_NAME%\pytorch_lora_weights.safetensors" goto :missing
+rem Pick only a checkpoint already validated by the shared LoRA integrity gate.
+for /f "usebackq delims=" %%I in (`python -m training.select_local_lora --root loras`) do set "ADAPTER_NAME=%%I"
+if not defined ADAPTER_NAME goto :missing
 python -m training.local_hardware_diagnostic
 if errorlevel 1 goto :fail
 python -m training.verify_real_checkpoint --path "loras/%ADAPTER_NAME%"
