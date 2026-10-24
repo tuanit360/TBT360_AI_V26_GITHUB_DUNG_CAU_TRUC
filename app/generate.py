@@ -553,15 +553,15 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         except (ValueError, RuntimeError, OSError) as exc:
                             return None, 'Không xuất được IFC concept: ' + str(exc)[:250]
                     gr.Markdown(
-                        '**IFC concept từ một ảnh:** tạo 5 phương án giả định '
+                        '**IFC concept từ một ảnh:** tạo 5 phương án cho cùng một công trình '
                         'Kiến trúc + Kết cấu + Điện + Cấp/thoát nước. '
                         'Không phải thiết kế kỹ thuật đã thẩm định.'
                     )
                     ifc_generate = gr.Button(
-                        'TẠO 5 PHƯƠNG ÁN IFC CONCEPT TỪ ẢNH'
+                        'XUẤT 5 PHƯƠNG ÁN IFC CÙNG CÔNG TRÌNH'
                     )
                     ifc_export = gr.File(
-                        label='Tải 5 IFC concept (ZIP)', interactive=False,
+                        label='Tải 5 IFC phương án cùng công trình (ZIP)', interactive=False,
                     )
                     ifc_status = gr.Textbox(
                         label='Trạng thái xuất IFC', interactive=False,

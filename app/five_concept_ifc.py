@@ -1,4 +1,4 @@
-"""Five independent IFC4 *concept* house schemes from one reference photo.
+"""Five IFC4 design alternatives of ONE conceptual building from one photo.
 
 Photo provides aesthetic context, NOT dimensions, hidden floor layouts or
 engineering facts. All geometry and MEP routing are openly assumed.
@@ -14,13 +14,25 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from PIL import Image
 
 
+# Same origin, envelope and building identity for every alternative.
+# Differences are internal layout and schematic equipment positioning.
+BASE_WIDTH_M = 9.0
+BASE_LENGTH_M = 12.0
+BASE_HEIGHT_M = 3.3
 SCHEMES = (
-    ('PA01', 9.0, 12.0, 3.3, 'Compact garden home'),
-    ('PA02', 10.0, 13.5, 3.4, 'Extended living space'),
-    ('PA03', 9.0, 12.5, 3.5, 'Flexible loft concept'),
-    ('PA04', 11.5, 11.0, 3.3, 'Wide frontage'),
-    ('PA05', 10.0, 14.0, 3.4, 'Garden-oriented wing'),
+    ('PA01', BASE_WIDTH_M, BASE_LENGTH_M, BASE_HEIGHT_M, 'Original zoning concept'),
+    ('PA02', BASE_WIDTH_M, BASE_LENGTH_M, BASE_HEIGHT_M, 'Open living room option'),
+    ('PA03', BASE_WIDTH_M, BASE_LENGTH_M, BASE_HEIGHT_M, 'Flexible bedroom option'),
+    ('PA04', BASE_WIDTH_M, BASE_LENGTH_M, BASE_HEIGHT_M, 'Service core option'),
+    ('PA05', BASE_WIDTH_M, BASE_LENGTH_M, BASE_HEIGHT_M, 'Accessible circulation option'),
 )
+SCHEME_LAYOUTS = {
+    'PA01': (0.55, 0.55, 0.62),
+    'PA02': (0.68, 0.42, 0.70),
+    'PA03': (0.48, 0.72, 0.55),
+    'PA04': (0.62, 0.60, 0.78),
+    'PA05': (0.52, 0.45, 0.60),
+}
 
 
 def _build_ifc(path, identifier, width, length, height, title):
@@ -104,6 +116,7 @@ def _build_ifc(path, identifier, width, length, height, title):
         return entity
 
     # Architectural envelope: indicative only (no surveyed openings).
+    partition_x, partition_length, services_y = SCHEME_LAYOUTS[identifier]
     t = 0.20
     box('IfcSlab', 'Architectural floor', 'ARCH',
         (0, 0, 0.05), (width, length, 0.16))
@@ -112,8 +125,8 @@ def _build_ifc(path, identifier, width, length, height, title):
         ('East perimeter wall', (width-t, 0, 0.21), (t, length, height)),
         ('North perimeter wall', (0, length-t, 0.21), (width, t, height)),
         ('South perimeter wall', (0, 0, 0.21), (width, t, height)),
-        ('Concept partition', (width*0.55, 0.2, 0.21),
-         (0.12, length*0.55, height)),
+        ('Concept partition', (width*partition_x, 0.2, 0.21),
+         (0.12, length*partition_length, height)),
     ):
         box('IfcWall', name, 'ARCH', xyz, size)
     # A gabled form is approximated by two thin roof volumes; pitch is
@@ -148,11 +161,11 @@ def _build_ifc(path, identifier, width, length, height, title):
 
     # Water and sanitary equipment: schematic paths, not hydraulic design.
     box('IfcPipeSegment', 'Cold water run', 'PLUMB',
-        (0.5, length*.62, 0.3), (width*.55, 0.05, 0.05))
+        (0.5, length*services_y, 0.3), (width*.55, 0.05, 0.05))
     box('IfcPipeSegment', 'Wastewater run', 'PLUMB',
-        (0.5, length*.63, -0.15), (width*.55, 0.11, 0.11))
+        (0.5, length*(services_y+0.01), -0.15), (width*.55, 0.11, 0.11))
     box('IfcSanitaryTerminal', 'Concept wash basin', 'PLUMB',
-        (width*.64, length*.65, 0.4), (0.55, 0.45, 0.22))
+        (width*.64, length*(services_y+0.03), 0.4), (0.55, 0.45, 0.22))
 
     for discipline, entities in by_discipline.items():
         if entities:
@@ -174,11 +187,9 @@ def export_five_concepts(image, root):
     root = Path(root).resolve()
     destination = root / 'output' / ('ifc_concept_' + secrets.token_hex(8))
     destination.mkdir(parents=True, exist_ok=False)
+    # Bind the alternatives to a source without exporting the private photo.
     normalized = image.convert('RGB')
-    normalized.thumbnail((1600, 1600))
-    reference = destination / 'reference.png'
-    normalized.save(reference)
-    digest = hashlib.sha256(reference.read_bytes()).hexdigest()
+    digest = hashlib.sha256(normalized.tobytes()).hexdigest()
     entries = []
     for identifier, width, length, height, title in SCHEMES:
         filename = identifier + '.ifc'
@@ -190,6 +201,12 @@ def export_five_concepts(image, root):
             'option': identifier, 'width_m': width, 'length_m': length,
             'height_m': height, 'title': title, 'disciplines': counts,
             'verification': 'concept_geometry_only',
+            'shared_building_reference': 'ONE_BUILDING_FROM_REFERENCE',
+            'variation': {
+                'partition_x_fraction': SCHEME_LAYOUTS[identifier][0],
+                'partition_length_fraction': SCHEME_LAYOUTS[identifier][1],
+                'services_y_fraction': SCHEME_LAYOUTS[identifier][2],
+            },
             'engineering_verified': False,
             'reference_sha256': digest,
         })
@@ -197,7 +214,10 @@ def export_five_concepts(image, root):
     manifest.write_text(
         json.dumps({
             'schema': 'bimai360.five_ifc_concept.v1',
-            'image_usage': 'style_reference_only',
+            'image_usage': 'visual_reference_only_no_dimensions_inferred',
+            'common_building_id': 'ONE_BUILDING_FROM_REFERENCE',
+            'alternatives_not_independent_houses': True,
+            'image_exported': False,
             'source_dimensions': 'NOT_INFERRED_FROM_IMAGE',
             'ifc_schema': 'IFC4',
             'engineering_verified': False,
@@ -225,6 +245,6 @@ def export_five_concepts(image, root):
     from app.ifc_concept_validation import write_verified_archive
     write_verified_archive(destination, archive, entries)
     return str(archive), (
-        'Đã tạo 5 IFC4 concept: Kiến trúc, Kết cấu, Điện, Cấp/thoát nước. '
+        'Đã tạo 5 phương án IFC4 cho CÙNG MỘT công trình: Kiến trúc, Kết cấu, Điện, Cấp/thoát nước. '
         'Kích thước và các tuyến MEP là giả định; chưa thẩm tra kỹ thuật.'
     )

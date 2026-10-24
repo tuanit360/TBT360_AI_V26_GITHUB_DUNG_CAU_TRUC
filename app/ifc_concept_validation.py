@@ -43,7 +43,7 @@ def validate_concept_file(path, expected):
 
 def write_verified_archive(folder, archive_path, entries):
     folder = Path(folder)
-    expected = {'reference.png', 'manifest.json'} | {
+    expected = {'manifest.json'} | {
         item['option'] + '.ifc' for item in entries
     }
     if not all((folder / filename).is_file() for filename in expected):
