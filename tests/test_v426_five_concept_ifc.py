@@ -25,4 +25,11 @@ class IFCConceptUITests(unittest.TestCase):
                 Image.new('RGB', (96, 96), (100, 150, 180)), directory,
             )
             self.assertTrue(Path(archive).is_file())
-            self.assertIn('5 IFC4', message)
+            self.assertIn('5 phương án IFC4', message)
+            self.assertIn('CÙNG MỘT công trình', message)
+            from zipfile import ZipFile
+            with ZipFile(archive) as bundle:
+                self.assertEqual(
+                    set(bundle.namelist()),
+                    {'manifest.json', *(f'PA{i:02d}.ifc' for i in range(1, 6))},
+                )
