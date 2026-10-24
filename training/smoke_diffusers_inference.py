@@ -63,10 +63,12 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     # denoising-step run must not be reported as successful inference.
     if reference is not None and int(steps * strength) < 1:
         raise ValueError('img2img needs at least one denoising step; increase strength or steps')
-    if not prompt.strip():
+    if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError('A nonempty architectural prompt is required')
-    if not model or not model.strip():
+    if not isinstance(model, str) or not model.strip():
         raise ValueError('A real base model is required')
+    if type(seed) is not int or not 0 <= seed < 2 ** 63:
+        raise ValueError('seed must be a nonnegative 63-bit integer')
     if output.exists():
         raise FileExistsError('Refusing to overwrite an existing image')
     # Validate the reference before loading multi-GB model weights.
