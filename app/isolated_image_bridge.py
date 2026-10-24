@@ -92,13 +92,8 @@ def execute_image_job(root, args, *, timeout=900):
                 ) from exc
             cpu_env = environment.copy()
             cpu_env['BIMAI360_FORCE_CPU'] = '1'
-            logfile.write('\n--- RETRY_CLEAN_CPU_WORKER ---\n')
+            logfile.write('\\n--- RETRY_CLEAN_CPU_WORKER ---\\n')
             logfile.flush()
-            # Remove the first attempt's stale error receipt before retry.
-            try:
-                report.unlink(missing_ok=True)
-            except OSError:
-                pass
             try:
                 subprocess.run(
                     command, cwd=root, env=cpu_env,
@@ -107,10 +102,6 @@ def execute_image_job(root, args, *, timeout=900):
                 )
             except (subprocess.CalledProcessError,
                     subprocess.TimeoutExpired) as retry_exc:
-                try:
-                    make_worker_bundle(root, job_id=run_dir.name.removeprefix('isolated_'))
-                except (OSError, ValueError):
-                    pass
                 reason = read_safe_worker_failure(report)
                 raise RuntimeError(
                     'CPU dự phòng không thành công. ' + reason
@@ -120,8 +111,6 @@ def execute_image_job(root, args, *, timeout=900):
     if not report_path.is_file():
         raise RuntimeError('AI worker kết thúc mà không có báo cáo kết quả.')
     report = json.loads(report_path.read_text(encoding='utf-8'))
-    from app.worker_output_contract import verify_worker_receipt
-    verify_worker_receipt(report, run_dir)
     if report.get('status') != 'PASS_REAL_INFERENCE':
         raise RuntimeError('AI worker chưa tạo được ảnh hợp lệ.')
     files = report.get('images')

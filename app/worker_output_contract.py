@@ -29,8 +29,10 @@ def atomic_json(destination, data):
 def publish_selected_outputs(folder, archive_path, names):
     folder = Path(folder).resolve()
     archive_path = Path(archive_path).resolve()
+    if archive_path.parent != folder.parent:
+        raise ValueError('ZIP must be sibling of isolated job directory')
     names = list(names)
-    if not names or len(names) != len(set(names)):
+    if len(names) > 6 or not names or len(names) != len(set(names)):
         raise ValueError('Duplicate or empty output manifest')
     for name in names:
         if not isinstance(name, str) or Path(name).name != name:
@@ -38,6 +40,7 @@ def publish_selected_outputs(folder, archive_path, names):
         item = folder / name
         if item.is_symlink() or not item.is_file() or item.stat().st_size == 0:
             raise ValueError('Missing or empty output')
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
         prefix=archive_path.name + '.', suffix='.part',
         dir=archive_path.parent, delete=False,
@@ -84,6 +87,9 @@ def verify_worker_receipt(report, folder):
             raise ValueError('Duplicate ZIP members')
         if any(name in names for name in ('job.json', 'reference_input.png')):
             raise ValueError('Private inputs leaked in ZIP')
+        png_members = [name for name in names if name.lower().endswith('.png')]
+        if len(png_members) != len(images):
+            raise ValueError('Unexpected PNG in ZIP archive')
         for item in images:
             if not isinstance(item, (list, tuple)) or len(item) != 2:
                 raise ValueError('Invalid image tuple')

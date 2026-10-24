@@ -55,7 +55,7 @@ class LargeWorkerStabilityBatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / 'receipt.json'
             atomic_json(target, {'status': 'OK', 'message': 'Ảnh hợp lệ'})
-            self.assertEqual(json.loads(target.read_text())['message'], 'Ảnh hợp lệ')
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8'))['message'], 'Ảnh hợp lệ')
             self.assertFalse(list(Path(temp).glob('*.part')))
 
 
