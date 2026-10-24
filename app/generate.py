@@ -122,7 +122,6 @@ def disable_gpu_after_failure():
 def get_pipeline(memory_mode):
     global GPU_DISABLED_FOR_SESSION
     import torch
-    from diffusers import AutoPipelineForImage2Image
     use_cuda = (
         not GPU_DISABLED_FOR_SESSION
         and os.environ.get('BIMAI360_FORCE_CPU') != '1'
@@ -144,6 +143,7 @@ def get_pipeline(memory_mode):
     cache_key = (memory_mode, 'cuda' if use_cuda else 'cpu')
     if cache_key in PIPELINES:
         return PIPELINES[cache_key]
+    from diffusers import AutoPipelineForImage2Image
     dtype = torch.float16 if use_cuda else torch.float32
     # Loading a checkpoint may fail before .to('cuda') is reached. In that case
     # preserve the original error rather than treating missing/corrupt weights
