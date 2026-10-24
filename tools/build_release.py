@@ -46,6 +46,7 @@ def main():
                '--collect-all', 'PIL', '--collect-all', 'tokenizers',
                # Training-only datasets/tensorboard stay in source, not CPU EXE.
                '--collect-all', 'cv2', '--collect-all', 'ifcopenshell',
+               '--hidden-import', 'ifcopenshell', '--hidden-import', 'ifcopenshell.ifcopenshell_wrapper',
                '--collect-submodules', 'app', '--collect-submodules', 'tools',
                '--collect-submodules', 'learning',
                '--hidden-import', 'multipart', '--hidden-import', 'sentencepiece',
@@ -87,6 +88,17 @@ def main():
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
     if result.returncode != 0:
         raise RuntimeError(f'Frozen self-test failed with code {result.returncode}; release withheld')
+    # BLOCK publishing any portable that cannot actually export and
+    # reopen all five IFC models using its own bundled IfcOpenShell.
+    probe = subprocess.run(
+        [str(exe), '--ifc-export-self-test'], cwd=target, timeout=180,
+        check=False,
+    )
+    if probe.returncode != 0:
+        raise RuntimeError(
+            'Frozen IFC export self-test failed; Windows ZIP withheld '
+            f'(exit={probe.returncode})'
+        )
     manifest = build_manifest(target, args.profile)
     (target / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     sha_lines = [f"{meta['sha256']}  {name}" for name, meta in manifest['files'].items()]

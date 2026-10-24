@@ -66,6 +66,10 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Build and self-test actual V271 Studio
         run: python tools/build_release.py --profile cpu
+      - name: Verify five IFC4 models in bundled Windows EXE
+        run: |
+          & 'dist/BIMAI360/BIMAI360.exe' --ifc-export-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged IFC export is not self-contained' }
       - name: Verify frozen AI worker subprocess transport
         run: |
           & 'dist/BIMAI360/BIMAI360.exe' --worker-transport-self-test

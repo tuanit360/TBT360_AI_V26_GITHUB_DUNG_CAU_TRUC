@@ -37,6 +37,11 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--ifc-export-self-test' in sys.argv:
+        from app.ifc_portable_smoke import test_frozen_ifc_export
+        import json
+        print(json.dumps(test_frozen_ifc_export(root), ensure_ascii=True), flush=True)
+        return 0
     if '--last-failure-bundle' in sys.argv:
         from app.worker_diagnostic_bundle import make_worker_bundle
         print(make_worker_bundle(root), flush=True)

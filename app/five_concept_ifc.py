@@ -40,8 +40,8 @@ def _build_ifc(path, identifier, width, length, height, title):
         import ifcopenshell
     except ImportError as exc:
         raise RuntimeError(
-            'Cần cài IfcOpenShell để xuất IFC thật. '
-            'Cài từ requirements-runtime.txt và build lại Windows.'
+            'Phiên bản Portable này thiếu thành phần xuất IFC. '
+            'Hãy dùng bản Windows mới có kiểm thử IFC; không cần cài thêm.'
         ) from exc
 
     f = ifcopenshell.file(schema='IFC4')
