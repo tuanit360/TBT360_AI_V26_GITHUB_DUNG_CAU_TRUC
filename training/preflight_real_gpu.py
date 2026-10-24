@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15,
-                          min_vram_gib=8):
+                          min_vram_gib=3.5):
     checks = {}
     for module in ('torch', 'diffusers', 'transformers', 'accelerate',
                    'safetensors', 'PIL', 'datasets'):
@@ -38,8 +38,10 @@ def check_gpu_environment(dataset='dataset/v72_certified', min_free_gib=15,
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
         return {'ready': False, 'reason': f'Certified dataset invalid: {exc}'[:240],
                 'checks': checks}
+    profile = 'low_vram_256' if vram_gib < 8 else 'standard_512'
     return {
         'ready': True, 'checks': checks,
+        'training_profile': profile,
         'gpu_name': torch.cuda.get_device_name(0),
         'free_disk_gib': round(free, 2),
         'gpu_vram_gib': round(vram_gib, 2),
