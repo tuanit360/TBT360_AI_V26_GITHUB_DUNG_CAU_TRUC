@@ -32,7 +32,8 @@ def publish_directory_zip(source_dir, destination):
             for name, digest in digests.items():
                 if hashlib.sha256(archive.read(name)).hexdigest() != digest:
                     raise IOError('ZIP content checksum mismatch')
-        with temporary.open('rb') as handle:
+        with temporary.open('r+b') as handle:
+            handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, destination)
         return destination
