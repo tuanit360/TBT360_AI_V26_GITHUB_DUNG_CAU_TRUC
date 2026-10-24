@@ -7,6 +7,32 @@ from training.smoke_diffusers_inference import infer, write_evidence
 
 
 class InferenceSafetyTests(unittest.TestCase):
+    def test_t600_refuses_low_free_ram_before_loading_model(self):
+        import sys
+        import types
+        from unittest.mock import patch
+        fake_torch = types.ModuleType('torch')
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            get_device_properties=lambda index: types.SimpleNamespace(
+                total_memory=4 * 1024 ** 3,
+            ),
+            manual_seed=lambda seed: None,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            adapter = root / 'adapter'
+            adapter.mkdir()
+            with patch(
+                'app.lora_validation.validate_adapter',
+                return_value={'valid': True, 'sha256': 'fake-test-hash'},
+            ), patch.dict(sys.modules, {'torch': fake_torch}), patch(
+                'training.local_hardware_diagnostic.available_memory_gib',
+                return_value=4.3,
+            ):
+                with self.assertRaisesRegex(RuntimeError, 'system RAM available'):
+                    infer(adapter, 'sd15', root / 'out.png', device='cuda')
+
     def test_negative_prompt_and_cfg_reject_invalid_values(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
