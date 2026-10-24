@@ -46,6 +46,24 @@ class V271EvidenceVerificationTests(unittest.TestCase):
                 result['status'], 'ARTIFACT_INTEGRITY_PASS_NOT_MODEL_PROVEN'
             )
             self.assertFalse(result['real_model_execution_proven_by_artifacts_alone'])
+            for field, invalid in (
+                ('prompt', ''),
+                ('negative_prompt', None),
+                ('guidance_scale', float('nan')),
+                ('guidance_scale', 21),
+                ('seed', True),
+                ('steps', 0),
+            ):
+                changed = dict(record, **{field: invalid})
+                report_path.write_text(
+                    json.dumps(changed), encoding='utf-8',
+                )
+                self.assertEqual(
+                    verify_inference_evidence(report_path, image_path)['status'],
+                    'BLOCKED',
+                    field,
+                )
+            report_path.write_text(json.dumps(record), encoding='utf-8')
             image_path.write_bytes(b'corrupted')
             self.assertEqual(
                 verify_inference_evidence(report_path, image_path)['status'],
