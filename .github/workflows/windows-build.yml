@@ -74,6 +74,10 @@ jobs:
         run: |
           & 'dist/BIMAI360/BIMAI360.exe' --worker-runtime-self-test
           if ($LASTEXITCODE -ne 0) { throw 'Frozen AI worker failed to report actual dependencies' }
+      - name: Verify frozen worker structured failure path
+        run: |
+          & 'dist/BIMAI360/BIMAI360.exe' --worker-failure-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen worker failure contract broken' }
       - name: Smoke test V271 Gradio launch and HTTP readiness
         shell: pwsh
         run: |
