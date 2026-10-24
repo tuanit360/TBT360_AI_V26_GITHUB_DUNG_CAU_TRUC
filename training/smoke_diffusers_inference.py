@@ -106,10 +106,6 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         raise ValueError('Unsupported device')
     import torch
     from PIL import Image
-    from diffusers import StableDiffusionPipeline
-    if reference is not None:
-        from diffusers import StableDiffusionImg2ImgPipeline
-
     if device == 'cuda' and not torch.cuda.is_available():
         raise RuntimeError('CUDA unavailable')
     # Only Windows' real available physical RAM is used; the shared GPU
@@ -123,6 +119,9 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
                 'Close memory-heavy apps before SD1.5 CPU model offload '
                 '(recommended >=5 GiB free).'
             )
+    from diffusers import StableDiffusionPipeline
+    if reference is not None:
+        from diffusers import StableDiffusionImg2ImgPipeline
     generator = torch.Generator(device=device).manual_seed(seed)
     pipeline_class = (
         StableDiffusionImg2ImgPipeline if reference is not None
