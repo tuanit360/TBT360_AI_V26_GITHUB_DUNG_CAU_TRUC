@@ -1,0 +1,18 @@
+# TBT360 AI V81 runtime-only dependencies (Windows CPU Portable)
+# PyTorch/torchvision installed separately using official CPU wheels.
+diffusers==0.31.0
+transformers==4.46.3
+accelerate==1.2.1
+huggingface_hub==0.27.1
+safetensors>=0.4.5,<1
+Pillow>=10,<12
+gradio==5.9.1
+numpy<2
+peft==0.14.0
+opencv-python-headless>=4.8,<5
+
+# Editable conceptual 3D mesh / GLB interchange
+trimesh>=4.4,<5
+
+# IFC4 authoring/validation for five concept alternatives
+ifcopenshell>=0.8.0,<0.9
