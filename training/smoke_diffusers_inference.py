@@ -1,0 +1,274 @@
+"""Execute a real SD1.5 + LoRA image-generation smoke on a configured machine.
+
+No model downloads or fake image artifacts are performed in regular CI.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import time
+from pathlib import Path
+
+
+
+
+def configure_pipeline_memory(pipeline, device: str, torch_module) -> str:
+    """Choose a conservative profile without silently falling back to CPU."""
+    if device == 'cpu':
+        pipeline.to('cpu')
+        return 'cpu'
+    vram_gib = torch_module.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    if vram_gib < 3.5:
+        raise RuntimeError(
+            f'CUDA GPU has only {vram_gib:.2f} GiB VRAM; '
+            'SD1.5 local inference is not enabled below 3.5 GiB'
+        )
+    if vram_gib < 8:
+        # Diffusers model CPU offload via Accelerate keeps large components on
+        # system RAM and transfers them to GPU only as needed. Do not call
+        # pipeline.to('cuda') first: doing so defeats the VRAM saving.
+        if not hasattr(pipeline, 'enable_model_cpu_offload'):
+            raise RuntimeError('Diffusers model CPU offload is required for low VRAM')
+        pipeline.enable_model_cpu_offload()
+        if hasattr(pipeline, 'enable_vae_slicing'):
+            pipeline.enable_vae_slicing()
+        if hasattr(pipeline, 'enable_attention_slicing'):
+            pipeline.enable_attention_slicing()
+        return 'cuda_model_cpu_offload'
+    pipeline.to('cuda')
+    return 'cuda_fp16'
+
+
+
+
+def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
+          prompt: str = 'Architectural photograph of a modern office facade',
+          seed: int = 42, steps: int = 15,
+          reference: Path | None = None, strength: float = 0.4,
+          negative_prompt: str = '', guidance_scale: float = 7.5) -> dict:
+    import math
+    if (type(guidance_scale) not in (int, float) or
+            not math.isfinite(guidance_scale) or not 0 <= guidance_scale <= 20):
+        raise ValueError('guidance_scale must be finite and between 0 and 20')
+    if not isinstance(negative_prompt, str):
+        raise ValueError('negative_prompt must be text')
+    if reference is not None and (
+        type(strength) not in (int, float) or
+        not math.isfinite(strength) or not 0 < strength <= 1
+    ):
+        raise ValueError('img2img strength must be a finite number in (0, 1]')
+    if type(steps) is not int or not 1 <= steps <= 100:
+        raise ValueError('steps must be 1..100')
+    # Diffusers img2img truncates steps * strength to an integer. A zero
+    # denoising-step run must not be reported as successful inference.
+    if reference is not None and int(steps * strength) < 1:
+        raise ValueError('img2img needs at least one denoising step; increase strength or steps')
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError('A nonempty architectural prompt is required')
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError('A real base model is required')
+    if type(seed) is not int or not 0 <= seed < 2 ** 63:
+        raise ValueError('seed must be a nonnegative 63-bit integer')
+    if output.exists():
+        raise FileExistsError('Refusing to overwrite an existing image')
+    # Validate the reference before loading multi-GB model weights.
+    reference_sha256 = None
+    if reference is not None:
+        from PIL import Image, ImageOps
+        reference = Path(reference).resolve()
+        with reference.open('rb') as stream:
+            reference_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
+        with Image.open(reference) as source:
+            source.verify()
+        with Image.open(reference) as source:
+            if source.width < 128 or source.height < 128:
+                raise ValueError('Reference image is too small for architectural img2img')
+            prepared_reference = ImageOps.pad(
+                ImageOps.exif_transpose(source).convert('RGB'), (512, 512),
+            )
+        with reference.open('rb') as stream:
+            if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                raise ValueError('Reference changed during preparation')
+    # Validate adapter before model loading. Only actual output is a success.
+    from app.lora_validation import validate_adapter
+    certificate = validate_adapter(adapter)
+    if not certificate['valid']:
+        raise ValueError('Invalid adapter: ' + certificate['reason'])
+    # A valid tensor file can still target the wrong base model. Check the
+    # trainer's declared provenance before allocating the Diffusers pipeline.
+    training_status = Path(adapter) / 'training_status.json'
+    if training_status.is_file():
+        training_record = json.loads(training_status.read_text(encoding='utf-8'))
+        if not isinstance(training_record, dict):
+            raise ValueError('Invalid adapter training metadata')
+        trained_model = training_record.get('base_model')
+        if trained_model is not None and trained_model != model:
+            raise ValueError('LoRA base model differs from requested inference model')
+    if device not in ('cpu', 'cuda'):
+        raise ValueError('Unsupported device')
+    import torch
+    from PIL import Image
+    if device == 'cuda' and not torch.cuda.is_available():
+        raise RuntimeError('CUDA unavailable')
+    # Only Windows' real available physical RAM is used; the shared GPU
+    # memory displayed by Task Manager is NOT extra physical RAM.
+    if device == 'cuda' and torch.cuda.get_device_properties(0).total_memory < 8 * 1024 ** 3:
+        from training.local_hardware_diagnostic import available_memory_gib
+        free_ram = available_memory_gib()
+        if free_ram is not None and free_ram < 5:
+            raise RuntimeError(
+                f'Only {free_ram:.2f} GiB system RAM available. '
+                'Close memory-heavy apps before SD1.5 CPU model offload '
+                '(recommended >=5 GiB free).'
+            )
+    from diffusers import StableDiffusionPipeline
+    if reference is not None:
+        from diffusers import StableDiffusionImg2ImgPipeline
+    generator = torch.Generator(device=device).manual_seed(seed)
+    pipeline_class = (
+        StableDiffusionImg2ImgPipeline if reference is not None
+        else StableDiffusionPipeline
+    )
+    pipeline = pipeline_class.from_pretrained(
+        model, torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
+    )
+    try:
+        pipeline.load_lora_weights(
+            str(Path(adapter).resolve()),
+            weight_name='pytorch_lora_weights.safetensors',
+        )
+        memory_profile = configure_pipeline_memory(pipeline, device, torch)
+        generation_args = {
+            'prompt': prompt,
+            'num_inference_steps': steps,
+            'generator': generator,
+            'negative_prompt': negative_prompt,
+            'guidance_scale': guidance_scale,
+        }
+        if reference is not None:
+            with reference.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                    raise ValueError('Reference changed before img2img inference')
+            generation_args.update({
+                'image': prepared_reference, 'strength': strength,
+            })
+        else:
+            generation_args.update({'width': 512, 'height': 512})
+        if device == 'cuda':
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+        generation_started = time.perf_counter()
+        generation_result = pipeline(**generation_args)
+        if device == 'cuda':
+            torch.cuda.synchronize()
+        generation_seconds = round(time.perf_counter() - generation_started, 3)
+        cuda_peak_allocated_mib = (
+            round(torch.cuda.max_memory_allocated() / 1024 ** 2, 1)
+            if device == 'cuda' else None
+        )
+        if not generation_result.images:
+            raise ValueError('Diffusers returned no images')
+        generated = generation_result.images[0]
+        if reference is not None:
+            with reference.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != reference_sha256:
+                    raise ValueError('Reference changed during img2img inference')
+        from app.generated_image_gate import validate_generated_image
+        image_evidence = validate_generated_image(generated, expected_size=(512, 512))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        # Do not leave incomplete outputs claiming a successful inference.
+        # Exclusive creation must happen outside cleanup handling: if another
+        # process created the destination meanwhile, never delete its file.
+        with output.open('xb') as stream:
+            try:
+                generated.save(stream, format='PNG')
+            except Exception:
+                # On Windows the handle must be closed before unlinking.
+                stream.close()
+                output.unlink(missing_ok=True)
+                raise
+        try:
+            with Image.open(output) as verified:
+                verified.verify()
+        except Exception:
+            output.unlink(missing_ok=True)
+            raise
+    finally:
+        del pipeline
+    # Stream the generated output for large files; do not load it all into RAM.
+    with output.open('rb') as stream:
+        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+    return {
+        'status': 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED',
+        'image': str(output),
+        'image_sha256': digest,
+        'adapter_sha256': certificate['sha256'],
+        'model': model,
+        'prompt': prompt,
+        'negative_prompt': negative_prompt,
+        'guidance_scale': guidance_scale,
+        'seed': seed,
+        'steps': steps,
+        'device': device,
+        'memory_profile': memory_profile,
+        'generation_seconds': generation_seconds,
+        'cuda_peak_allocated_mib': cuda_peak_allocated_mib,
+        'quality_evaluated': False,
+        'basic_image_gate': image_evidence,
+        'generation_mode': 'img2img' if reference is not None else 'text2img',
+        'reference_sha256': reference_sha256,
+        'reference_image': str(reference.resolve()) if reference is not None else None,
+        'strength': strength if reference is not None else None,
+        'reference_geometry_verified': False,
+    }
+
+
+def write_evidence(report_path: Path, result: dict) -> None:
+    """Exclusive report write; incomplete reports are never kept as evidence."""
+    report_path = Path(report_path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with report_path.open('x', encoding='utf-8') as stream:
+        try:
+            json.dump(result, stream, ensure_ascii=False, indent=2)
+            stream.flush()
+        except Exception:
+            stream.close()
+            report_path.unlink(missing_ok=True)
+            raise
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--adapter', required=True, type=Path)
+    parser.add_argument('--model', required=True)
+    parser.add_argument('--image', required=True, type=Path)
+    parser.add_argument('--report', required=True, type=Path)
+    parser.add_argument('--device', choices=('cpu', 'cuda'), default='cpu')
+    parser.add_argument('--prompt', default='Architectural photograph of a modern office facade')
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--steps', type=int, default=15)
+    parser.add_argument('--negative-prompt', default='')
+    parser.add_argument('--guidance-scale', type=float, default=7.5)
+    parser.add_argument('--reference', type=Path)
+    parser.add_argument('--strength', type=float, default=0.4)
+    args = parser.parse_args()
+    if args.image.resolve() == args.report.resolve():
+        parser.error('--image and --report must be different paths')
+    if args.report.exists():
+        parser.error('--report already exists; use a new path to preserve prior evidence')
+    try:
+        result = infer(args.adapter, args.model, args.image, args.device,
+                       args.prompt, args.seed, args.steps,
+                       args.reference, args.strength,
+                       args.negative_prompt, args.guidance_scale)
+    except Exception as exc:
+        result = {'status': 'FAILED', 'error': f'{type(exc).__name__}: {exc}'[:300]}
+    write_evidence(args.report, result)
+    print(json.dumps(result, ensure_ascii=False))
+    if result['status'] != 'DIFFUSERS_INFERENCE_EXECUTED_NOT_QUALITY_VERIFIED':
+        raise SystemExit(2)
+
+
+if __name__ == '__main__':
+    main()

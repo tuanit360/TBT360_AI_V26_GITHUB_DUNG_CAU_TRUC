@@ -29,7 +29,11 @@ if not exist ".venv\Scripts\python.exe" (
 )
 set "PY=.venv\Scripts\python.exe"
 "%PY%" -m pip install --upgrade pip setuptools wheel || exit /b 1
-"%PY%" -m pip install -r requirements.txt || exit /b 1
+if /I "%TBT360_BUILD_PROFILE%"=="cuda" (
+  "%PY%" -m pip install -r requirements.txt || exit /b 1
+) else (
+  "%PY%" -m pip install -r requirements-runtime.txt || exit /b 1
+)
 if /I "%TBT360_BUILD_PROFILE%"=="cuda" (
   "%PY%" -m pip install "torch==2.5.1" "torchvision==0.20.1" --index-url https://download.pytorch.org/whl/cu121 || exit /b 1
 ) else (
