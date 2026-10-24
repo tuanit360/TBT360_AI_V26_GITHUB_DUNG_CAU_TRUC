@@ -17,7 +17,7 @@ def validate_concept_file(path, expected):
     document = ifcopenshell.open(str(path))
     if document.schema != 'IFC4':
         raise ValueError('Expected IFC4 schema')
-    products = document.by_type('IfcProduct')
+    products = document.by_type('IfcElement')
     if len(products) < 20:
         raise ValueError('Insufficient IFC concept products')
     if len(document.by_type('IfcBuildingStorey')) != 1:
