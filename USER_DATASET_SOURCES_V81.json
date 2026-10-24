@@ -1,0 +1,59 @@
+{
+  "version": "V81",
+  "schema": "tbt360-user-upload-sources-v1",
+  "training_performed": false,
+  "review_status": "NEEDS_REVIEW",
+  "preview_raster_images": 168,
+  "source_archives_stored_in_repo": false,
+  "notice": "File names, sizes and SHA256 are reference inventory only. Original 8 archives are not committed to GitHub or bundled with portable EXE; ChatGPT supplies a separate preview-data overlay.",
+  "sources": [
+    {
+      "name": "Khong xóa  - Ảnh AI học(2).rar",
+      "bytes": 19627082,
+      "sha256": "ece985f2dc81864085319d621795bd336d7ac22e0cf1ac0e90f327a03fec8996",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "OFFICE_AI_TWO_CLASS_HIRES_504_513(2).zip",
+      "bytes": 4635228,
+      "sha256": "3042d2bfb7c43a9f49e2d619d75dbcbcf43751fadd9618fac5d4f483fa1afed1",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "0TBT360_1600_OFFICE_CONCEPTS_WITH_PREVIEWS(3).zip",
+      "bytes": 34989075,
+      "sha256": "5786fee2221ac6251bbb6c447411dc5e55a4821e616e89a8b072331ca30c00cc",
+      "status": "raster_preview_only_svg_not_converted"
+    },
+    {
+      "name": "0UBND_5Tang_Package_17(3).zip",
+      "bytes": 8505194,
+      "sha256": "59bc752578b474ea2cf0f651441450f2ef0666c238425e760f68539e3fff9caf",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "1. Ảnh hoàn thiện(3).rar",
+      "bytes": 159541648,
+      "sha256": "6ce7c626dba84dca06aa991a7292e0919580f5a482206d643535b6c25fb77c2b",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "3. OFFICE_AI_504_513_10_IMAGES(2).zip",
+      "bytes": 3126109,
+      "sha256": "b96778d8eea776051940f92606f76f0ea1da66484b9fade47e0d31cbd3aefe9b",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "4. Nhà mẫu cho AI hoc(2).rar",
+      "bytes": 229973336,
+      "sha256": "2506109d4871738b7023d49d2e5ee2075ee70a5c9d706aa5e451800631151570",
+      "status": "raster_extracted_to_preview"
+    },
+    {
+      "name": "004100_MAU_TRUONG_TIEU_HOC_THCS_THPT_AI_DATASET(3).zip",
+      "bytes": 88993878,
+      "sha256": "d6a932b66e452a2c027791a1b7bc10973214b55429bdd6f47254aab8659fee13",
+      "status": "svg_json_dxf_only_not_ingested"
+    }
+  ]
+}
