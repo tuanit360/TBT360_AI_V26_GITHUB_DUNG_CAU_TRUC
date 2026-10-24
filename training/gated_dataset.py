@@ -23,6 +23,26 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def check_cross_split_pixels(train_folder: Path, validation_folder: Path):
+    """Reject identical decoded RGB images even if files are re-encoded."""
+    from PIL import Image
+
+    known = set()
+    for image_path in sorted(train_folder.glob('*.png')):
+        with Image.open(image_path) as image:
+            image.load()
+            known.add(hashlib.sha256(image.convert('RGB').tobytes()).hexdigest())
+    for image_path in sorted(validation_folder.glob('*.png')):
+        with Image.open(image_path) as image:
+            image.load()
+            checksum = hashlib.sha256(image.convert('RGB').tobytes()).hexdigest()
+        if checksum in known:
+            raise ValueError(
+                'Training/validation image pixel leakage: '
+                'same image appears in both project splits'
+            )
+
+
 def stage(manifest: Path, root: Path, destination: Path) -> dict:
     from PIL import Image, ImageOps
     manifest, root, destination = manifest.resolve(), root.resolve(), destination.resolve()
@@ -64,6 +84,7 @@ def stage(manifest: Path, root: Path, destination: Path) -> dict:
                                   'filename': filename, 'original_filename': rel,
                                   'source_sha256': record['sha256'],
                                   'staged_sha256': sha256(folder / filename)})
+        check_cross_split_pixels(prepared, validation)
         for folder, rows in ((prepared, training_rows), (validation, validation_rows)):
             (folder / 'metadata.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
         certificate = {'version': 72, 'status': 'PASS',
@@ -119,6 +140,7 @@ def verify(destination: Path) -> dict:
         # Store/verify a checksum of the metadata in the certificate.
         if report.get(f'{split}_metadata_sha256') != sha256(manifest):
             raise ValueError(f'{split} metadata checksum mismatch')
+    check_cross_split_pixels(destination / 'prepared', destination / 'validation')
     return report
 
 
