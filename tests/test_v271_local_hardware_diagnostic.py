@@ -24,6 +24,8 @@ class LocalHardwareDiagnosticTests(unittest.TestCase):
         self.assertEqual(actual['available_ram_gib'], 4.3)
         self.assertIn('Close memory-heavy', actual['recommendation'])
         self.assertFalse(actual['real_model_executed'])
+        self.assertFalse(actual['memory_ready_for_offload'])
+        self.assertEqual(actual['cuda_device_index'], 0)
 
     def test_diagnostic_never_claims_inference_on_cpu(self):
         fake_torch = types.ModuleType('torch')
@@ -32,6 +34,7 @@ class LocalHardwareDiagnosticTests(unittest.TestCase):
             with patch.object(diagnostic, 'available_memory_gib', return_value=None):
                 actual = diagnostic.inspect()
         self.assertFalse(actual['cuda_available'])
+        self.assertFalse(actual['memory_ready_for_offload'])
         self.assertFalse(actual['real_model_executed'])
 
 
