@@ -204,21 +204,26 @@ def export_five_concepts(image, root):
             'options': entries,
         }, ensure_ascii=False, indent=2), encoding='utf-8',
     )
+    # Validate every model BEFORE exposing an archive to the UI.
+    from app.ifc_concept_validation import validate_concept_file
+    for entry in entries:
+        target = destination / (entry['option'] + '.ifc')
+        results = validate_concept_file(target, entry['disciplines'])
+        entry['verification'] = 'ifc4_reopen_and_geometry_representation'
+        entry['ifc_entities_verified'] = results['product_count']
+    manifest.write_text(
+        json.dumps({
+            'schema': 'bimai360.five_ifc_concept.v1',
+            'image_usage': 'style_reference_only',
+            'source_dimensions': 'NOT_INFERRED_FROM_IMAGE',
+            'ifc_schema': 'IFC4',
+            'engineering_verified': False,
+            'options': entries,
+        }, ensure_ascii=False, indent=2), encoding='utf-8',
+    )
     archive = destination.with_suffix('.zip')
-    with ZipFile(archive, 'w', ZIP_DEFLATED) as bundle:
-        for path in sorted(destination.iterdir()):
-            if path.is_file():
-                bundle.write(path, arcname=path.name)
-    # Check IFC parsing with the same IFC SDK used to write the files.
-    import ifcopenshell
-    for identifier, *_ in SCHEMES:
-        target = destination / (identifier + '.ifc')
-        inspected = ifcopenshell.open(str(target))
-        if inspected.schema != 'IFC4' or len(inspected.by_type('IfcProduct')) < 10:
-            raise RuntimeError(identifier + ' failed IFC parser verification')
-    with ZipFile(archive) as check:
-        if check.testzip() is not None:
-            raise RuntimeError('IFC ZIP checksum invalid')
+    from app.ifc_concept_validation import write_verified_archive
+    write_verified_archive(destination, archive, entries)
     return str(archive), (
         'Đã tạo 5 IFC4 concept: Kiến trúc, Kết cấu, Điện, Cấp/thoát nước. '
         'Kích thước và các tuyến MEP là giả định; chưa thẩm tra kỹ thuật.'
