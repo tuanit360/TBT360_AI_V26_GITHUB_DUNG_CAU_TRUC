@@ -66,6 +66,12 @@ def main():
         '%(asctime)s | %(levelname)s | %(name)s | %(message)s',
     ))
     runtime_logger.addHandler(runtime_handler)
+    # Gradio/FastAPI errors often bypass the application logger, leaving
+    # only a red "Error" badge in the browser. Keep their traceback locally.
+    for logger_name in ('gradio', 'uvicorn.error', 'starlette'):
+        framework_logger = logging.getLogger(logger_name)
+        if runtime_handler not in framework_logger.handlers:
+            framework_logger.addHandler(runtime_handler)
     from app.gradio_compat import install_boolean_schema_support
     install_boolean_schema_support()
     try:
