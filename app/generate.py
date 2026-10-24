@@ -544,6 +544,32 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                         concurrency_limit=1,
                         show_progress='full',
                     )
+                    # Concept IFC export is independent of image AI inference.
+                    def export_five_ifc_from_reference(image):
+                        from app.five_concept_ifc import export_five_concepts
+                        try:
+                            archive, message = export_five_concepts(image, ROOT)
+                            return archive, message
+                        except (ValueError, RuntimeError, OSError) as exc:
+                            return None, 'Không xuất được IFC concept: ' + str(exc)[:250]
+                    gr.Markdown(
+                        '**IFC concept từ một ảnh:** tạo 5 phương án giả định '
+                        'Kiến trúc + Kết cấu + Điện + Cấp/thoát nước. '
+                        'Không phải thiết kế kỹ thuật đã thẩm định.'
+                    )
+                    ifc_generate = gr.Button(
+                        'TẠO 5 PHƯƠNG ÁN IFC CONCEPT TỪ ẢNH'
+                    )
+                    ifc_export = gr.File(
+                        label='Tải 5 IFC concept (ZIP)', interactive=False,
+                    )
+                    ifc_status = gr.Textbox(
+                        label='Trạng thái xuất IFC', interactive=False,
+                    )
+                    ifc_generate.click(
+                        export_five_ifc_from_reference, inputs=reference,
+                        outputs=[ifc_export, ifc_status], concurrency_limit=1,
+                    )
                 with gr.Tab("Mô hình 2D / 3D"):
                     with gr.Accordion('BIMAI360 · TẠO MẶT BẰNG / MẶT ĐỨNG SƠ BỘ TỪ KÍCH THƯỚC', open=True):
                         gr.Markdown('Tạo vỏ công trình chữ nhật từ kích thước **bạn nhập**, cùng ID tường và tầng cho BIM. '

@@ -45,7 +45,7 @@ def main():
                '--collect-all', 'torch', '--collect-all', 'torchvision',
                '--collect-all', 'PIL', '--collect-all', 'tokenizers',
                # Training-only datasets/tensorboard stay in source, not CPU EXE.
-               '--collect-all', 'cv2',
+               '--collect-all', 'cv2', '--collect-all', 'ifcopenshell',
                '--collect-submodules', 'app', '--collect-submodules', 'tools',
                '--collect-submodules', 'learning',
                '--hidden-import', 'multipart', '--hidden-import', 'sentencepiece',
