@@ -37,6 +37,7 @@ def verify_release_structure(root):
         'BIMAI360.exe',
         'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
         'MO_LOG_KHONG_CAN_UI.bat',
+        'CHAY_BIMAI360_GHI_LOG_LOI.bat',
         'README_PORTABLE.md',
     )
     for filename in required:
