@@ -66,11 +66,37 @@ def execute_image_job(root, args, *, timeout=900):
             raise RuntimeError('AI worker quá thời gian; ứng dụng chính vẫn hoạt động. Xem logs/image_worker.log') from exc
         except subprocess.CalledProcessError as exc:
             from app.worker_failure import read_safe_worker_failure
-            reason = read_safe_worker_failure(run_dir / 'worker_failure.json')
-            raise RuntimeError(
-                'AI worker thất bại (mã ' + str(exc.returncode) + '). '
-                + reason + ' Chi tiết: logs/image_worker.log.'
-            ) from exc
+            from app.worker_retry import should_retry_cpu
+            report = run_dir / 'worker_failure.json'
+            reason = read_safe_worker_failure(report)
+            if not should_retry_cpu(report, environment):
+                raise RuntimeError(
+                    'AI worker thất bại (mã ' + str(exc.returncode)
+                    + '). ' + reason + ' Chi tiết: logs/image_worker.log.'
+                ) from exc
+            from app.windows_memory import available_ram_gib
+            free_ram = available_ram_gib()
+            if free_ram is not None and free_ram < 7:
+                raise RuntimeError(
+                    'CUDA không hoạt động; CPU cần ít nhất 7 GiB RAM khả dụng.'
+                ) from exc
+            cpu_env = environment.copy()
+            cpu_env['BIMAI360_FORCE_CPU'] = '1'
+            logfile.write('\\n--- RETRY_CLEAN_CPU_WORKER ---\\n')
+            logfile.flush()
+            try:
+                subprocess.run(
+                    command, cwd=root, env=cpu_env,
+                    stdout=logfile, stderr=subprocess.STDOUT,
+                    timeout=timeout, check=True,
+                )
+            except (subprocess.CalledProcessError,
+                    subprocess.TimeoutExpired) as retry_exc:
+                reason = read_safe_worker_failure(report)
+                raise RuntimeError(
+                    'CPU dự phòng không thành công. ' + reason
+                    + ' Xem logs/image_worker.log.'
+                ) from retry_exc
     report_path = run_dir / 'worker_result.json'
     if not report_path.is_file():
         raise RuntimeError('AI worker kết thúc mà không có báo cáo kết quả.')
