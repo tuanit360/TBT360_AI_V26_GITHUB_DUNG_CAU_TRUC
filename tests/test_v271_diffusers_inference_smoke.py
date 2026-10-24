@@ -12,6 +12,27 @@ class InferenceSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'base model'):
                 infer(Path(temp) / 'adapter', '', Path(temp) / 'output.png')
 
+    def test_lora_checkpoint_base_model_mismatch_fails_before_gpu_load(self):
+        import json
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            adapter = folder / 'trained_adapter'
+            adapter.mkdir()
+            (adapter / 'training_status.json').write_text(
+                json.dumps({'status': 'SUCCEEDED',
+                            'base_model': 'stable-diffusion-v1-5/stable-diffusion-v1-5'}),
+                encoding='utf-8',
+            )
+            output = folder / 'image.png'
+            with patch(
+                'app.lora_validation.validate_adapter',
+                return_value={'valid': True, 'sha256': 'fixture-sha'},
+            ):
+                with self.assertRaisesRegex(ValueError, 'base model differs'):
+                    infer(adapter, 'an-incompatible-base-model', output)
+            self.assertFalse(output.exists())
+
     def test_refuse_existing_output_without_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / 'saved.png'
