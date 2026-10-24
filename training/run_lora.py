@@ -29,8 +29,12 @@ def run(args):
     if not torch.cuda.is_available():
         raise RuntimeError('Huấn luyện LoRA cần GPU CUDA. Không dùng CPU cho workflow này.')
     mem=torch.cuda.get_device_properties(0).total_memory/2**30
-    if mem<8:
-        raise RuntimeError(f'GPU chỉ có {mem:.1f} GiB VRAM. Huấn luyện SD1.5 LoRA có nguy cơ OOM; yêu cầu GPU từ 8GiB cho cấu hình thử này. Có thể chạy training/ trên máy GPU mạnh hơn rồi chép thư mục LoRA về máy này để sinh ảnh.')
+    if mem < 3.5:
+        raise RuntimeError(f'GPU chỉ có {mem:.1f} GiB VRAM; chưa đủ mức thử nghiệm local tối thiểu 3.5 GiB.')
+    low_vram = mem < 8
+    training_resolution = 256 if low_vram else 512
+    lora_rank = 2 if low_vram else 4
+    print(f'[HARDWARE PROFILE] VRAM={mem:.2f} GiB; resolution={training_resolution}; LoRA rank={lora_rank}; low_vram={low_vram}. Profile low VRAM chưa được bảo đảm không OOM.', flush=True)
     from training.gated_dataset import verify
     certified = ROOT / 'dataset' / 'v72_certified'
     certificate = verify(certified)
@@ -62,10 +66,10 @@ def run(args):
     out=reserve_run_directory(ROOT, args.name)
     command=[sys.executable,str(script),'--pretrained_model_name_or_path',MODEL,
         '--train_data_dir',str(prepared),'--caption_column','text','--image_column','image',
-        '--resolution','512','--center_crop','--random_flip','--train_batch_size','1',
+        '--resolution',str(training_resolution),'--gradient_checkpointing','--center_crop','--random_flip','--train_batch_size','1',
         '--gradient_accumulation_steps','4','--max_train_steps',str(args.steps),
         '--learning_rate','1e-4','--lr_scheduler','constant','--lr_warmup_steps','0',
-        '--checkpointing_steps','100','--mixed_precision','fp16','--rank','4',
+        '--checkpointing_steps','100','--mixed_precision','fp16','--rank',str(lora_rank),
         '--output_dir',str(out),'--seed','42','--report_to','tensorboard']
     env=os.environ.copy()
     env['HF_HOME']=str(ROOT/'models'/'hf_home')
@@ -79,7 +83,10 @@ def run(args):
     with (out/'training_command.json').open('w',encoding='utf-8') as f:
         json.dump({'argv':command,'source':REPO_URL,'images':len(records),'gpu_vram_gib':round(mem,2),'dataset_audit':str(certified/'certificate.json'),
             'dataset_certificate_sha256':dataset_sha256,
-            'trainer_sha256':trainer_sha256},f,ensure_ascii=False,indent=2)
+            'trainer_sha256':trainer_sha256,
+            'hardware_profile':'low_vram_256' if low_vram else 'standard_512',
+            'training_resolution':training_resolution,
+            'lora_rank':lora_rank},f,ensure_ascii=False,indent=2)
     log_path=out/'training_console.log'
     try:
         with log_path.open('w',encoding='utf-8',errors='replace') as log:
@@ -103,7 +110,9 @@ def run(args):
             weights_sha256 = hashlib.file_digest(weight_stream, 'sha256').hexdigest()
         status={'status':'SUCCEEDED','images':len(records),'steps':args.steps,'base_model':MODEL,'trainer_source':REPO_URL,'weights_bytes':weights.stat().st_size,'weights_sha256':weights_sha256,'tensor_count':key_count,
             'dataset_certificate_sha256':dataset_sha256,
-            'trainer_sha256':trainer_sha256}
+            'trainer_sha256':trainer_sha256,
+            'hardware_profile':'low_vram_256' if low_vram else 'standard_512',
+            'training_resolution':training_resolution,'lora_rank':lora_rank}
         (out/'training_status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
         print('SUCCESS LoRA:',out,flush=True)
     except Exception as exc:
