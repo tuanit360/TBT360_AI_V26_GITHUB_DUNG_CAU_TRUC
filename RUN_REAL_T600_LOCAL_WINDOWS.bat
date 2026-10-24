@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 cd /d "%~dp0"
-if not "%~1"=="" (set "RUN_NAME=%~1") else (set "RUN_NAME=t600_local_trial")
-set "RUN_NAME=%RUN_NAME%"
+set "RUN_NAME=t600_local_trial"
+rem Change the run name in this file before rerunning; previous checkpoints are never overwritten.
 echo [BIMAI360] Local Windows NVIDIA T600 SD1.5 + LoRA verification
 echo [BIMAI360] Run name: %RUN_NAME%
 python -m training.local_hardware_diagnostic
