@@ -65,10 +65,10 @@ def run_job(job_file):
         local_files_only=os.environ.get('TBT360_OFFLINE') == '1',
         cache_dir=str(root / 'models'),
     )
-    if device == 'cuda' and request.get('memory_mode') == 'Tiết kiệm VRAM tối đa':
-        pipeline.enable_sequential_cpu_offload()
-    else:
-        pipeline.to(device)
+    from app.inference_memory_policy import configure_pipeline_device
+    configure_pipeline_device(
+        pipeline, torch, device, request.get('memory_mode', ''),
+    )
     write_generation_stage(root, 'MODEL_LOAD', 'DONE')
     write_state(root, job_id, 'MODEL_LOAD_DONE')
     lora_name = str(request.get('lora', 'Không dùng LoRA'))
