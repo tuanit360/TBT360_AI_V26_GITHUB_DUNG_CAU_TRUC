@@ -122,24 +122,17 @@ def disable_gpu_after_failure():
 def get_pipeline(memory_mode):
     global GPU_DISABLED_FOR_SESSION
     import torch
+    from app.runtime_selection import inspect_runtime, require_cpu_memory
+    selection = inspect_runtime(torch)
     use_cuda = (
         not GPU_DISABLED_FOR_SESSION
-        and os.environ.get('BIMAI360_FORCE_CPU') != '1'
-        and torch.cuda.is_available()
+        and selection['mode'] == 'cuda'
     )
     # A CPU-only Portable can exhaust 16 GiB system RAM while loading SD1.5.
     # Refuse predictably before large allocations rather than kill Gradio and
     # strand every widget (including the diagnostic log) with a red Error.
     if not use_cuda:
-        from app.windows_memory import available_ram_gib
-        free_ram = available_ram_gib()
-        if free_ram is not None and free_ram < 7:
-            raise RuntimeError(
-                f'Không đủ RAM để nạp SD1.5 bằng CPU: chỉ còn '
-                f'{free_ram:.2f} GiB RAM khả dụng (mức bảo vệ 7 GiB). '
-                'Đóng bớt ứng dụng hoặc chạy bằng Python CUDA riêng cho '
-                'NVIDIA T600 4 GB. Không phải lỗi ảnh đầu vào.'
-            )
+        require_cpu_memory()
     cache_key = (memory_mode, 'cuda' if use_cuda else 'cpu')
     if cache_key in PIPELINES:
         return PIPELINES[cache_key]
@@ -169,6 +162,7 @@ def get_pipeline(memory_mode):
             )
             del pipe
             disable_gpu_after_failure()
+            require_cpu_memory()
             use_cuda = False
             cache_key = (memory_mode, 'cpu')
             if cache_key in PIPELINES:
