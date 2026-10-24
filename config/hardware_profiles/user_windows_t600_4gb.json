@@ -1,0 +1,28 @@
+{
+  "profile_id": "user_windows_t600_4gb",
+  "source": "User-provided Windows Task Manager screenshots, 2026-10-24",
+  "os": "Windows",
+  "cpu": {"model": "Intel Core i7-12800H", "cores": 14, "logical_processors": 20},
+  "system_ram_gib": 16,
+  "gpu_for_cuda": {
+    "name": "NVIDIA T600 Laptop GPU",
+    "dedicated_vram_gib": 4,
+    "shared_system_memory_gib": 7.8,
+    "shared_memory_is_dedicated_vram": false
+  },
+  "display_gpu": "Intel UHD Graphics",
+  "sd15_inference": {
+    "precision": "fp16",
+    "memory_strategy": "model_cpu_offload",
+    "target_width": 512,
+    "target_height": 512,
+    "status": "requires_real_hardware_validation"
+  },
+  "sd15_lora_training": {
+    "experimental_resolution": 256,
+    "experimental_rank": 2,
+    "gradient_checkpointing": true,
+    "status": "not_proven_on_this_machine"
+  },
+  "note": "RAM usage in screenshots is momentary, not physical RAM reserved for training. CUDA runtime VRAM must be checked dynamically."
+}
