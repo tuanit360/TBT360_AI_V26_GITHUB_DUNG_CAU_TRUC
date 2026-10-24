@@ -114,7 +114,13 @@ def execute_image_job(root, args, *, timeout=900):
         raise RuntimeError('AI worker receipt is unexpectedly large.')
     report = json.loads(report_path.read_text(encoding='utf-8'))
     from app.worker_output_contract import verify_worker_receipt
-    verify_worker_receipt(report, run_dir)
+    try:
+        verify_worker_receipt(report, run_dir)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise RuntimeError(
+            'AI worker tạo kết quả nhưng kiểm tra PNG/ZIP thất bại. '
+            'Xem logs/image_worker.log.'
+        ) from exc
     if report.get('status') != 'PASS_REAL_INFERENCE':
         raise RuntimeError('AI worker chưa tạo được ảnh hợp lệ.')
     files = report.get('images')

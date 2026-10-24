@@ -167,7 +167,7 @@ def run_job(job_file):
     from app.worker_output_contract import sha256_file, atomic_json
     report = {'status': 'PASS_REAL_INFERENCE', 'images': images,
               'archive': str(archive), 'device': device,
-              'sha256': __import__('app.worker_output_contract', fromlist=['sha256_file']).sha256_file(archive)}
+              'sha256': sha256_file(archive)}
     atomic_json(run_dir / 'worker_result.json', report)
     write_state(root, job_id, 'DONE', 'COMPLETED')
     for input_path in (request_path, source_path):
