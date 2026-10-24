@@ -63,8 +63,18 @@ def execute_image_job(root, args, *, timeout=900):
                 timeout=timeout, check=True,
             )
         except subprocess.TimeoutExpired as exc:
+            from app.worker_diagnostic_bundle import make_worker_bundle
+            try:
+                make_worker_bundle(root, job_id=run_dir.name.removeprefix('isolated_'))
+            except (OSError, ValueError):
+                pass
             raise RuntimeError('AI worker quá thời gian; ứng dụng chính vẫn hoạt động. Xem logs/image_worker.log') from exc
         except subprocess.CalledProcessError as exc:
+            from app.worker_diagnostic_bundle import make_worker_bundle
+            try:
+                make_worker_bundle(root, job_id=run_dir.name.removeprefix('isolated_'))
+            except (OSError, ValueError):
+                pass
             from app.worker_failure import read_safe_worker_failure
             from app.worker_retry import should_retry_cpu
             report = run_dir / 'worker_failure.json'

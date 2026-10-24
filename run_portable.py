@@ -37,6 +37,10 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--last-failure-bundle' in sys.argv:
+        from app.worker_diagnostic_bundle import make_worker_bundle
+        print(make_worker_bundle(root), flush=True)
+        return 0
     if '--last-worker-report' in sys.argv:
         from app.worker_evidence import read_report
         import json
