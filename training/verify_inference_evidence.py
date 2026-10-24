@@ -58,6 +58,17 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
         if (type(record.get('steps')) is not int
                 or not 1 <= record['steps'] <= 100):
             raise ValueError('Invalid generation steps')
+        latency = record.get('generation_seconds')
+        if (type(latency) not in (int, float) or not math.isfinite(latency)
+                or latency < 0):
+            raise ValueError('Invalid inference latency evidence')
+        peak = record.get('cuda_peak_allocated_mib')
+        if record.get('device') == 'cuda':
+            if (type(peak) not in (int, float) or not math.isfinite(peak)
+                    or peak < 0):
+                raise ValueError('Missing CUDA peak allocated memory evidence')
+        elif peak is not None:
+            raise ValueError('CPU inference must not claim CUDA allocated memory')
         mode = record.get('generation_mode')
         if mode not in ('text2img', 'img2img'):
             raise ValueError('Missing or invalid generation mode')
