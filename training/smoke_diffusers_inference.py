@@ -121,11 +121,11 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         model, torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
     )
     try:
-        memory_profile = configure_pipeline_memory(pipeline, device, torch)
         pipeline.load_lora_weights(
             str(Path(adapter).resolve()),
             weight_name='pytorch_lora_weights.safetensors',
         )
+        memory_profile = configure_pipeline_memory(pipeline, device, torch)
         generation_args = {
             'prompt': prompt,
             'num_inference_steps': steps,
