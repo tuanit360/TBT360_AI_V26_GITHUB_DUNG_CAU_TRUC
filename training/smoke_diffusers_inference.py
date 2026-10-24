@@ -112,6 +112,17 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
 
     if device == 'cuda' and not torch.cuda.is_available():
         raise RuntimeError('CUDA unavailable')
+    # Only Windows' real available physical RAM is used; the shared GPU
+    # memory displayed by Task Manager is NOT extra physical RAM.
+    if device == 'cuda' and torch.cuda.get_device_properties(0).total_memory < 8 * 1024 ** 3:
+        from training.local_hardware_diagnostic import available_memory_gib
+        free_ram = available_memory_gib()
+        if free_ram is not None and free_ram < 5:
+            raise RuntimeError(
+                f'Only {free_ram:.2f} GiB system RAM available. '
+                'Close memory-heavy apps before SD1.5 CPU model offload '
+                '(recommended >=5 GiB free).'
+            )
     generator = torch.Generator(device=device).manual_seed(seed)
     pipeline_class = (
         StableDiffusionImg2ImgPipeline if reference is not None
