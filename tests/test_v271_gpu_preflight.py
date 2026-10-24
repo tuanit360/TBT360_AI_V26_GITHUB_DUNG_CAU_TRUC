@@ -19,12 +19,12 @@ class RealGPUPreflightTests(unittest.TestCase):
         self.assertFalse(result['ready'])
         self.assertIn('diffusers unavailable', result['reason'])
 
-    def test_low_vram_rejected_before_dataset_verification(self):
+    def test_insufficient_vram_rejected_before_dataset_verification(self):
         fake_torch = types.ModuleType('torch')
         fake_torch.cuda = types.SimpleNamespace(
             is_available=lambda: True,
             get_device_properties=lambda index: types.SimpleNamespace(
-                total_memory=4 * 1024 ** 3
+                total_memory=2 * 1024 ** 3
             ),
         )
         with patch.dict(sys.modules, {'torch': fake_torch}):
