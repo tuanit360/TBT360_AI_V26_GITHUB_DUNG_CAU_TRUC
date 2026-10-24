@@ -70,6 +70,10 @@ jobs:
         run: |
           & 'dist/BIMAI360/BIMAI360.exe' --worker-transport-self-test
           if ($LASTEXITCODE -ne 0) { throw 'Frozen worker process PNG/ZIP transport failed' }
+      - name: Inspect frozen AI worker inference dependencies
+        run: |
+          & 'dist/BIMAI360/BIMAI360.exe' --worker-runtime-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen AI worker failed to report actual dependencies' }
       - name: Smoke test V271 Gradio launch and HTTP readiness
         shell: pwsh
         run: |

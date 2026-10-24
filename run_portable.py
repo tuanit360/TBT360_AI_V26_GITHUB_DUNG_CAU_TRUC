@@ -49,6 +49,16 @@ def main():
             encoding='utf-8',
         )
         return 0 if report['ready'] else 2
+    if '--worker-runtime-child' in sys.argv:
+        from app.worker_runtime_report import child_report
+        import json
+        print(json.dumps(child_report(root), ensure_ascii=False), flush=True)
+        return 0
+    if '--worker-runtime-self-test' in sys.argv:
+        from app.worker_runtime_report import parent_report
+        import json
+        print(json.dumps(parent_report(root), ensure_ascii=False, indent=2), flush=True)
+        return 0
     if '--worker-transport-probe' in sys.argv:
         from app.worker_transport_smoke import worker_probe
         index = sys.argv.index('--worker-transport-probe')
