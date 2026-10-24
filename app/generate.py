@@ -204,24 +204,38 @@ def installed_loras():
 
 
 def select_lora(pipe, memory_mode, adapter_name):
-    # Offloaded CUDA pipelines can report CPU as their active device.
-    # Track the actual pipeline instance, not its transient device.
+    """Validate first; never reuse a pipeline after partial LoRA mutation."""
     device_key = id(pipe)
     current = ACTIVE_LORA.get(device_key, 'Không dùng LoRA')
     if current == adapter_name:
         return
-    if current != 'Không dùng LoRA':
-        pipe.unload_lora_weights()
+    path = None
     if adapter_name != 'Không dùng LoRA':
         import re
-        if not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', adapter_name):
+        if not isinstance(adapter_name, str) or not re.fullmatch(
+            r'[a-zA-Z0-9_-]{1,64}', adapter_name
+        ):
             raise ValueError('Tên LoRA không hợp lệ')
         if adapter_name not in installed_loras():
-            raise ValueError('LoRA không có trạng thái hoàn thành hoặc hash không khớp')
+            raise ValueError('LoRA chưa hoàn thành hoặc hash không khớp')
         path = LORA_DIR / adapter_name
         if not (path / 'pytorch_lora_weights.safetensors').is_file():
             raise ValueError('Không tìm thấy trọng số LoRA')
-        pipe.load_lora_weights(str(path), weight_name='pytorch_lora_weights.safetensors')
+    try:
+        if current != 'Không dùng LoRA':
+            pipe.unload_lora_weights()
+        if path is not None:
+            pipe.load_lora_weights(
+                str(path), weight_name='pytorch_lora_weights.safetensors'
+            )
+    except Exception:
+        # Diffusers can leave adapter hooks or tensor state half-mutated.
+        # Evict only this pipeline; the next request builds a clean instance.
+        ACTIVE_LORA.pop(device_key, None)
+        for key, cached in tuple(PIPELINES.items()):
+            if cached[0] is pipe:
+                PIPELINES.pop(key)
+        raise
     ACTIVE_LORA[device_key] = adapter_name
 
 
