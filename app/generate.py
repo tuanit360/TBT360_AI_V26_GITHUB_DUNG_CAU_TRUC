@@ -414,6 +414,7 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                     image_debug_log,
                                 ],
                                 api_name='kiem_tra_truyen_anh',
+                                queue=False,
                             )
                             def gradio_image_transport_smoke():
                                 from PIL import Image
@@ -427,12 +428,14 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                                 gradio_image_transport_smoke,
                                 outputs=reference_render,
                                 api_name='kiem_tra_render_doc_lap',
+                                queue=False,
                             )
                             def refresh_image_debug_log():
                                 from app.local_workspace import read_runtime_log
                                 return read_runtime_log(ROOT, lines=80)
                             gr.Button('LẤY LOG MỚI NHẤT ĐỂ COPY').click(
                                 refresh_image_debug_log, outputs=image_debug_log,
+                                queue=False,
                             )
                             brief=gr.Textbox(label='Mô tả phương án (tiếng Việt; mô hình SD1.5 dùng mô tả tiếng Anh)',lines=3,
                                 value='Contemporary office building, dark vertical facade fins, rooftop garden, urban corner site, realistic architectural visualization, daylight',
