@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 
 
-def run(model_dir, output_dir):
+def run(model_dir, output_dir, device='auto'):
     from PIL import Image
     import torch
     from diffusers import AutoPipelineForImage2Image
@@ -26,8 +26,15 @@ def run(model_dir, output_dir):
         if not status['model_files_complete']:
             raise RuntimeError('Checkpoint chưa đủ: ' + ', '.join(status['missing_components']))
     output_dir.mkdir(parents=True, exist_ok=True)
-    cuda = torch.cuda.is_available()
-    device = 'cuda' if cuda else 'cpu'
+    if device not in ('auto', 'cpu', 'cuda'):
+        raise ValueError('Unsupported device')
+    cuda = bool(getattr(getattr(torch, 'version', None), 'cuda', None)) and torch.cuda.is_available()
+    if device == 'cuda' and not cuda:
+        raise RuntimeError('PyTorch CUDA không khả dụng; dùng --device cpu')
+    device = ('cuda' if cuda else 'cpu') if device == 'auto' else device
+    if device == 'cpu':
+        from app.runtime_selection import require_cpu_memory
+        require_cpu_memory()
     dtype = torch.float16 if cuda else torch.float32
     pipe = AutoPipelineForImage2Image.from_pretrained(
         str(model_dir), torch_dtype=dtype, local_files_only=True,
@@ -68,10 +75,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-dir', default='models/sd15')
     parser.add_argument('--output-dir', default='output/real_inference_smoke')
+    parser.add_argument('--device', choices=['cpu', 'cuda', 'auto'], default='auto')
     arguments = parser.parse_args()
     try:
         print(json.dumps(
-            run(arguments.model_dir, arguments.output_dir), ensure_ascii=False
+            run(arguments.model_dir, arguments.output_dir, arguments.device), ensure_ascii=False
         ))
     except Exception as error:
         print('FAIL_REAL_INFERENCE: ' + str(error), file=sys.stderr)
