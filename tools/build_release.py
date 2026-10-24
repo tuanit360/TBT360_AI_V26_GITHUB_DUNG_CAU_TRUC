@@ -34,17 +34,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', choices=('cpu', 'cuda'), required=True)
     args = parser.parse_args()
-    target = ROOT / 'dist' / 'TBT360_AI'
+    target = ROOT / 'dist' / 'BIMAI360'
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
-               '--console', '--name', 'TBT360_AI',
+               '--console', '--name', 'BIMAI360',
                '--collect-all', 'gradio', '--collect-all', 'gradio_client',
+               '--collect-all', 'safehttpx',
                '--collect-all', 'diffusers', '--collect-all', 'transformers',
                '--collect-all', 'accelerate', '--collect-all', 'huggingface_hub',
                '--collect-all', 'safetensors', '--collect-all', 'peft',
                '--collect-all', 'torch', '--collect-all', 'torchvision',
                '--collect-all', 'PIL', '--collect-all', 'tokenizers',
-               '--collect-all', 'datasets', '--collect-all', 'tensorboard',
-               '--collect-all', 'cv2',
+               # Training-only datasets/tensorboard stay in source, not CPU EXE.
+               '--collect-all', 'cv2', '--collect-all', 'ifcopenshell',
+               '--hidden-import', 'ifcopenshell', '--hidden-import', 'ifcopenshell.ifcopenshell_wrapper',
                '--collect-submodules', 'app', '--collect-submodules', 'tools',
                '--collect-submodules', 'learning',
                '--hidden-import', 'multipart', '--hidden-import', 'sentencepiece',
@@ -53,7 +55,7 @@ def main():
                '--hidden-import', 'fastapi', str(ROOT / 'run_portable.py')]
     print('[BUILD] ', ' '.join(command), flush=True)
     subprocess.run(command, cwd=ROOT, check=True)
-    exe = target / 'TBT360_AI.exe'
+    exe = target / 'BIMAI360.exe'
     if not exe.is_file():
         raise RuntimeError('PyInstaller did not create the executable')
     for name in ('models', 'output', 'loras', 'dataset', 'logs'):
@@ -65,24 +67,76 @@ def main():
                 shutil.copytree(model, target / 'models' / model_name, dirs_exist_ok=True)
             else:
                 print(f'[WARN] {model_name} missing model_index.json; offline model not included')
-    shutil.copy2(ROOT / 'README_PORTABLE.md', target / 'README_PORTABLE.md')
-    shutil.copy2(ROOT / 'README_V69_LEARNING.md', target / 'README_V69_LEARNING.md')
-    shutil.copy2(ROOT / 'CHECK_PORTABLE.bat', target / 'CHECK_PORTABLE.bat')
-    shutil.copy2(ROOT / 'VERIFY_SHA256_WINDOWS.ps1', target / 'VERIFY_SHA256_WINDOWS.ps1')
-    shutil.copy2(ROOT / 'CHAY_OFFLINE_WINDOWS.bat', target / 'CHAY_OFFLINE_WINDOWS.bat')
+    # Shipping surface: one executable, one CPU recovery launcher,
+    # one offline log viewer, documentation, manifest and checksums.
+    for filename in (
+        'README_PORTABLE.md',
+        'APP_VERSION.txt',
+        'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+        'MO_LOG_KHONG_CAN_UI.bat',
+        'CHAY_BIMAI360_GHI_LOG_LOI.bat',
+    ):
+        shutil.copy2(ROOT / filename, target / filename)
+    # Clear obsolete helper scripts from reusable onedir build output.
+    for script in target.glob('*.bat'):
+        if script.name not in (
+            'CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+            'MO_LOG_KHONG_CAN_UI.bat',
+            'CHAY_BIMAI360_GHI_LOG_LOI.bat',
+        ):
+            script.unlink()
     result = subprocess.run([str(exe), '--self-test'], cwd=target, timeout=180)
     if result.returncode != 0:
         raise RuntimeError(f'Frozen self-test failed with code {result.returncode}; release withheld')
+    # BLOCK publishing any portable that cannot actually export and
+    # reopen all five IFC models using its own bundled IfcOpenShell.
+    probe = subprocess.run(
+        [str(exe), '--ifc-export-self-test'], cwd=target, timeout=180,
+        check=False,
+    )
+    if probe.returncode != 0:
+        raise RuntimeError(
+            'Frozen IFC export self-test failed; Windows ZIP withheld '
+            f'(exit={probe.returncode})'
+        )
     manifest = build_manifest(target, args.profile)
     (target / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     sha_lines = [f"{meta['sha256']}  {name}" for name, meta in manifest['files'].items()]
     sha_lines.append(f"{file_hash(target / 'manifest.json')}  manifest.json")
     (target / 'SHA256SUMS.txt').write_text('\n'.join(sha_lines) + '\n', encoding='utf-8')
-    archive = ROOT / f'TBT360_AI_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
+    archive = ROOT / f'BIMAI360_V271_PORTABLE_WINDOWS_X64_{args.profile.upper()}.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as dst:
         for path in sorted(target.rglob('*')):
             if path.is_file():
-                dst.write(path, arcname=Path('TBT360_AI') / path.relative_to(target))
+                dst.write(path, arcname=Path('BIMAI360') / path.relative_to(target))
+    # Validate the actual distributable, not only the staging directory.
+    with zipfile.ZipFile(archive) as packaged:
+        if packaged.testzip() is not None:
+            raise RuntimeError('Portable ZIP failed CRC verification')
+        entries = set(packaged.namelist())
+        required = {
+            'BIMAI360/BIMAI360.exe',
+            'BIMAI360/CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
+            'BIMAI360/MO_LOG_KHONG_CAN_UI.bat',
+            'BIMAI360/CHAY_BIMAI360_GHI_LOG_LOI.bat',
+            'BIMAI360/manifest.json',
+            'BIMAI360/SHA256SUMS.txt',
+        }
+        missing = required - entries
+        unexpected = [
+            name for name in entries
+            if name.startswith('BIMAI360/') and name.lower().endswith(('.bat', '.cmd'))
+            and name not in required
+            # Third-party IfcOpenShell source includes this developer helper.
+            # It lives inside PyInstaller's private package directory, not
+            # the executable/launcher surface exposed to the end user.
+            and name != 'BIMAI360/_internal/ifcopenshell/express/run.bat'
+        ]
+        if missing or unexpected:
+            raise RuntimeError(
+                f'Portable archive invalid: missing={sorted(missing)}, '
+                f'unexpected_scripts={unexpected}'
+            )
     print('[OK] Created:', archive)
     print('[INFO] SHA256:', file_hash(archive))
     print('[INFO] Offline model included:', (target / 'models' / 'sd15' / 'model_index.json').is_file())
