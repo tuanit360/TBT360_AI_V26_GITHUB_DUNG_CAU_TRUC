@@ -149,8 +149,22 @@ def main(argv=None):
     try:
         run_job(arguments.job)
         return 0
-    except Exception:
+    except Exception as exc:
         traceback.print_exc()
+        # Write a small bounded status atomically. Never expose raw traceback,
+        # prompts, user paths or environment data to the browser.
+        try:
+            from app.worker_failure import classify_worker_failure
+            job_path = Path(arguments.job).resolve()
+            failure = classify_worker_failure(exc)
+            target = job_path.parent / 'worker_failure.json'
+            partial = target.with_suffix('.json.part')
+            partial.write_text(
+                json.dumps(failure, ensure_ascii=False), encoding='utf-8'
+            )
+            os.replace(partial, target)
+        except (OSError, ValueError, ImportError):
+            traceback.print_exc()
         return 1
 
 

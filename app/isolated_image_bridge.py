@@ -65,9 +65,11 @@ def execute_image_job(root, args, *, timeout=900):
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError('AI worker quá thời gian; ứng dụng chính vẫn hoạt động. Xem logs/image_worker.log') from exc
         except subprocess.CalledProcessError as exc:
+            from app.worker_failure import read_safe_worker_failure
+            reason = read_safe_worker_failure(run_dir / 'worker_failure.json')
             raise RuntimeError(
-                'AI worker thất bại (mã ' + str(exc.returncode)
-                + '); kiểm tra logs/image_worker.log và generation_stage.log.'
+                'AI worker thất bại (mã ' + str(exc.returncode) + '). '
+                + reason + ' Chi tiết: logs/image_worker.log.'
             ) from exc
     report_path = run_dir / 'worker_result.json'
     if not report_path.is_file():
