@@ -11,3 +11,6 @@ peft==0.14.0
 datasets==3.2.0
 tensorboard==2.18.0
 opencv-python-headless>=4.8,<5
+
+# IFC4 concept alternatives
+ifcopenshell>=0.8.0,<0.9
