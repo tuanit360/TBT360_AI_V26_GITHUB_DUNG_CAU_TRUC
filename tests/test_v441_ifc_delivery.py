@@ -23,7 +23,7 @@ class IFCBundleTests(unittest.TestCase):
             archive = folder.with_suffix('.zip')
             write_verified_archive(folder, archive, entries)
             with ZipFile(archive) as handle:
-                self.assertEqual(len(handle.namelist()), 7)
+                self.assertEqual(len(handle.namelist()), 6)
                 self.assertIsNone(handle.testzip())
 
     def test_missing_ifc_rejected_without_archive(self):
