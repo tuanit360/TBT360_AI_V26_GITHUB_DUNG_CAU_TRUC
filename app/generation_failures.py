@@ -5,6 +5,20 @@ import re
 def explain_generation_failure(error):
     message = str(error)
     lowered = message.lower()
+    if message.startswith('AI worker thất bại (mã '):
+        # These substrings come exclusively from read_safe_worker_failure();
+        # never echo raw child-process messages or paths to the UI.
+        if 'Checkpoint SD1.5 thiếu hoặc không hợp lệ.' in message:
+            return 'Worker AI thiếu checkpoint SD1.5. Kiểm tra models/sd15 và thử lại.'
+        if 'Không đủ RAM hoặc VRAM.' in message:
+            return 'Worker AI thiếu RAM/VRAM. Đóng ứng dụng nặng hoặc thử CPU.'
+        if 'CUDA không hoạt động; có thể sử dụng CPU.' in message:
+            return 'Worker không dùng được CUDA. Thử chế độ CPU.'
+        if 'Đầu vào hoặc đầu ra AI không hợp lệ.' in message:
+            return 'Worker từ chối ảnh hoặc kết quả không hợp lệ; kiểm tra log.'
+        if 'không có báo cáo lỗi worker' in lowered:
+            return 'Worker dừng đột ngột không có báo cáo; kiểm tra logs/image_worker.log.'
+        return 'Worker AI gặp lỗi. Xem logs/image_worker.log để biết chi tiết.'
     if 'bimai360_cpu_ram_low' in lowered:
         return ('RAM khả dụng không đủ để sinh ảnh AI bằng CPU. '
                 'Đóng bớt ứng dụng, hoặc sử dụng môi trường CUDA VENV đã kiểm tra. '

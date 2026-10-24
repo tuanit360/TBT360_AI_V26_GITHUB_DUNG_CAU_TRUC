@@ -87,7 +87,13 @@ def image_generation_contract(root, generator, arguments, *, progress=None,
             seen.add(id(root_cause))
             root_cause = root_cause.__cause__ or root_cause.__context__
         from app.generation_failures import explain_generation_failure
-        classified = explain_generation_failure(root_cause)
+        # CalledProcessError is an implementation detail. Preserve only the
+        # safe, allowlisted worker reason supplied by our own bridge.
+        public_error = (
+            exc if str(exc).startswith('AI worker thất bại (mã ')
+            else root_cause
+        )
+        classified = explain_generation_failure(public_error)
         log('FAIL | ' + type(exc).__name__ + ' | ROOT_CAUSE=' + type(root_cause).__name__)
         log('PUBLIC_REASON | ' + classified)
         return (
