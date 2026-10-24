@@ -11,6 +11,13 @@ def explain_generation_failure(error):
                                            'connection error', 'could not connect',
                                            'repository not found', 'does not appear to have')):
         return 'Chưa tải đủ mô hình sinh ảnh SD1.5. Cần kết nối mạng để tải checkpoint hợp lệ hoặc cài model vào thư mục models.'
+    if ('torch not compiled with cuda enabled' in lowered
+            or 'cuda is not available in this build' in lowered
+            or 'pytorch was compiled without cuda support' in lowered):
+        return ('Bản BIMAI360 đang chạy dùng PyTorch CPU, không có CUDA. '
+                'GPU NVIDIA T600 vẫn có thể hoạt động bình thường; '
+                'hãy dùng launcher CPU hoặc môi trường Python CUDA riêng. '
+                'Không cần cài lại driver chỉ vì lỗi này.')
     if ('cuda' in lowered and (
         'not available' in lowered or 'driver version is insufficient' in lowered
         or 'no nvidia driver' in lowered or 'cuda driver' in lowered
