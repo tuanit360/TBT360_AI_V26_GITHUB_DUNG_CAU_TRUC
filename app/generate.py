@@ -132,8 +132,8 @@ def get_pipeline(memory_mode):
     # Refuse predictably before large allocations rather than kill Gradio and
     # strand every widget (including the diagnostic log) with a red Error.
     if not use_cuda:
-        from training.local_hardware_diagnostic import available_memory_gib
-        free_ram = available_memory_gib()
+        from app.windows_memory import available_ram_gib
+        free_ram = available_ram_gib()
         if free_ram is not None and free_ram < 7:
             raise RuntimeError(
                 f'Không đủ RAM để nạp SD1.5 bằng CPU: chỉ còn '
