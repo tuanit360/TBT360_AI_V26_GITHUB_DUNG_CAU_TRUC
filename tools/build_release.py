@@ -113,8 +113,12 @@ def main():
         missing = required - entries
         unexpected = [
             name for name in entries
-            if name.startswith('BIMAI360/') and name.endswith('.bat')
+            if name.startswith('BIMAI360/') and name.lower().endswith(('.bat', '.cmd'))
             and name not in required
+            # Third-party IfcOpenShell source includes this developer helper.
+            # It lives inside PyInstaller's private package directory, not
+            # the executable/launcher surface exposed to the end user.
+            and name != 'BIMAI360/_internal/ifcopenshell/express/run.bat'
         ]
         if missing or unexpected:
             raise RuntimeError(
