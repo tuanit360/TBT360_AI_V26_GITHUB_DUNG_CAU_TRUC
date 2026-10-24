@@ -21,28 +21,11 @@ on:
       - 'APP_VERSION.txt'
       - 'requirements.txt'
       - 'requirements-runtime.txt'
-  pull_request:
-    paths:
-      - '.github/workflows/windows-build.yml'
-      - 'app/**'
-      - 'learning/**'
-      - 'recognition/**'
-      - 'evaluation/**'
-      - 'training/**'
-      - 'tools/**'
-      - 'tests/**'
-      - 'demo_data/**'
-      - 'run_portable.py'
-      - 'CHAY_BIMAI360_CPU_KHONG_CUDA.bat'
-      - 'MO_LOG_KHONG_CAN_UI.bat'
-      - 'README_PORTABLE.md'
-      - 'APP_VERSION.txt'
-      - 'requirements.txt'
-      - 'requirements-runtime.txt'
+
 concurrency:
   # Separate push/PR runs and allow active builds to reach their result.
   # Otherwise two events for one commit cancel each other mid pip install.
-  group: v271-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  group: v271-windows-${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
