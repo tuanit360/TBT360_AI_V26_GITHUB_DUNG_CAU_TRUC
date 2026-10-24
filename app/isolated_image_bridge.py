@@ -110,6 +110,8 @@ def execute_image_job(root, args, *, timeout=900):
     report_path = run_dir / 'worker_result.json'
     if not report_path.is_file():
         raise RuntimeError('AI worker kết thúc mà không có báo cáo kết quả.')
+    if report_path.stat().st_size > 16384:
+        raise RuntimeError('AI worker receipt is unexpectedly large.')
     report = json.loads(report_path.read_text(encoding='utf-8'))
     if report.get('status') != 'PASS_REAL_INFERENCE':
         raise RuntimeError('AI worker chưa tạo được ảnh hợp lệ.')
