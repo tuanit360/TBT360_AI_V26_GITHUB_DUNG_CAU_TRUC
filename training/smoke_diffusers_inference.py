@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import time
 from pathlib import Path
 
 
@@ -154,7 +155,18 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
             })
         else:
             generation_args.update({'width': 512, 'height': 512})
+        if device == 'cuda':
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+        generation_started = time.perf_counter()
         generation_result = pipeline(**generation_args)
+        if device == 'cuda':
+            torch.cuda.synchronize()
+        generation_seconds = round(time.perf_counter() - generation_started, 3)
+        cuda_peak_allocated_mib = (
+            round(torch.cuda.max_memory_allocated() / 1024 ** 2, 1)
+            if device == 'cuda' else None
+        )
         if not generation_result.images:
             raise ValueError('Diffusers returned no images')
         generated = generation_result.images[0]
@@ -200,6 +212,8 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         'steps': steps,
         'device': device,
         'memory_profile': memory_profile,
+        'generation_seconds': generation_seconds,
+        'cuda_peak_allocated_mib': cuda_peak_allocated_mib,
         'quality_evaluated': False,
         'basic_image_gate': image_evidence,
         'generation_mode': 'img2img' if reference is not None else 'text2img',
