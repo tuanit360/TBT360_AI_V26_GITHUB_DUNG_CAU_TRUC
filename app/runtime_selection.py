@@ -3,7 +3,12 @@ import os
 import shutil
 import subprocess
 
-from app.windows_memory import available_ram_gib
+from app import windows_memory
+
+
+def available_ram_gib():
+    """Read live memory at call time; preserve existing mock/adapter contract."""
+    return windows_memory.available_ram_gib()
 
 MIN_CPU_FREE_RAM_GIB = 7.0
 
