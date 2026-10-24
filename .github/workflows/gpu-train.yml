@@ -67,6 +67,8 @@ jobs:
             --device cuda \
             --steps 25 \
             --seed 42 \
+            --guidance-scale 7.5 \
+            --negative-prompt "warped building, extra floors, distorted windows, crooked perspective, blurry, low quality" \
             --prompt "High quality realistic architecture photograph of a modern office facade, coherent windows and floor divisions, daylight"
       - name: Independently audit actual generated PNG and recorded provenance
         env:
