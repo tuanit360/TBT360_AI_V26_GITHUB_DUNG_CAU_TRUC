@@ -417,7 +417,9 @@ with gr.Blocks(title='BIM AI Kiến Trúc 360 V271 · Thiết kế kiến trúc'
                             )
                             ifc_generate.click(
                                 export_five_ifc_from_reference, inputs=reference,
-                                outputs=[ifc_export, ifc_status], concurrency_limit=1,
+                                outputs=[ifc_export, ifc_status],
+                                concurrency_limit=1,
+                                api_name='xuat_5_phuong_an_ifc',
                             )
                             gr.Markdown('### Kiểm tra ảnh và chẩn đoán tại chỗ')
                             reference_render = gr.HTML(
