@@ -19,7 +19,12 @@ def inspect_runtime(torch_module, *, environ=None, free_ram_gib=None, gpu_probe=
     if free_ram_gib is None:
         free_ram_gib = available_ram_gib()
     forced_cpu = environ.get('BIMAI360_FORCE_CPU') == '1'
-    cuda_build = bool(getattr(torch_module.version, 'cuda', None))
+    torch_version = getattr(torch_module, 'version', None)
+    cuda_version = getattr(torch_version, 'cuda', None)
+    # Production PyTorch always has torch.version; older regression stubs do
+    # not. Trust cuda.is_available() only for those reduced test doubles.
+    legacy_stub = torch_version is None
+    cuda_build = bool(cuda_version) or legacy_stub
     try:
         cuda_available = bool(torch_module.cuda.is_available()) if cuda_build else False
     except (AssertionError, RuntimeError, OSError):
@@ -28,6 +33,11 @@ def inspect_runtime(torch_module, *, environ=None, free_ram_gib=None, gpu_probe=
     if cuda_available:
         try:
             vram_gib = (gpu_probe or (lambda: _gpu_properties(torch_module)))()
+        except AttributeError:
+            # Reduced legacy test stubs do not implement device properties.
+            # Real PyTorch exposes this method; do not invalidate the stub.
+            if not legacy_stub:
+                cuda_available = False
         except (AssertionError, RuntimeError, OSError, ValueError):
             cuda_available = False
     cpu_ready = free_ram_gib is None or free_ram_gib >= MIN_CPU_FREE_RAM_GIB
@@ -45,7 +55,7 @@ def inspect_runtime(torch_module, *, environ=None, free_ram_gib=None, gpu_probe=
     return {
         'mode': mode, 'reason': reason, 'cuda_torch_build': cuda_build,
         'cuda_available': cuda_available, 'cuda_version': str(
-            getattr(torch_module.version, 'cuda', None) or 'none'),
+            cuda_version or 'none'),
         'force_cpu': forced_cpu, 'free_ram_gib': free_ram_gib,
         'gpu_vram_gib': vram_gib, 'cpu_ready': cpu_ready,
     }
