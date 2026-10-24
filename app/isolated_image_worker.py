@@ -153,22 +153,28 @@ def run_job(job_file):
                 'files': [Path(file).name for file, _ in images]}
     (run_dir / 'generation.json').write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
-    # Do not put the raw job payload or reference input into generated outputs.
-    for source_file in (request_path, source_path):
-        if source_file.is_file():
-            source_file.unlink()
+    # Whitelist generated assets; keep input until verified publication.
     archive = run_dir.with_suffix('.zip')
     write_generation_stage(root, 'ZIP_EXPORT', 'BEGIN')
     write_state(root, job_id, 'ZIP_EXPORT_BEGIN')
-    publish_directory_zip(run_dir, archive)
+    from app.worker_output_contract import publish_selected_outputs
+    publish_selected_outputs(
+        run_dir, archive,
+        [Path(path).name for path, _ in images] + ['generation.json'],
+    )
     write_state(root, job_id, 'ZIP_EXPORT_DONE')
     write_generation_stage(root, 'ZIP_EXPORT', 'DONE')
+    from app.worker_output_contract import sha256_file, atomic_json
     report = {'status': 'PASS_REAL_INFERENCE', 'images': images,
               'archive': str(archive), 'device': device,
               'sha256': __import__('app.worker_output_contract', fromlist=['sha256_file']).sha256_file(archive)}
+    atomic_json(run_dir / 'worker_result.json', report)
     write_state(root, job_id, 'DONE', 'COMPLETED')
-    (run_dir / 'worker_result.json').write_text(
-        json.dumps(report, ensure_ascii=False), encoding='utf-8')
+    for input_path in (request_path, source_path):
+        try:
+            input_path.unlink(missing_ok=True)
+        except OSError:
+            pass
     return report
 
 

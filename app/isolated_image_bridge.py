@@ -113,6 +113,8 @@ def execute_image_job(root, args, *, timeout=900):
     if report_path.stat().st_size > 16384:
         raise RuntimeError('AI worker receipt is unexpectedly large.')
     report = json.loads(report_path.read_text(encoding='utf-8'))
+    from app.worker_output_contract import verify_worker_receipt
+    verify_worker_receipt(report, run_dir)
     if report.get('status') != 'PASS_REAL_INFERENCE':
         raise RuntimeError('AI worker chưa tạo được ảnh hợp lệ.')
     files = report.get('images')
