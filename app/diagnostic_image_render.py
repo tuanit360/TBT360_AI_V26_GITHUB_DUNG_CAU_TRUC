@@ -37,7 +37,7 @@ def render_image_gallery(items):
             raise ValueError('Missing generated PNG')
         with Image.open(path) as source:
             source.load()
-            rendered = render_diagnostic_image(source, max_side=1024)
+            rendered = render_diagnostic_image(source, max_side=640)
         cards.append(
             '<section style="min-width:240px;max-width:640px;flex:1">'
             + '<strong>' + html.escape(str(label)) + '</strong>'

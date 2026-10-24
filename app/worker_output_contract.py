@@ -7,6 +7,26 @@ import tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from PIL import Image
+import shutil
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as handle:
+        for piece in iter(lambda: handle.read(1024 * 1024), b''):
+            digest.update(piece)
+    return digest.hexdigest()
+
+
+def streams_match(left, right):
+    while True:
+        first = left.read(1024 * 1024)
+        second = right.read(1024 * 1024)
+        if first != second:
+            return False
+        if not first:
+            return True
+
 
 
 def atomic_json(destination, data):
@@ -50,14 +70,17 @@ def publish_selected_outputs(folder, archive_path, names):
         digests = {}
         with ZipFile(temporary, 'w', ZIP_DEFLATED) as archive:
             for name in names:
-                content = (folder / name).read_bytes()
-                digests[name] = hashlib.sha256(content).hexdigest()
-                archive.writestr(name, content)
+                digests[name] = sha256_file(folder / name)
+                archive.write(folder / name, arcname=name)
         with ZipFile(temporary) as archive:
             if archive.testzip() is not None or set(archive.namelist()) != set(names):
                 raise ValueError('Invalid ZIP structure')
             for name, digest in digests.items():
-                if hashlib.sha256(archive.read(name)).hexdigest() != digest:
+                output_hash = hashlib.sha256()
+                with archive.open(name) as member:
+                    for piece in iter(lambda: member.read(1024 * 1024), b''):
+                        output_hash.update(piece)
+                if output_hash.hexdigest() != digest:
                     raise ValueError('Output checksum mismatch')
         os.replace(temporary, archive_path)
     finally:
@@ -74,7 +97,7 @@ def verify_worker_receipt(report, folder):
         raise ValueError('Wrong worker archive')
     if not archive.is_file():
         raise ValueError('Worker ZIP missing')
-    if hashlib.sha256(archive.read_bytes()).hexdigest() != report.get('sha256'):
+    if sha256_file(archive) != report.get('sha256'):
         raise ValueError('Worker ZIP hash mismatch')
     images = report.get('images')
     if not isinstance(images, list) or not 1 <= len(images) <= 4:
@@ -100,6 +123,7 @@ def verify_worker_receipt(report, folder):
                 raise ValueError('Output image missing')
             with Image.open(path) as image:
                 image.verify()
-            if bundle.read(path.name) != path.read_bytes():
-                raise ValueError('PNG and ZIP mismatch')
+            with path.open('rb') as source, bundle.open(path.name) as packaged:
+                if not streams_match(source, packaged):
+                    raise ValueError('PNG and ZIP mismatch')
     return True

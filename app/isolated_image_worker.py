@@ -151,7 +151,7 @@ def run_job(job_file):
     write_generation_stage(root, 'ZIP_EXPORT', 'DONE')
     report = {'status': 'PASS_REAL_INFERENCE', 'images': images,
               'archive': str(archive), 'device': device,
-              'sha256': hashlib.sha256(archive.read_bytes()).hexdigest()}
+              'sha256': __import__('app.worker_output_contract', fromlist=['sha256_file']).sha256_file(archive)}
     write_state(root, job_id, 'DONE', 'COMPLETED')
     (run_dir / 'worker_result.json').write_text(
         json.dumps(report, ensure_ascii=False), encoding='utf-8')
