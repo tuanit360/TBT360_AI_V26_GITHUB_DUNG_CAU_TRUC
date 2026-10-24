@@ -56,6 +56,16 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
     certificate = validate_adapter(adapter)
     if not certificate['valid']:
         raise ValueError('Invalid adapter: ' + certificate['reason'])
+    # A valid tensor file can still target the wrong base model. Check the
+    # trainer's declared provenance before allocating the Diffusers pipeline.
+    training_status = Path(adapter) / 'training_status.json'
+    if training_status.is_file():
+        training_record = json.loads(training_status.read_text(encoding='utf-8'))
+        if not isinstance(training_record, dict):
+            raise ValueError('Invalid adapter training metadata')
+        trained_model = training_record.get('base_model')
+        if trained_model is not None and trained_model != model:
+            raise ValueError('LoRA base model differs from requested inference model')
     if device not in ('cpu', 'cuda'):
         raise ValueError('Unsupported device')
     import torch
