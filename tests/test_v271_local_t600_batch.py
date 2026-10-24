@@ -23,6 +23,9 @@ class LocalT600BatchTests(unittest.TestCase):
         self.assertIn('exit /b 1', content)
         self.assertIn('--device cuda', content)
         self.assertNotIn('%~1', content)
+        self.assertIn('uuid4().hex[:6]', content)
+        self.assertIn('if not defined RUN_NAME goto :fail', content)
+        self.assertNotIn('set "RUN_NAME=t600_local_trial"', content)
 
 
 if __name__ == '__main__':
