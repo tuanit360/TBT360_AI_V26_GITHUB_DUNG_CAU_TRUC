@@ -44,6 +44,20 @@ def verify_inference_evidence(report: Path, image: Path) -> dict:
             evidence = validate_generated_image(decoded, expected_size=(512, 512))
         if evidence != record.get('basic_image_gate'):
             raise ValueError('Recorded image gate metrics differ from actual image')
+        # Validate reproducible SD1.5 generation parameters recorded at source.
+        if not isinstance(record.get('prompt'), str) or not record['prompt'].strip():
+            raise ValueError('Missing architectural prompt')
+        if not isinstance(record.get('negative_prompt'), str):
+            raise ValueError('Missing negative prompt')
+        cfg = record.get('guidance_scale')
+        if (type(cfg) not in (int, float) or not math.isfinite(cfg)
+                or not 0 <= cfg <= 20):
+            raise ValueError('Invalid CFG guidance')
+        if type(record.get('seed')) is not int:
+            raise ValueError('Missing integer generation seed')
+        if (type(record.get('steps')) is not int
+                or not 1 <= record['steps'] <= 100):
+            raise ValueError('Invalid generation steps')
         mode = record.get('generation_mode')
         if mode not in ('text2img', 'img2img'):
             raise ValueError('Missing or invalid generation mode')
