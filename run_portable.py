@@ -37,6 +37,11 @@ def main():
             if host not in entries:
                 entries.append(host)
         os.environ[key] = ','.join(entries)
+    if '--last-worker-report' in sys.argv:
+        from app.worker_evidence import read_report
+        import json
+        print(json.dumps(read_report(root), ensure_ascii=True), flush=True)
+        return 0
     if '--cpu-preflight' in sys.argv:
         from tools.cpu_generation_preflight import build_cpu_preflight_report
         import json

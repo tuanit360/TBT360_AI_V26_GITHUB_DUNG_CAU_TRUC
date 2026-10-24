@@ -11,12 +11,15 @@ import zipfile
 
 def run_job(job_file):
     from PIL import Image, ImageOps
+    from app.worker_evidence import write_state
     request_path = Path(job_file).resolve()
     request = json.loads(request_path.read_text(encoding='utf-8'))
     if request.get('schema') != 'bimai360.worker.v1':
         raise ValueError('Invalid worker request')
     root = request_path.parent.parent.parent
     run_dir = request_path.parent
+    job_id = run_dir.name.removeprefix('isolated_')
+    write_state(root, job_id, 'BOOT')
     source_path = run_dir / 'reference_input.png'
     if not source_path.is_file():
         raise ValueError('Missing reference image')
@@ -34,13 +37,17 @@ def run_job(job_file):
     os.environ['BIMAI360_HOME'] = str(root)
     from app.generation_stage import write_generation_stage
     write_generation_stage(root, 'MODEL_LOAD', 'BEGIN')
+    write_state(root, job_id, 'TORCH_IMPORT_BEGIN')
     import torch
+    write_state(root, job_id, 'TORCH_IMPORT_DONE')
     from app.runtime_readiness import check_generation_runtime
     selected = check_generation_runtime(torch)
     if not selected['ready']:
         raise RuntimeError(selected['message'])
     device = selected['device']
+    write_state(root, job_id, 'DIFFUSERS_IMPORT_BEGIN')
     from diffusers import AutoPipelineForImage2Image
+    write_state(root, job_id, 'DIFFUSERS_IMPORT_DONE')
     local = root / 'models' / 'sd15'
     if not (local / 'model_index.json').is_file():
         if os.environ.get('TBT360_OFFLINE') == '1':
@@ -49,6 +56,7 @@ def run_job(job_file):
     else:
         model = str(local)
     dtype = torch.float16 if device == 'cuda' else torch.float32
+    write_state(root, job_id, 'MODEL_LOAD_BEGIN')
     pipeline = AutoPipelineForImage2Image.from_pretrained(
         model, torch_dtype=dtype, use_safetensors=True,
         local_files_only=os.environ.get('TBT360_OFFLINE') == '1',
@@ -59,6 +67,7 @@ def run_job(job_file):
     else:
         pipeline.to(device)
     write_generation_stage(root, 'MODEL_LOAD', 'DONE')
+    write_state(root, job_id, 'MODEL_LOAD_DONE')
     lora_name = str(request.get('lora', 'Không dùng LoRA'))
     if lora_name != 'Không dùng LoRA':
         from app.lora_validation import verified_adapters
@@ -88,6 +97,7 @@ def run_job(job_file):
     from PIL import ImageFilter
     images = []
     for index in range(int(request['count'])):
+        write_state(root, job_id, 'INFERENCE_BEGIN')
         write_generation_stage(root, 'INFERENCE', f'BEGIN image={index+1}')
         generator = torch.Generator(device='cpu').manual_seed(seed + index)
         result = pipeline(
@@ -96,6 +106,7 @@ def run_job(job_file):
             num_inference_steps=steps, generator=generator,
         ).images[0]
         write_generation_stage(root, 'INFERENCE', f'DONE image={index+1}')
+        write_state(root, job_id, 'INFERENCE_DONE')
         factor = int(request['scale'])
         if factor not in (1, 2, 4):
             raise ValueError('Invalid postprocessing scale')
@@ -116,10 +127,12 @@ def run_job(job_file):
         )
         filename = f'architecture_option_{index+1:02d}_seed_{seed+index}.png'
         write_generation_stage(root, 'PNG_SAVE', f'BEGIN image={index+1}')
+        write_state(root, job_id, 'PNG_SAVE_BEGIN')
         result.save(run_dir / filename, format='PNG')
         with Image.open(run_dir / filename) as verified:
             verified.verify()
         write_generation_stage(root, 'PNG_SAVE', f'DONE image={index+1}')
+        write_state(root, job_id, 'PNG_SAVE_DONE')
         images.append((str(run_dir / filename), f'Phương án {index+1} · seed {seed+index}'))
     manifest = {'schema': 'bimai360.isolated.v1', 'device': device,
                 'seed': seed, 'steps': steps,
@@ -132,11 +145,14 @@ def run_job(job_file):
             source_file.unlink()
     archive = run_dir.with_suffix('.zip')
     write_generation_stage(root, 'ZIP_EXPORT', 'BEGIN')
+    write_state(root, job_id, 'ZIP_EXPORT_BEGIN')
     publish_directory_zip(run_dir, archive)
+    write_state(root, job_id, 'ZIP_EXPORT_DONE')
     write_generation_stage(root, 'ZIP_EXPORT', 'DONE')
     report = {'status': 'PASS_REAL_INFERENCE', 'images': images,
               'archive': str(archive), 'device': device,
               'sha256': hashlib.sha256(archive.read_bytes()).hexdigest()}
+    write_state(root, job_id, 'DONE', 'COMPLETED')
     (run_dir / 'worker_result.json').write_text(
         json.dumps(report, ensure_ascii=False), encoding='utf-8')
     return report
@@ -157,6 +173,12 @@ def main(argv=None):
             from app.worker_failure import classify_worker_failure
             job_path = Path(arguments.job).resolve()
             failure = classify_worker_failure(exc)
+            from app.worker_evidence import write_state
+            write_state(
+                job_path.parent.parent.parent,
+                job_path.parent.name.removeprefix('isolated_'),
+                'FAILED', 'FAILED', failure['code'],
+            )
             target = job_path.parent / 'worker_failure.json'
             partial = target.with_suffix('.json.part')
             partial.write_text(
