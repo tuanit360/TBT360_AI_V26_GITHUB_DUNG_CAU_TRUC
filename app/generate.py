@@ -1282,4 +1282,5 @@ if __name__ == '__main__':
     os.environ['GRADIO_TEMP_DIR'] = str(gradio_temp)
     ui.queue(default_concurrency_limit=2,max_size=32).launch(
       server_name='127.0.0.1',server_port=7861,inbrowser=True,share=False,
+      show_error=True,
       allowed_paths=[str(OUTPUT), str(ROOT / 'logs'), str(gradio_temp)])
