@@ -66,6 +66,13 @@ def main():
         '%(asctime)s | %(levelname)s | %(name)s | %(message)s',
     ))
     runtime_logger.addHandler(runtime_handler)
+    # Keep a native crash traceback even if Gradio/HTTP is no longer alive.
+    # This file is opened independently of every browser callback.
+    import faulthandler
+    crash_stream = (root / 'logs' / 'python_fatal.log').open(
+        'a', encoding='utf-8',
+    )
+    faulthandler.enable(file=crash_stream, all_threads=True)
     # Gradio/FastAPI errors often bypass the application logger, leaving
     # only a red "Error" badge in the browser. Keep their traceback locally.
     for logger_name in ('gradio', 'uvicorn.error', 'starlette'):
