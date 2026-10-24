@@ -23,6 +23,7 @@ class IsolatedIFCExportTests(unittest.TestCase):
             )
             self.assertIsNotNone(archive, status)
             self.assertTrue(Path(archive).is_file())
+            self.assertTrue(Path(archive).is_file())
 
 
 if __name__ == '__main__':
