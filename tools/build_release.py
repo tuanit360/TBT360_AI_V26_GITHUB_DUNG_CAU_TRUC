@@ -106,6 +106,7 @@ def main():
             'BIMAI360/BIMAI360.exe',
             'BIMAI360/CHAY_BIMAI360_CPU_KHONG_CUDA.bat',
             'BIMAI360/MO_LOG_KHONG_CAN_UI.bat',
+            'BIMAI360/CHAY_BIMAI360_GHI_LOG_LOI.bat',
             'BIMAI360/manifest.json',
             'BIMAI360/SHA256SUMS.txt',
         }
