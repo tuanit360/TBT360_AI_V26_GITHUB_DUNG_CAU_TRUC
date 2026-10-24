@@ -11,6 +11,36 @@ from pathlib import Path
 
 
 
+
+def configure_pipeline_memory(pipeline, device: str, torch_module) -> str:
+    """Choose a conservative profile without silently falling back to CPU."""
+    if device == 'cpu':
+        pipeline.to('cpu')
+        return 'cpu'
+    vram_gib = torch_module.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    if vram_gib < 3.5:
+        raise RuntimeError(
+            f'CUDA GPU has only {vram_gib:.2f} GiB VRAM; '
+            'SD1.5 local inference is not enabled below 3.5 GiB'
+        )
+    if vram_gib < 8:
+        # Diffusers model CPU offload via Accelerate keeps large components on
+        # system RAM and transfers them to GPU only as needed. Do not call
+        # pipeline.to('cuda') first: doing so defeats the VRAM saving.
+        if not hasattr(pipeline, 'enable_model_cpu_offload'):
+            raise RuntimeError('Diffusers model CPU offload is required for low VRAM')
+        pipeline.enable_model_cpu_offload()
+        if hasattr(pipeline, 'enable_vae_slicing'):
+            pipeline.enable_vae_slicing()
+        if hasattr(pipeline, 'enable_attention_slicing'):
+            pipeline.enable_attention_slicing()
+        return 'cuda_model_cpu_offload'
+    pipeline.to('cuda')
+    return 'cuda_fp16'
+
+
+
+
 def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
           prompt: str = 'Architectural photograph of a modern office facade',
           seed: int = 42, steps: int = 15,
@@ -91,7 +121,7 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         model, torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
     )
     try:
-        pipeline.to(device)
+        memory_profile = configure_pipeline_memory(pipeline, device, torch)
         pipeline.load_lora_weights(
             str(Path(adapter).resolve()),
             weight_name='pytorch_lora_weights.safetensors',
@@ -157,6 +187,7 @@ def infer(adapter: Path, model: str, output: Path, device: str = 'cpu',
         'seed': seed,
         'steps': steps,
         'device': device,
+        'memory_profile': memory_profile,
         'quality_evaluated': False,
         'basic_image_gate': image_evidence,
         'generation_mode': 'img2img' if reference is not None else 'text2img',
